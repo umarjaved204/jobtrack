@@ -25,6 +25,7 @@ from sqlalchemy.orm import Session  # noqa: E402
 
 from alembic import command  # noqa: E402
 from app.core.config import get_settings  # noqa: E402
+from app.core.rate_limit import limiter  # noqa: E402
 from app.db.session import connect_args, get_db  # noqa: E402
 from app.main import create_app  # noqa: E402
 
@@ -68,6 +69,12 @@ def engine() -> Iterator[Engine]:
 
     yield eng
     eng.dispose()
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limiter() -> None:
+    """The limiter is process-global; give every test a clean slate."""
+    limiter.reset()
 
 
 @pytest.fixture

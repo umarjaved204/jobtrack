@@ -66,10 +66,9 @@ warn_required_dynamic_aliases = true
 testpaths = ["tests"]
 addopts = "-ra --strict-markers --cov --cov-report=term-missing:skip-covered"
 filterwarnings = [
-  # Any SQLAlchemy deprecation or usage warning fails the run, so API drift
-  # (e.g. 2.0 -> 2.1) surfaces immediately instead of at the next major upgrade.
-  "error::sqlalchemy.exc.SADeprecationWarning",
-  "error::sqlalchemy.exc.SAWarning",
+  # Every warning fails the run: library deprecations (e.g. SQLAlchemy 2.0 -> 2.1) and
+  # Pydantic serializer warnings surface immediately. Allow-list specific ones if needed.
+  "error",
 ]
 
 # ---------------------------------------------------------------- coverage

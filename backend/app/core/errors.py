@@ -12,11 +12,12 @@ from fastapi.responses import JSONResponse
 
 class AppError(Exception):
     status_code: ClassVar[int] = 400
-    headers: ClassVar[dict[str, str] | None] = None
+    default_headers: ClassVar[dict[str, str] | None] = None
 
-    def __init__(self, detail: str) -> None:
+    def __init__(self, detail: str, *, headers: dict[str, str] | None = None) -> None:
         super().__init__(detail)
         self.detail = detail
+        self.headers = headers if headers is not None else self.default_headers
 
 
 class NotFoundError(AppError):
@@ -27,9 +28,19 @@ class ConflictError(AppError):
     status_code: ClassVar[int] = 409
 
 
+class UnprocessableError(AppError):
+    """Well-formed request that breaks a business rule (e.g. unknown tag id)."""
+
+    status_code: ClassVar[int] = 422
+
+
 class UnauthorizedError(AppError):
     status_code: ClassVar[int] = 401
-    headers: ClassVar[dict[str, str] | None] = {"WWW-Authenticate": "Bearer"}
+    default_headers: ClassVar[dict[str, str] | None] = {"WWW-Authenticate": "Bearer"}
+
+
+class RateLimitedError(AppError):
+    status_code: ClassVar[int] = 429
 
 
 def register_exception_handlers(app: FastAPI) -> None:

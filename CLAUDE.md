@@ -129,7 +129,7 @@ jobtrack/
 0. Plan (done)
 1. Repo scaffold: monorepo, docker-compose, env files, lint/format, pre-commit, README skeleton (done)
 2. Backend foundation: FastAPI app, config, DB session, models, Alembic migration, health check, auth with tests (done)
-3. Applications API (CRUD, status history, filters/pagination) with tests
+3. Applications API (CRUD, status history, filters/pagination) with tests (done; contacts API moved to Phase 6)
 4. Frontend foundation: design tokens, fonts, Tailwind theme, base UI components in Storybook; layout, navigation, routing, page transitions
 5. Auth UI (hero landing/login) + API client with TanStack Query
 6. Kanban + table views, application form and detail page
@@ -160,5 +160,14 @@ jobtrack/
 - DB: `pool_pre_ping`, connect timeout, `statement_timeout` via libpq `options` (`app/db/session.py`).
   Neon: app uses the pooled URL, Alembic uses `MIGRATION_DATABASE_URL` (direct). See `docs/deployment.md`.
 - pytest treats SQLAlchemy warnings as errors and reports coverage (pytest-cov).
-- Must-do before public deploy: login/register rate limiting (backend in Phase 3, UI in Phase 5).
+- Rate limiting: `app/core/rate_limit.py` (in-process sliding window; single instance only).
+  Tests reset it via an autouse fixture. Before public deploy: verify client IP isn't spoofable (docs/deployment.md).
+- pytest turns *every* warning into an error (`filterwarnings = ["error"]`).
+- Ownership: every query filters by `user_id`; other users' rows are 404, never 403.
+- Kanban: positions are floats 1024 apart; client sends the midpoint on drop; the server
+  re-spaces a column when neighbours are < 1e-6 apart (`services/applications.py`).
+- Timeline events set `created_at` in Python (DB `now()` is per transaction, so events
+  created together would tie). Flush the parent row before adding events (no ORM relationship).
+- List query params are repeatable (`?status=a&status=b`); `from`/`to` filter `applied_on`.
+- SQLAlchemy 2.1 typing: `Select[Model]`, not `Select[tuple[Model]]`.
 - Frontend commands run from `frontend/`: `pnpm dev`, `pnpm lint`, `pnpm typecheck`, `pnpm build`.

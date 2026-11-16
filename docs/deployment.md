@@ -47,6 +47,25 @@ connection wakes it, usually in well under a second.
 - **Render's free tier also sleeps** (after ~15 min without traffic), so the first request
   after a long idle period can take tens of seconds. That's Render's cold start, not the DB.
 
+## Client IP for rate limiting
+
+Login/register are rate limited per client IP (and login per email) by an in-process
+limiter (`app/core/rate_limit.py`). Two things matter in production:
+
+1. **One instance only.** Limits live in process memory. With several Render instances
+   each would count separately; move the storage to Redis before scaling out.
+2. **The IP must be the real client's, not spoofable.** The request path is
+   browser → Vercel (rewrite) → Render → uvicorn. uvicorn runs with `--proxy-headers
+   --forwarded-allow-ips='*'`, so `request.client.host` comes from `X-Forwarded-For`.
+   That's only safe if the proxies in front **overwrite** a client-supplied
+   `X-Forwarded-For` rather than appending to it.
+
+> ⚠️ **Check before deploying** (I'm not certain): Vercel's docs on request headers
+> (`x-forwarded-for` / `x-real-ip`) and Render's docs on `X-Forwarded-For`. Then test it:
+> send `curl -H "X-Forwarded-For: 1.2.3.4"` to the deployed `/api/v1/auth/login` a few
+> times and confirm the limit still triggers (i.e. the fake IP was ignored). If it
+> doesn't, narrow `--forwarded-allow-ips` or read the platform's trusted header instead.
+
 ## Required environment variables (API)
 
 | Variable | Production value |

@@ -92,10 +92,10 @@ cd backend && uv run pre-commit install
 | 0  | Planning: stack, data model, API design | ✅ |
 | 1  | Repo scaffold: monorepo, Docker, lint/format, pre-commit, CI skeleton | ✅ |
 | 2  | Backend foundation: config, DB, models, migrations, auth (+ tests) | ✅ |
-| 3  | Applications API: CRUD, status history, filters, pagination (+ tests); login/register rate limiting | ⏳ |
+| 3  | Applications API: CRUD, status history, filters, pagination (+ tests); tags API; login/register rate limiting | ✅ |
 | 4  | Frontend foundation: design tokens, base components, Storybook, routing | ⏳ |
 | 5  | Auth UI + API client (TanStack Query); cross-tab refresh coordination (Web Locks API, to verify); `429` handling | ⏳ |
-| 6  | Kanban + table views, application form, detail page | ⏳ |
+| 6  | Kanban + table views, application form, detail page; contacts API | ⏳ |
 | 7  | Dashboard: animated stat cards, custom charts | ⏳ |
 | 8  | Calendar, reminders, resume versions | ⏳ |
 | 9  | AI match service, endpoint and UI | ⏳ |
@@ -105,7 +105,7 @@ cd backend && uv run pre-commit install
 
 ### Known limitations and optional work
 
-- **Rate limiting** on login/register is **required before the public deploy** (Phase 3 backend, Phase 5 UI).
+- **Rate limiting** on login/register: backend done (Phase 3, in-process, single instance); UI handling of `429` in Phase 5. Verify client-IP handling before the public deploy (see deployment notes).
 - Password change/reset: optional, not scheduled.
 - Email verification: not planned (known limitation).
 

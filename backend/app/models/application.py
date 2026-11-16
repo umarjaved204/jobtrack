@@ -12,7 +12,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, CreatedAtMixin, TimestampMixin, UUIDPrimaryKeyMixin
 from app.models.enums import ApplicationStatus, EventType, WorkMode, str_enum
@@ -65,6 +65,11 @@ class Application(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     deadline_on: Mapped[date | None]
     resume_version_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("resume_versions.id", ondelete="SET NULL")
+    )
+
+    # "selectin": tags for a whole page of applications load in one extra query (no N+1).
+    tags: Mapped[list["Tag"]] = relationship(
+        secondary="application_tags", lazy="selectin", order_by=lambda: Tag.name
     )
 
 

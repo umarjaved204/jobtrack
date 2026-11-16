@@ -47,6 +47,15 @@ class Settings(BaseSettings):
     # (two tabs, retried request), not theft. See docs/adr/0002-authentication.md.
     refresh_reuse_grace_seconds: int = Field(default=10, ge=0)
 
+    # ---- Rate limiting (login/register). Counts every attempt, not just failures.
+    rate_limit_enabled: bool = True
+    # Per client IP, separately for login and for register.
+    rate_limit_auth_per_ip: int = Field(default=10, gt=0)
+    rate_limit_auth_ip_window_seconds: int = Field(default=60, gt=0)
+    # Per target email on login: slows down guessing one account's password from many IPs.
+    rate_limit_login_per_email: int = Field(default=5, gt=0)
+    rate_limit_login_email_window_seconds: int = Field(default=300, gt=0)
+
     @field_validator("database_url", "migration_database_url", mode="before")
     @classmethod
     def _use_psycopg_driver(cls, value: object) -> object:

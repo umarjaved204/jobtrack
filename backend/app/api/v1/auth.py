@@ -1,3 +1,5 @@
+from typing import Any
+
 from fastapi import APIRouter, Request, Response, status
 from fastapi.responses import JSONResponse
 
@@ -5,6 +7,7 @@ from app.api.cookies import clear_refresh_cookie, set_refresh_cookie
 from app.api.deps import DbSession
 from app.core.config import get_settings
 from app.core.errors import UnauthorizedError
+from app.core.rate_limit import Limit, limiter
 from app.core.security import create_access_token
 from app.models import User
 from app.schemas.auth import AuthResponse, LoginRequest, RegisterRequest
@@ -27,15 +30,47 @@ def _start_session(db: DbSession, response: Response, user: User) -> AuthRespons
     return _auth_response(user)
 
 
-@router.post("/register", status_code=status.HTTP_201_CREATED)
-def register(data: RegisterRequest, db: DbSession, response: Response) -> AuthResponse:
+def _client_ip(request: Request) -> str:
+    # Behind Render/Vercel this is the real client only because uvicorn runs with
+    # --proxy-headers; see docs/deployment.md ("Client IP for rate limiting").
+    return request.client.host if request.client else "unknown"
+
+
+def _limit_per_ip(request: Request, action: str) -> None:
+    settings = get_settings()
+    if settings.rate_limit_enabled:
+        limiter.hit(
+            f"{action}:ip:{_client_ip(request)}",
+            Limit(settings.rate_limit_auth_per_ip, settings.rate_limit_auth_ip_window_seconds),
+        )
+
+
+_RATE_LIMITED: dict[int | str, dict[str, Any]] = {
+    429: {"description": "Too many attempts; see the Retry-After header"}
+}
+
+
+@router.post("/register", status_code=status.HTTP_201_CREATED, responses=_RATE_LIMITED)
+def register(
+    data: RegisterRequest, request: Request, db: DbSession, response: Response
+) -> AuthResponse:
     """Create an account and log straight in."""
+    _limit_per_ip(request, "register")
     user = auth_service.register_user(db, data)
     return _start_session(db, response, user)
 
 
-@router.post("/login")
-def login(data: LoginRequest, db: DbSession, response: Response) -> AuthResponse:
+@router.post("/login", responses=_RATE_LIMITED)
+def login(data: LoginRequest, request: Request, db: DbSession, response: Response) -> AuthResponse:
+    _limit_per_ip(request, "login")
+    settings = get_settings()
+    if settings.rate_limit_enabled:
+        limiter.hit(
+            f"login:email:{data.email}",
+            Limit(
+                settings.rate_limit_login_per_email, settings.rate_limit_login_email_window_seconds
+            ),
+        )
     user = auth_service.authenticate(db, data.email, data.password)
     return _start_session(db, response, user)
 
