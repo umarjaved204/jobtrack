@@ -48,20 +48,26 @@ A portfolio project: clean code, tests, docs and a live deployment.
 ## Data model
 ```
 users(id, email UNIQUE lowercased, password_hash, full_name, theme, accent, created_at)
+  theme enum: light, dark, system (default system)
+  accent: palette colour *name* matching ^[a-z][a-z-]{0,19}$ (default "vermilion"); NOT an enum yet
 refresh_tokens(id, user_id, token_hash UNIQUE, expires_at, revoked_at, created_at)
 resume_versions(id, user_id, label, content_text, is_default, created_at, updated_at)
 applications(id, user_id, company, role_title, location, work_mode, job_url,
   salary_min, salary_max, salary_currency, source, status, position,
   applied_on, deadline_on, resume_version_id NULL, created_at, updated_at)
   status enum: wishlist, applied, screening, interview, offer, rejected, withdrawn
+  work_mode enum (nullable): remote, hybrid, onsite
+  source: free text (≤ 50 chars, e.g. "LinkedIn", "Referral"), filtered case-insensitively; NOT an enum
   idx (user_id,status,position), (user_id,applied_on), GIN trigram (company, role_title) via pg_trgm
-application_events(id, application_id, type 'status_change'|'note',
+application_events(id, application_id, type enum: status_change | note,
   from_status, to_status, body, created_at)  idx (application_id, created_at)
 contacts(id, application_id, name, role, email, phone, linkedin_url, notes)
 tags(id, user_id, name, color, UNIQUE(user_id,name)); application_tags(application_id, tag_id)
+  tag color: palette colour name, same pattern as accent (default "ink")
 reminders(id, user_id, application_id NULL, title, due_at, done_at)
   partial idx (user_id, due_at) WHERE done_at IS NULL
 calendar_events(id, user_id, application_id NULL, kind, title, starts_at, ends_at, location_or_link)
+  kind enum: interview, assessment, deadline, other
 match_results(id, user_id, resume_version_id, application_id NULL, jd_text, score,
   matched_skills jsonb, missing_skills jsonb, suggested_keywords jsonb, model_name, created_at)
 ```
@@ -147,6 +153,20 @@ jobtrack/
   rebuild the schema via Alembic once per run, and roll back one transaction per test.
 - Never add Co-Authored-By / "Generated with Claude Code" lines to commits or PRs.
 
+## Git workflow (from Phase 4 onward)
+- The user is the **sole committer**: never add `Co-Authored-By` or "Generated with" lines to commits or PRs.
+  Claude never commits or pushes; it gives the commands and the user runs them.
+- Each phase gets its own branch, e.g. `phase-4-frontend-foundation`. Give the
+  `git switch -c <branch>` command before starting the phase.
+- At the start of a phase, show the planned commit list.
+- Stop at each logical commit point: one coherent change with its tests/stories, CI-passing on
+  its own. Give `git add` / `git commit` commands **one per code block**, with a conventional-commit
+  message (`feat|fix|refactor|test|docs|chore(scope): ...`).
+- Don't batch unrelated changes into one commit. No "wip" or "fix typo" commits: fold small
+  fixes into the commit they belong to before the user commits.
+- At the end of the phase, give the push command plus a PR title and description (summary,
+  key decisions, how to verify, screenshots placeholder). The user merges with a **merge commit**, not squash.
+
 ## Backend conventions (established in Phase 2)
 - Services own DB work and `commit()`; they raise `AppError` subclasses (`app/core/errors.py`),
   never `HTTPException`. Routers stay thin.
@@ -159,7 +179,7 @@ jobtrack/
 - Enum changes need a hand-written migration: Alembic autogenerate ignores CHECK constraints.
 - DB: `pool_pre_ping`, connect timeout, `statement_timeout` via libpq `options` (`app/db/session.py`).
   Neon: app uses the pooled URL, Alembic uses `MIGRATION_DATABASE_URL` (direct). See `docs/deployment.md`.
-- pytest treats SQLAlchemy warnings as errors and reports coverage (pytest-cov).
+- pytest reports coverage (pytest-cov).
 - Rate limiting: `app/core/rate_limit.py` (in-process sliding window; single instance only).
   Tests reset it via an autouse fixture. Before public deploy: verify client IP isn't spoofable (docs/deployment.md).
 - pytest turns *every* warning into an error (`filterwarnings = ["error"]`).
