@@ -1,0 +1,85 @@
+# Local development stack: Postgres + FastAPI (auto-reload) + Vite (HMR).
+# Usage: cp .env.example .env && docker compose up --build
+name: jobtrack
+
+services:
+  db:
+    # Postgres 18 image: data lives under /var/lib/postgresql/18/docker, so the volume
+    # mounts the parent dir. Keep the major version in line with Neon in production.
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-jobtrack}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-jobtrack}
+      POSTGRES_DB: ${POSTGRES_DB:-jobtrack}
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  backend:
+    build: ./backend
+    # Override the production CMD with auto-reload for development.
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      ENVIRONMENT: local
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-jobtrack}:${POSTGRES_PASSWORD:-jobtrack}@db:5432/${POSTGRES_DB:-jobtrack}
+      CORS_ORIGINS: '["http://localhost:5173"]'
+      # File events don't cross the Windows/macOS -> Linux VM bind-mount boundary reliably.
+      WATCHFILES_FORCE_POLLING: 'true'
+    ports:
+      - '${BACKEND_PORT:-8000}:8000'
+    volumes:
+      - ./backend/app:/app/app
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'python',
+          '-c',
+          "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health').status == 200 else 1)",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  frontend:
+    build:
+      context: ./frontend
+      target: dev
+    environment:
+      API_PROXY_TARGET: http://backend:8000
+      VITE_USE_POLLING: 'true'
+    ports:
+      - '${FRONTEND_PORT:-5173}:5173'
+    volumes:
+      - ./frontend:/app
+      # Anonymous volume: keep the container's Linux node_modules instead of the host's.
+      - /app/node_modules
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:5173').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
+
+volumes:
+  pgdata:

@@ -1,0 +1,59 @@
+# Install once: `cd backend && uv run pre-commit install`
+# Run everything manually: `cd backend && uv run pre-commit run --all-files`
+#
+# Tool hooks are `local` so they use the exact versions locked in uv.lock / pnpm-lock.yaml
+# (no second set of versions to keep in sync). Requires `uv` and `pnpm` on PATH.
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+        args: [--fix=lf]
+      - id: check-yaml
+        exclude: ^frontend/pnpm-lock\.yaml$ # pnpm writes a multi-document lockfile
+      - id: check-toml
+      - id: check-json
+        exclude: ^frontend/tsconfig.*\.json$ # tsconfig allows comments (JSONC)
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=1024]
+      - id: detect-private-key
+
+  - repo: local
+    hooks:
+      # ---------------- backend
+      - id: ruff-check
+        name: ruff check (backend)
+        entry: uv run --directory backend ruff check --fix .
+        language: system
+        files: ^backend/.*\.py$
+        pass_filenames: false
+      - id: ruff-format
+        name: ruff format (backend)
+        entry: uv run --directory backend ruff format .
+        language: system
+        files: ^backend/.*\.py$
+        pass_filenames: false
+      - id: mypy
+        name: mypy (backend)
+        entry: uv run --directory backend mypy app tests
+        language: system
+        files: ^backend/.*\.py$
+        pass_filenames: false
+
+      # ---------------- frontend
+      - id: prettier
+        name: prettier (frontend)
+        entry: pnpm --dir frontend exec prettier --write .
+        language: system
+        files: ^frontend/
+        pass_filenames: false
+      - id: eslint
+        name: eslint (frontend)
+        entry: pnpm --dir frontend lint
+        language: system
+        files: ^frontend/.*\.(ts|tsx|js)$
+        pass_filenames: false
