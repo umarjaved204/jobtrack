@@ -24,18 +24,20 @@ services:
 
   backend:
     build: ./backend
-    # Override the production CMD with auto-reload for development.
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    # Override the production CMD: migrate, then serve with auto-reload for development.
+    command: sh -c "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     environment:
       ENVIRONMENT: local
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-jobtrack}:${POSTGRES_PASSWORD:-jobtrack}@db:5432/${POSTGRES_DB:-jobtrack}
       CORS_ORIGINS: '["http://localhost:5173"]'
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-dev-only-insecure-jwt-secret-change-me}
       # File events don't cross the Windows/macOS -> Linux VM bind-mount boundary reliably.
       WATCHFILES_FORCE_POLLING: 'true'
     ports:
       - '${BACKEND_PORT:-8000}:8000'
     volumes:
       - ./backend/app:/app/app
+      - ./backend/alembic:/app/alembic
     depends_on:
       db:
         condition: service_healthy

@@ -4,8 +4,14 @@ version = "0.1.0"
 description = "JobTrack API: job application tracker backend (FastAPI + PostgreSQL)"
 requires-python = ">=3.12"
 dependencies = [
+    "alembic>=1.20.1",
+    "email-validator>=2.4.0",
     "fastapi>=0.163.1",
+    "psycopg[binary]>=3.3.9",
+    "pwdlib[argon2]>=0.4.2",
     "pydantic-settings>=2.16.3",
+    "pyjwt>=2.15.1",
+    "sqlalchemy>=2.1.8",
     "uvicorn[standard]>=0.54.0",
 ]
 
@@ -35,7 +41,7 @@ select = [
 ignore = []
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S101"]  # assert is fine in tests
+"tests/**" = ["S101", "S105", "S106"]  # asserts and fake credentials are fine in tests
 
 [tool.ruff.lint.flake8-bugbear]
 # FastAPI's dependency-injection idiom uses calls in argument defaults.
@@ -58,7 +64,22 @@ warn_required_dynamic_aliases = true
 # ---------------------------------------------------------------- pytest
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-ra --strict-markers"
+addopts = "-ra --strict-markers --cov --cov-report=term-missing:skip-covered"
+filterwarnings = [
+  # Any SQLAlchemy deprecation or usage warning fails the run, so API drift
+  # (e.g. 2.0 -> 2.1) surfaces immediately instead of at the next major upgrade.
+  "error::sqlalchemy.exc.SADeprecationWarning",
+  "error::sqlalchemy.exc.SAWarning",
+]
+
+# ---------------------------------------------------------------- coverage
+[tool.coverage.run]
+source = ["app"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
 
 [dependency-groups]
 dev = [
@@ -66,5 +87,6 @@ dev = [
     "mypy>=2.4.1",
     "pre-commit>=4.7.0",
     "pytest>=9.2.0",
+    "pytest-cov>=7.1.0",
     "ruff>=0.17.5",
 ]

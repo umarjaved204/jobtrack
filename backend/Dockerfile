@@ -18,7 +18,9 @@ WORKDIR /app
 COPY pyproject.toml uv.lock .python-version ./
 RUN uv sync --frozen --no-dev
 
-# 2) Application code.
+# 2) Application code and migrations.
+COPY alembic.ini ./
+COPY alembic ./alembic
 COPY app ./app
 
 # Run as an unprivileged user.
@@ -30,5 +32,7 @@ EXPOSE 8000
 HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=5 \
   CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health').status == 200 else 1)"
 
+# Apply pending migrations, then serve. Fine for a single instance (Render free tier);
+# with several replicas, run migrations as a separate release step instead.
 # Render (and most PaaS) inject $PORT; default to 8000 locally.
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips='*'"]
+CMD ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips='*'"]

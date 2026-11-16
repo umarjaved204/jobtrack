@@ -49,6 +49,7 @@ docker compose up --build
 | Frontend | http://localhost:5173 |
 | API      | http://localhost:8000/api/v1/health |
 | API docs | http://localhost:8000/api/v1/docs |
+| Readiness | http://localhost:8000/api/v1/health/ready (checks the database) |
 | Postgres | `localhost:5432` (user/password/db: `jobtrack`) |
 
 ### Option B: Native (faster feedback loop)
@@ -61,6 +62,7 @@ docker compose up -d db                 # just the database
 cd backend
 cp .env.example .env
 uv sync
+uv run alembic upgrade head             # create/upgrade the schema
 uv run uvicorn app.main:app --reload    # http://localhost:8000
 
 cd ../frontend
@@ -70,6 +72,9 @@ pnpm dev                                # http://localhost:5173 (proxies /api to
 ```
 
 ### Quality checks
+
+Backend tests run against a real Postgres database (`jobtrack_test`, created automatically),
+so start it first: `docker compose up -d db`.
 
 ```bash
 # backend
@@ -86,10 +91,10 @@ cd backend && uv run pre-commit install
 | ----- | ----- | ------ |
 | 0  | Planning: stack, data model, API design | ✅ |
 | 1  | Repo scaffold: monorepo, Docker, lint/format, pre-commit, CI skeleton | ✅ |
-| 2  | Backend foundation: config, DB, models, migrations, auth (+ tests) | ⏳ |
-| 3  | Applications API: CRUD, status history, filters, pagination (+ tests) | ⏳ |
+| 2  | Backend foundation: config, DB, models, migrations, auth (+ tests) | ✅ |
+| 3  | Applications API: CRUD, status history, filters, pagination (+ tests); login/register rate limiting | ⏳ |
 | 4  | Frontend foundation: design tokens, base components, Storybook, routing | ⏳ |
-| 5  | Auth UI + API client (TanStack Query) | ⏳ |
+| 5  | Auth UI + API client (TanStack Query); cross-tab refresh coordination (Web Locks API, to verify); `429` handling | ⏳ |
 | 6  | Kanban + table views, application form, detail page | ⏳ |
 | 7  | Dashboard: animated stat cards, custom charts | ⏳ |
 | 8  | Calendar, reminders, resume versions | ⏳ |
@@ -97,6 +102,14 @@ cd backend && uv run pre-commit install
 | 10 | Polish: signature animations, ⌘K palette, a11y, responsive | ⏳ |
 | 11 | Test suite expansion + full CI | ⏳ |
 | 12 | Deploy, demo data, screenshots, write-up | ⏳ |
+
+### Known limitations and optional work
+
+- **Rate limiting** on login/register is **required before the public deploy** (Phase 3 backend, Phase 5 UI).
+- Password change/reset: optional, not scheduled.
+- Email verification: not planned (known limitation).
+
+See [docs/adr/0002-authentication.md](docs/adr/0002-authentication.md) and [docs/deployment.md](docs/deployment.md).
 
 ## License
 

@@ -128,7 +128,7 @@ jobtrack/
 ## Phases
 0. Plan (done)
 1. Repo scaffold: monorepo, docker-compose, env files, lint/format, pre-commit, README skeleton (done)
-2. Backend foundation: FastAPI app, config, DB session, models, Alembic migration, health check, auth with tests
+2. Backend foundation: FastAPI app, config, DB session, models, Alembic migration, health check, auth with tests (done)
 3. Applications API (CRUD, status history, filters/pagination) with tests
 4. Frontend foundation: design tokens, fonts, Tailwind theme, base UI components in Storybook; layout, navigation, routing, page transitions
 5. Auth UI (hero landing/login) + API client with TanStack Query
@@ -142,5 +142,23 @@ jobtrack/
 
 ## Local dev notes
 - Windows dev machine. `uv` may not be on PATH; `py -m uv ...` works as a fallback.
-- Backend commands run from `backend/`: `uv run pytest`, `uv run ruff check .`, `uv run mypy app`.
+- Backend commands run from `backend/`: `uv run pytest`, `uv run ruff check .`, `uv run mypy app tests`.
+- Tests need Postgres running (`docker compose up -d db`); they use `jobtrack_test` (auto-created),
+  rebuild the schema via Alembic once per run, and roll back one transaction per test.
+- Never add Co-Authored-By / "Generated with Claude Code" lines to commits or PRs.
+
+## Backend conventions (established in Phase 2)
+- Services own DB work and `commit()`; they raise `AppError` subclasses (`app/core/errors.py`),
+  never `HTTPException`. Routers stay thin.
+- Route deps: `DbSession`, `CurrentUser` from `app/api/deps.py`.
+- Enums: Python `StrEnum` stored as VARCHAR + CHECK (`str_enum()` in `app/models/enums.py`), not native PG enums.
+- Schema changes: edit models → `uv run alembic revision --autogenerate -m "..."` → review the file
+  → `uv run alembic upgrade head`. `tests/test_migrations.py` and CI's `alembic check` catch drift.
+- Auth design is recorded in `docs/adr/0002-authentication.md`: opaque rotating refresh token (hash only in DB),
+  token families (one per login), reuse after a 10 s grace window revokes that family only.
+- Enum changes need a hand-written migration: Alembic autogenerate ignores CHECK constraints.
+- DB: `pool_pre_ping`, connect timeout, `statement_timeout` via libpq `options` (`app/db/session.py`).
+  Neon: app uses the pooled URL, Alembic uses `MIGRATION_DATABASE_URL` (direct). See `docs/deployment.md`.
+- pytest treats SQLAlchemy warnings as errors and reports coverage (pytest-cov).
+- Must-do before public deploy: login/register rate limiting (backend in Phase 3, UI in Phase 5).
 - Frontend commands run from `frontend/`: `pnpm dev`, `pnpm lint`, `pnpm typecheck`, `pnpm build`.
