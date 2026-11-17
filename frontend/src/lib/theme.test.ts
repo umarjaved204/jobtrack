@@ -1,10 +1,13 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import indexHtml from '../../index.html?raw';
+import tokensCss from '../styles/tokens.css?raw';
 import {
   ACCENT_STORAGE_KEY,
   resetThemeForTests,
   resolvesToDark,
+  THEME_COLORS,
   THEME_STORAGE_KEY,
   useTheme,
 } from './theme';
@@ -99,6 +102,48 @@ describe('theme', () => {
     const { result } = renderHook(() => useTheme());
     expect(result.current.theme).toBe('system');
     expect(result.current.accent).toBe('vermilion');
+  });
+
+  describe('browser theme-color', () => {
+    const themeColor = () =>
+      document.querySelector('meta[name="theme-color"]')?.getAttribute('content');
+
+    beforeEach(() => {
+      const meta = document.createElement('meta');
+      meta.name = 'theme-color';
+      meta.content = THEME_COLORS.light;
+      document.head.append(meta);
+    });
+    afterEach(() => {
+      document.head.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.remove());
+    });
+
+    it('follows the theme chosen in the app, not the OS', () => {
+      mockSystemDark(false);
+      resetThemeForTests();
+      const { result } = renderHook(() => useTheme());
+
+      act(() => result.current.setTheme('dark'));
+      expect(themeColor()).toBe(THEME_COLORS.dark);
+      act(() => result.current.setTheme('light'));
+      expect(themeColor()).toBe(THEME_COLORS.light);
+    });
+
+    it('follows the OS live while on "system"', () => {
+      const setSystemDark = mockSystemDark(false);
+      resetThemeForTests();
+      renderHook(() => useTheme());
+      expect(themeColor()).toBe(THEME_COLORS.light);
+
+      act(() => setSystemDark(true));
+      expect(themeColor()).toBe(THEME_COLORS.dark);
+    });
+
+    it('uses the --paper token of each theme, same values as the pre-paint script', () => {
+      const paper = [...tokensCss.matchAll(/--paper:\s*(#[0-9a-f]{6});/gi)].map((m) => m[1]);
+      expect(paper).toEqual([THEME_COLORS.light, THEME_COLORS.dark]); // :root, then .dark
+      expect(indexHtml).toContain(`dark ? '${THEME_COLORS.dark}' : '${THEME_COLORS.light}'`);
+    });
   });
 
   it('resolves system against the OS preference', () => {

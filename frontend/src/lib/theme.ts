@@ -34,6 +34,13 @@ function writeStorage(key: string, value: string) {
   }
 }
 
+/**
+ * Browser UI colour (the `theme-color` meta) per resolved theme: the `--paper` token of
+ * each theme in tokens.css. The pre-paint script in index.html uses the same two values;
+ * tests fail if any of the three drift apart.
+ */
+export const THEME_COLORS = { light: '#f3ede2', dark: '#12100e' } as const;
+
 const darkQuery = () => window.matchMedia('(prefers-color-scheme: dark)');
 
 /** Whether `theme` renders dark right now (`system` follows the OS). */
@@ -43,8 +50,12 @@ export function resolvesToDark(theme: Theme): boolean {
 
 function apply({ theme, accent }: ThemeState) {
   const root = document.documentElement;
-  root.classList.toggle('dark', resolvesToDark(theme));
+  const dark = resolvesToDark(theme);
+  root.classList.toggle('dark', dark);
   root.dataset['accent'] = accent;
+  document
+    .querySelector('meta[name="theme-color"]')
+    ?.setAttribute('content', dark ? THEME_COLORS.dark : THEME_COLORS.light);
 }
 
 function readInitial(): ThemeState {

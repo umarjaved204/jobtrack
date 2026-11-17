@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw/http';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { THEME_COLORS } from '@/lib/theme';
 import { mockAuthBackend, server } from '@/test/msw';
 import { findPageHeading, renderApp } from '@/test/render-app';
 
@@ -57,14 +58,19 @@ describe('pre-paint theme script (index.html)', () => {
     new Function(inline?.textContent ?? '')();
   }
 
-  it('applies the cached theme and accent before React mounts', () => {
+  it('applies the cached theme, accent and browser colour before React mounts', () => {
     localStorage.setItem('jobtrack:theme', 'dark');
     localStorage.setItem('jobtrack:accent', 'forest');
+    const meta = document.createElement('meta');
+    meta.name = 'theme-color';
+    document.head.append(meta);
 
     runBootstrapScript();
 
     expect(document.documentElement).toHaveClass('dark');
     expect(document.documentElement.dataset['accent']).toBe('forest');
+    expect(meta.content).toBe(THEME_COLORS.dark);
+    meta.remove();
   });
 
   it('ignores a malformed cached accent', () => {

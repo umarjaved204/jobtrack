@@ -7,8 +7,9 @@
       name="description"
       content="JobTrack: track job applications, pipeline analytics and resume match scores."
     />
-    <meta name="theme-color" content="#f3ede2" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#12100e" media="(prefers-color-scheme: dark)" />
+    <!-- Browser UI colour = page paper. Set from the *chosen* theme by the script below
+         and by src/lib/theme.ts (not from the OS), so it matches the app. -->
+    <meta name="theme-color" content="#f3ede2" />
     <title>JobTrack</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <!--
@@ -36,6 +37,8 @@
             theme === 'dark' ||
             (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
           root.classList.toggle('dark', dark);
+          var themeColor = document.querySelector('meta[name="theme-color"]');
+          if (themeColor) themeColor.setAttribute('content', dark ? '#12100e' : '#f3ede2');
           var accent = localStorage.getItem('jobtrack:accent');
           if (accent && /^[a-z][a-z-]{0,19}$/.test(accent)) root.dataset.accent = accent;
         } catch (e) {
