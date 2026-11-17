@@ -60,7 +60,7 @@ describe('route guards', () => {
     server.use(http.post('/api/v1/auth/refresh', () => HttpResponse.error()));
     const app = renderApp('/dashboard');
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(/Can't reach JobTrack/);
+    expect(await screen.findByRole('alert')).toHaveTextContent(/Can’t reach JobTrack/);
     expect(app.location()).toBe('/dashboard');
   });
 

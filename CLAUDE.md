@@ -138,15 +138,16 @@ jobtrack/
 1. Repo scaffold: monorepo, docker-compose, env files, lint/format, pre-commit, README skeleton (done)
 2. Backend foundation: FastAPI app, config, DB session, models, Alembic migration, health check, auth with tests (done)
 3. Applications API (CRUD, status history, filters/pagination) with tests (done; contacts API moved to Phase 6)
-4. Frontend foundation: design tokens, fonts, Tailwind theme, base UI components in Storybook; layout, navigation, routing, page transitions
-5. Auth UI (hero landing/login) + API client with TanStack Query
+4. Frontend foundation: design tokens, fonts, Tailwind theme, base UI components in Storybook; layout, navigation, routing, page transitions (done)
+5. Auth UI (hero landing/login) + API client with TanStack Query (done; then a Lighthouse + web-interface-guidelines audit, fixed on `chore/frontend-audit-fixes`)
 6. Kanban + table views, application form and detail page
 7. Dashboard with animated stat cards and custom charts
 8. Calendar, reminders, resume versions
 9. AI match service, endpoint and UI
 10. Polish: offer celebration, animated funnel, ⌘K palette, empty/loading/error states, a11y, responsive, reduced motion
 11. Tests (unit, integration, 1-2 Playwright flows) and CI
-12. Deploy, demo seed script, README with screenshots, architecture diagram, GIF, "what I learned"
+12. Email verification + password reset (scope in ADR 0002 "Planned"; provider chosen then)
+13. Deploy, demo seed script, README with screenshots, architecture diagram, GIF, "what I learned"
 
 ## Local dev notes
 - Windows dev machine. `uv` may not be on PATH; `py -m uv ...` works as a fallback.
@@ -239,4 +240,13 @@ jobtrack/
   `findPageHeading(name)` waits for the fade-in. Setup resets the session, theme and localStorage
   after each test. Use `vi.fn<typeof fetch>()`-style typed fakes; `createSessionManager(deps)` takes
   injectable fetch/locks/channel/clock for unit tests.
-- Copy: no all-caps labels above titles on new pages, no "→" in buttons, sentence case.
+- Copy: no all-caps labels above titles on new pages, no "→" in buttons, sentence case,
+  typographic apostrophes (’) in user-facing strings.
+- Every layout renders `<SkipLink />` first and has `<main id="main">`. Email inputs:
+  `spellCheck={false}` + `autoCapitalize="none"`. Brand name: `translate="no"`.
+- Browser `theme-color` follows the chosen theme (`THEME_COLORS` in `src/lib/theme.ts`, same
+  values in the index.html pre-paint script; a test guards drift).
+- `/` renders without waiting for the session (no loader; CTA swaps when it resolves). The
+  app shell is a lazy route chunk; keep heavy signed-in-only code out of public pages.
+- Lighthouse: measure a production build (`pnpm build && pnpm preview`, API running) and
+  report medians of 5 runs. The anonymous `/auth/refresh` 401 is expected (ADR 0002).

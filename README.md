@@ -4,7 +4,7 @@
 
 🚧 **Work in progress.** Built phase by phase; see the [roadmap](#roadmap).
 
-<!-- Screenshots, demo GIF and live link land in Phase 12. -->
+<!-- Screenshots, demo GIF and live link land in Phase 13. -->
 
 ## Features (planned)
 
@@ -90,6 +90,28 @@ cd frontend && pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && 
 cd backend && uv run pre-commit install
 ```
 
+## Quality
+
+Audited after Phase 5 with Lighthouse 13 (production build, median of 5 runs per page) and the
+[Web Interface Guidelines](https://github.com/vercel-labs/web-interface-guidelines); fixes in
+`chore/frontend-audit-fixes`.
+
+| Page | Performance | Accessibility | Best practices | SEO | LCP | TBT |
+|---|---|---|---|---|---|---|
+| `/` mobile | 70 → **85** | 100 | 96 | 91 → **100** | 4.62 → 4.23 s | 537 → 90 ms |
+| `/login` mobile | 79 → **89** | 100 | 96 | 91 → **100** | 3.94 → 3.72 s | 358 → 57 ms |
+| `/register` mobile | 76 → **89** | 100 | 96 | 91 → **100** | 3.96 → 3.73 s | 457 → 62 ms |
+| `/` desktop | 99 | 100 | 96 | 91 → **100** | 0.93 → 0.85 s | 20 → 0 ms |
+
+Mobile uses Lighthouse's simulated slow phone and network. What changed: the landing page
+renders without waiting for the session check, the signed-in app shell is a lazy chunk (main
+bundle 182 → 130 KB gzip), the headline font is preloaded, and `robots.txt` and a favicon exist.
+
+**Why Best practices stays at 96:** an anonymous visitor's session check
+(`POST /api/v1/auth/refresh`) correctly returns `401`, and browsers log every 4xx as a console
+error. The refresh cookie is httpOnly, so the app must ask the server whether a session exists.
+This is intentional; see [ADR 0002](docs/adr/0002-authentication.md).
+
 ## Roadmap
 
 | Phase | Scope | Status |
@@ -106,14 +128,14 @@ cd backend && uv run pre-commit install
 | 9  | AI match service, endpoint and UI | ⏳ |
 | 10 | Polish: signature animations, ⌘K palette, a11y, responsive | ⏳ |
 | 11 | Test suite expansion + full CI | ⏳ |
-| 12 | Deploy, demo data, screenshots, write-up | ⏳ |
+| 12 | Email verification + password reset (non-blocking verify banner; reset never reveals if an account exists) | ⏳ |
+| 13 | Deploy, demo data, screenshots, write-up | ⏳ |
 
 ### Known limitations and optional work
 
 - **Rate limiting** on login/register: backend (Phase 3, in-process, single instance) and UI countdown from `Retry-After` (Phase 5). Verify client-IP handling before the public deploy (see deployment notes).
 - **Cross-tab sessions** use the Web Locks API, which needs a secure context (HTTPS or `localhost`). Opening the dev server from another device via a LAN IP uses the fallback path; see ADR 0002.
-- Password change/reset: optional, not scheduled.
-- Email verification: not planned (known limitation).
+- **Email addresses** are checked for format only (client and server). A domain (MX) check at sign-up is planned next; verification links and password reset are Phase 12.
 
 See [docs/adr/0002-authentication.md](docs/adr/0002-authentication.md) and [docs/deployment.md](docs/deployment.md).
 

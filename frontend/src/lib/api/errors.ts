@@ -58,15 +58,16 @@ export class ApiError extends Error {
 
 export const isApiError = (error: unknown): error is ApiError => error instanceof ApiError;
 
-const UNREACHABLE_MESSAGE = "Can't reach JobTrack. Check your connection and try again.";
+// Typographic apostrophes (’) in user-facing copy, per the web interface guidelines.
+const UNREACHABLE_MESSAGE = 'Can’t reach JobTrack. Check your connection and try again.';
 
 /** Bad Gateway, Service Unavailable, Gateway Timeout. */
 const GATEWAY_STATUSES = new Set([502, 503, 504]);
 
 const FALLBACK_MESSAGES: Record<number, string> = {
   401: 'Please sign in to continue.',
-  403: "You don't have access to that.",
-  404: "We couldn't find that.",
+  403: 'You don’t have access to that.',
+  404: 'We couldn’t find that.',
   429: 'Too many attempts. Please wait a moment and try again.',
 };
 

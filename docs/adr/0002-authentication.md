@@ -92,6 +92,22 @@ grace-window `401` (see above).
    its token **and its TanStack Query cache** (which may hold the previous user's data) and
    navigates to `/login`. Tabs that were anonymous ignore it.
 
+### Why Lighthouse reports a console error for anonymous visitors
+
+Every first visit without a session makes one `POST /api/v1/auth/refresh`, which returns
+`401 {"detail": "Not authenticated"}`. Browsers log any 4xx response as a console error, so
+Lighthouse's *Best practices* check ("no browser errors logged") marks it, capping that score
+at 96. This is **by design**: the refresh cookie is httpOnly, so JavaScript cannot tell whether
+a session exists without asking the server. The landing page no longer waits for this call
+(it renders immediately and swaps its calls to action when the session resolves), so it costs
+no rendering time. Decision (2026-11-17): keep it, no backend change.
+
+*Possible later improvement (not planned):* the backend could also set a non-httpOnly
+`has_session=1` hint cookie (no secret in it) alongside the refresh cookie, and clear it on
+logout or refresh failure. The SPA would skip the refresh call when the hint is absent. The
+cost is a second cookie to keep consistent with the real one; if the two disagree, the result
+is only an extra or a skipped (then retried) call, never a security issue.
+
 ### Routing and forms
 
 - Route loaders gate pages before render: protected pages redirect to `/login?next=…`;
@@ -122,6 +138,23 @@ grace-window `401` (see above).
 |---|---|---|
 | Login/register rate limiting | Done (verify client IP before the public deploy) | Backend limiter in Phase 3 (in-process; fine for one Render instance). UI handling of `429` (Retry-After countdown) in Phase 5 |
 | Cross-tab refresh coordination | Done (Phase 5) | Web Locks + in-tab sharing, retry-once fallback; see *Client implementation* |
-| Password change / reset | Optional | Not scheduled |
-| Email verification | Known limitation | Not planned |
+| Email verification + password reset | **Planned: Phase 12** (before deploy) | See *Planned: email verification and password reset* below |
+| Email domain check at sign-up (MX) | Planned: small backend branch after the frontend audit fixes | Register only, fail open on DNS errors, mocked DNS in tests |
 | Machine-readable auth error codes | Optional | Would remove the client's match on two `detail` strings (see *Coupling*) |
+
+## Planned: email verification and password reset (Phase 12)
+
+Agreed scope, recorded here so the design is fixed before the phase starts. The email
+provider is chosen in that phase.
+
+- **Tokens:** random, single-use, short expiry; only `sha256(token)` is stored (same pattern
+  as refresh tokens). Separate purposes (verify email, reset password) never accept each
+  other's tokens.
+- **Endpoints are rate-limited** like login/register.
+- **Reset request never reveals whether an account exists:** the same response and similar
+  timing for known and unknown emails.
+- **A successful reset revokes all of the user's refresh-token families**, signing out every
+  device. The user signs in again with the new password.
+- **Verification is non-blocking:** the app works before verifying; a banner asks the user to
+  verify (with resend, rate-limited).
+- **No emails for seed/demo accounts.**

@@ -1,8 +1,10 @@
 import { Link } from 'react-router';
 
+import { SkipLink } from '@/components/skip-link';
 import { ThemeMenu } from '@/components/theme-menu';
 import { Button } from '@/components/ui/button';
 import { Wordmark } from '@/components/wordmark';
+import { useCurrentUser } from '@/features/auth/hooks';
 
 import { SampleWeek } from './sample-week';
 
@@ -27,22 +29,38 @@ const features = [
  */
 const riseDelay = (delayMs: number) => ({ animationDelay: `${delayMs}ms` });
 
+/**
+ * The public front page. It renders immediately: the session check runs in the background
+ * (no loader), and once it resolves a signed-in visitor gets "Open your dashboard" in
+ * place of the sign-up/sign-in calls to action, instead of an automatic redirect.
+ */
 function LandingPage() {
+  const user = useCurrentUser();
+
   return (
     <div className="flex min-h-dvh flex-col">
       <title>JobTrack: every application, accounted for</title>
+      <SkipLink />
 
       <header className="mx-auto w-full max-w-page px-4 pt-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between gap-4 pb-4">
           <Wordmark to="/" />
           <nav aria-label="Account" className="flex items-center gap-1 sm:gap-2">
             <ThemeMenu />
-            <Button asChild variant="ghost" size="sm">
-              <Link to="/login">Sign in</Link>
-            </Button>
-            <Button asChild size="sm" className="hidden sm:inline-flex">
-              <Link to="/register">Create an account</Link>
-            </Button>
+            {user ? (
+              <Button asChild size="sm">
+                <Link to="/dashboard">Open your dashboard</Link>
+              </Button>
+            ) : (
+              <>
+                <Button asChild variant="ghost" size="sm">
+                  <Link to="/login">Sign in</Link>
+                </Button>
+                <Button asChild size="sm" className="hidden sm:inline-flex">
+                  <Link to="/register">Create an account</Link>
+                </Button>
+              </>
+            )}
           </nav>
         </div>
         <div className="rule-double" />
@@ -72,12 +90,20 @@ function LandingPage() {
               on the table in one place, so nothing slips while you’re busy with the search.
             </p>
             <div style={riseDelay(270)} className="mt-10 flex animate-rise-in flex-wrap gap-3">
-              <Button asChild size="lg">
-                <Link to="/register">Create an account</Link>
-              </Button>
-              <Button asChild size="lg" variant="outline">
-                <Link to="/login">Sign in</Link>
-              </Button>
+              {user ? (
+                <Button asChild size="lg">
+                  <Link to="/dashboard">Open your dashboard</Link>
+                </Button>
+              ) : (
+                <>
+                  <Button asChild size="lg">
+                    <Link to="/register">Create an account</Link>
+                  </Button>
+                  <Button asChild size="lg" variant="outline">
+                    <Link to="/login">Sign in</Link>
+                  </Button>
+                </>
+              )}
             </div>
           </div>
 

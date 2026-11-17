@@ -1,6 +1,6 @@
 # Deployment notes
 
-_The full deploy guide is written in Phase 12. These notes record decisions that affect it._
+_The full deploy guide is written in Phase 13. These notes record decisions that affect it._
 
 ## Database: Neon (PostgreSQL)
 

@@ -54,7 +54,7 @@ function SheetContent({
       <SheetPrimitive.Content
         data-slot="sheet-content"
         className={cn(
-          'fixed inset-y-0 z-50 flex h-full w-[min(20rem,85vw)] flex-col gap-4 overflow-y-auto bg-popover text-popover-foreground shadow-lg',
+          'fixed inset-y-0 z-50 flex h-full w-[min(20rem,85vw)] flex-col gap-4 overflow-y-auto overscroll-contain bg-popover text-popover-foreground shadow-lg',
           side === 'right' &&
             'right-0 border-l data-[state=closed]:animate-slide-out-right data-[state=open]:animate-slide-in-right',
           side === 'left' &&

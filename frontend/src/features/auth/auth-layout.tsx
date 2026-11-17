@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router';
 
+import { SkipLink } from '@/components/skip-link';
 import { ThemeMenu } from '@/components/theme-menu';
 import { Wordmark } from '@/components/wordmark';
 import { SampleWeek } from '@/features/landing/sample-week';
@@ -11,6 +12,7 @@ import { SampleWeek } from '@/features/landing/sample-week';
 function AuthLayout() {
   return (
     <div className="flex min-h-dvh flex-col">
+      <SkipLink />
       <header className="mx-auto w-full max-w-page px-4 pt-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between gap-4 pb-4">
           <Wordmark to="/" />

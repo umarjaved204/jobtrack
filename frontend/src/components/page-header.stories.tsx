@@ -13,7 +13,7 @@ const meta = {
   args: {
     kicker: 'Pipeline',
     title: 'Applications',
-    description: "Every role you're tracking, from wishlist to offer.",
+    description: 'Every role you’re tracking, from wishlist to offer.',
   },
 } satisfies Meta<typeof PageHeader>;
 

@@ -1,6 +1,6 @@
 # Architecture
 
-_Filled in as the system takes shape; a diagram arrives in Phase 12._
+_Filled in as the system takes shape; a diagram arrives in Phase 13._
 
 ## Request flow
 
@@ -33,7 +33,7 @@ returns the **leftmost** entry, which is exactly the one a client can forge. Tha
 safe if Vercel **overwrites** any client-supplied `X-Forwarded-For` with the real browser IP.
 
 (1) Not yet verified: Vercel's and Render's exact header behaviour. Test after the first
-deploy (Phase 12): send `X-Forwarded-For: 1.2.3.4` to the deployed login endpoint
+deploy (Phase 13): send `X-Forwarded-For: 1.2.3.4` to the deployed login endpoint
 repeatedly. If the limit doesn't trigger, the header is spoofable; fix it by restricting
 `--forwarded-allow-ips` or by keying on a platform header that clients can't set.
 Details: [deployment.md](./deployment.md#client-ip-for-rate-limiting).

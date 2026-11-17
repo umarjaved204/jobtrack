@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- JobTrack mark: paper "J" on the brand vermilion. Drawn as paths so it never depends on fonts. -->
+  <rect width="32" height="32" rx="6" fill="#E4412B"/>
+  <path d="M12.5 8.5h10M19 8.5v11.5a5 5 0 0 1-10 0v-1" fill="none" stroke="#FBF8F2" stroke-width="3.5" stroke-linecap="square"/>
+</svg>

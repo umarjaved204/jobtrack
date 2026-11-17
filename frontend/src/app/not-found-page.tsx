@@ -9,7 +9,7 @@ function NotFoundPage() {
     <PageHeader
       kicker="Error 404"
       title="Stop the presses"
-      description="We couldn't find that page. It may have moved, or the link may be mistyped."
+      description="We couldn’t find that page. It may have moved, or the link may be mistyped."
       actions={
         <Button asChild variant="outline">
           <Link to="/dashboard">

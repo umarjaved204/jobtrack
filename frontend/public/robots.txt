@@ -1,0 +1,5 @@
+# JobTrack: the public pages (landing, sign-in, sign-up) may be indexed.
+# The API is not a page; everything behind sign-in redirects to /login anyway.
+User-agent: *
+Allow: /
+Disallow: /api/
