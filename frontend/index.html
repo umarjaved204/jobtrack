@@ -7,7 +7,29 @@
       name="description"
       content="JobTrack: track job applications, pipeline analytics and resume match scores."
     />
+    <meta name="theme-color" content="#f3ede2" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#12100e" media="(prefers-color-scheme: dark)" />
     <title>JobTrack</title>
+    <!--
+      Apply the saved theme + accent before first paint so there is no light/dark flash.
+      Storage keys and the accent pattern must stay in sync with the app's theme code.
+    -->
+    <script>
+      (function () {
+        try {
+          var root = document.documentElement;
+          var theme = localStorage.getItem('jobtrack:theme') || 'system';
+          var dark =
+            theme === 'dark' ||
+            (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          root.classList.toggle('dark', dark);
+          var accent = localStorage.getItem('jobtrack:accent');
+          if (accent && /^[a-z][a-z-]{0,19}$/.test(accent)) root.dataset.accent = accent;
+        } catch (e) {
+          /* storage blocked: fall back to the light default */
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

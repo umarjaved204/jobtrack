@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig, loadEnv } from 'vite';
@@ -22,6 +23,11 @@ export default defineConfig(({ mode }) => {
       // Docker Desktop on Windows/macOS doesn't forward file-change events into
       // bind mounts reliably; polling makes HMR work inside the container.
       watch: env.VITE_USE_POLLING === 'true' ? { usePolling: true, interval: 300 } : undefined,
+    },
+    test: {
+      include: ['src/**/*.test.{ts,tsx}'],
+      // Vitest stubs CSS imports by default; the token tests read the real stylesheets.
+      css: { include: [/src\/styles\/.+\.css/] },
     },
   };
 });
