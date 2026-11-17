@@ -64,6 +64,7 @@ cp .env.example .env
 uv sync
 uv run alembic upgrade head             # create/upgrade the schema
 uv run uvicorn app.main:app --reload    # http://localhost:8000
+uv run python -m scripts.seed           # optional: demo user with ~3 months of realistic data
 
 cd ../frontend
 cp .env.example .env.local
@@ -83,7 +84,7 @@ so start it first: `docker compose up -d db`.
 
 ```bash
 # backend
-cd backend && uv run ruff check . && uv run ruff format --check . && uv run mypy app tests && uv run pytest
+cd backend && uv run ruff check . && uv run ruff format --check . && uv run mypy app tests scripts && uv run pytest
 # frontend
 cd frontend && pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm build-storybook
 # git hooks (once)

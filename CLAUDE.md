@@ -151,7 +151,10 @@ jobtrack/
 
 ## Local dev notes
 - Windows dev machine. `uv` may not be on PATH; `py -m uv ...` works as a fallback.
-- Backend commands run from `backend/`: `uv run pytest`, `uv run ruff check .`, `uv run mypy app tests`.
+- Backend commands run from `backend/`: `uv run pytest`, `uv run ruff check .`, `uv run mypy app tests scripts`.
+- Dev data: `uv run python -m scripts.seed` (demo user `sam.okafor@jobtrack-demo.com` / `demo-password-2026`,
+  ~40 applications over 90 days through the real services with a backdated clock; recreated on each run;
+  refuses production). Keep it working when services change: `tests/test_seed.py` checks its invariants.
 - Tests need Postgres running (`docker compose up -d db`); they use `jobtrack_test` (auto-created),
   rebuild the schema via Alembic once per run, and roll back one transaction per test.
 - Never add Co-Authored-By / "Generated with Claude Code" lines to commits or PRs.
