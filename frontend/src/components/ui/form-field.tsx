@@ -50,7 +50,8 @@ function FormField({ label, description, error, children, className }: FormField
   };
 
   return (
-    <div data-slot="form-field" className={cn('grid gap-2', className)}>
+    // content-start: in a row next to a taller field, don't stretch label/control apart.
+    <div data-slot="form-field" className={cn('grid content-start gap-2', className)}>
       <Label htmlFor={id}>{label}</Label>
       {typeof children === 'function' ? (
         children(control)

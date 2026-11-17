@@ -277,7 +277,7 @@ function ApplicationForm({
         </div>
 
         <fieldset className="grid gap-3">
-          <legend className="text-sm font-semibold">Salary (yearly)</legend>
+          <legend className="mb-1 text-sm font-semibold">Salary (yearly)</legend>
           <div className="grid grid-cols-[1fr_1fr_6rem] gap-3">
             <FormField label="Minimum" {...field('salary_min')}>
               <Input inputMode="numeric" className="figures" {...form.register('salary_min')} />

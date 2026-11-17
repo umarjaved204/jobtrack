@@ -76,7 +76,8 @@ describe('queries', () => {
 
 describe('useMoveApplication (optimistic)', () => {
   it('moves the card at once, then refetches the board when the move settles', async () => {
-    const backend = mockApplicationsBackend({ moveLatencyMs: 50 });
+    // Long enough that the move is still in flight when we check (even on a busy machine).
+    const backend = mockApplicationsBackend({ moveLatencyMs: 250 });
     await queryClient.fetchQuery(boardQuery());
     const { result } = renderHook(() => useBoardWithMove(), { wrapper });
 

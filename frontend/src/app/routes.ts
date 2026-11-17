@@ -75,6 +75,13 @@ export function createRoutes({ queryClient }: { queryClient: QueryClient }): Rou
                   }),
                 },
                 {
+                  path: 'applications/:id',
+                  lazy: async () => ({
+                    Component: (await import('@/features/applications/application-detail-page'))
+                      .ApplicationDetailPage,
+                  }),
+                },
+                {
                   path: 'calendar',
                   lazy: async () => ({
                     Component: (await import('@/features/calendar/calendar-page')).CalendarPage,

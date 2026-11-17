@@ -127,14 +127,16 @@ This is intentional; see [ADR 0002](docs/adr/0002-authentication.md).
 | 7  | Dashboard: animated stat cards, custom charts | ⏳ |
 | 8  | Calendar, reminders, resume versions | ⏳ |
 | 9  | AI match service, endpoint and UI | ⏳ |
-| 10 | Polish: signature animations, ⌘K palette, a11y, responsive | ⏳ |
-| 11 | Test suite expansion + full CI | ⏳ |
+| 10 | Polish: signature animations (incl. spring-physics Kanban drag), ⌘K palette, a11y, responsive | ⏳ |
+| 11 | Test suite expansion + full CI, incl. Playwright for the Kanban drag paths jsdom can't run (below) | ⏳ |
 | 12 | Email verification + password reset (non-blocking verify banner; reset never reveals if an account exists) | ⏳ |
 | 13 | Deploy, demo data, screenshots, write-up | ⏳ |
 
 ### Known limitations and optional work
 
 - **Rate limiting** on login/register: backend (Phase 3, in-process, single instance) and UI countdown from `Retry-After` (Phase 5). Verify client-IP handling before the public deploy (see deployment notes).
+- **Kanban drag tests**: jsdom has no layout, so these drag paths are verified in a real browser and belong in the Phase 11 Playwright flow: pointer drag between and within columns (5 px threshold), touch press-and-hold (250 ms) versus swipe-to-scroll, keyboard arrow-key movement between columns (including through empty and off-screen columns), drop animation on/off with `prefers-reduced-motion`, and auto-scroll near the board edges. Unit tests cover the drop maths; jsdom tests cover keyboard pick-up/drop/cancel, the "Move to…" menu and failures.
+- **Keyboard dragging** can occasionally skip a column when arrow keys are pressed faster than ~5 per second (dnd-kit measures card positions while the previous move animates). The "Move to…" menu on every card is the dependable keyboard path.
 - **Cross-tab sessions** use the Web Locks API, which needs a secure context (HTTPS or `localhost`). Opening the dev server from another device via a LAN IP uses the fallback path; see ADR 0002.
 - **Email addresses**: format is checked on client and server, and sign-up rejects domains that DNS confirms can't receive mail (typos like `gmial.com`). That doesn't prove the inbox exists: verification links and password reset are Phase 12.
 

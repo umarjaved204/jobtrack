@@ -2,6 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { mockApplicationsBackend } from '@/test/fake-applications';
 import { mockAuthBackend } from '@/test/msw';
 import { findPageHeading, renderApp } from '@/test/render-app';
 
@@ -9,6 +10,7 @@ const renderAt = (path: string) => renderApp(path).router;
 
 beforeEach(() => {
   mockAuthBackend({ signedIn: true });
+  mockApplicationsBackend({ applications: [] }); // pages load their data too
 });
 
 /** The desktop section bar (the drawer's nav only exists while it is open). */
