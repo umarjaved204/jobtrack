@@ -1,37 +1,29 @@
-import { domAnimation, LazyMotion, MotionConfig } from 'motion/react';
-import type * as React from 'react';
 import { createBrowserRouter } from 'react-router';
 import { RouterProvider } from 'react-router/dom';
 
-import { routes } from '@/app/routes';
-import { TooltipProvider } from '@/components/ui/tooltip';
+import { AppProviders } from '@/app/providers';
+import { createRoutes } from '@/app/routes';
+import { installSignOutHandler } from '@/features/auth/sign-out-handler';
+import { session } from '@/lib/api/session';
+import { createQueryClient } from '@/lib/query-client';
 
-// Created once, outside React (data routers must not live in component state).
-const router = createBrowserRouter(routes);
+// Created once, outside React (data routers and query clients must not live in state).
+const queryClient = createQueryClient();
+const router = createBrowserRouter(createRoutes({ queryClient }));
 
-/**
- * Global providers, shared by the app and the integration tests.
- * (TanStack Query joins in Phase 5.)
- */
-function AppProviders({ children }: { children: React.ReactNode }) {
-  return (
-    // LazyMotion + `m.*` components ship only the DOM animation features we use (smaller
-    // bundle); `strict` throws if a full `motion.*` component sneaks back in.
-    // reducedMotion "user": honour prefers-reduced-motion (transforms off, fades kept).
-    <LazyMotion features={domAnimation} strict>
-      <MotionConfig reducedMotion="user">
-        <TooltipProvider>{children}</TooltipProvider>
-      </MotionConfig>
-    </LazyMotion>
-  );
-}
+installSignOutHandler({
+  session,
+  queryClient,
+  navigate: (to, options) => router.navigate(to, options),
+  currentPath: () => router.state.location.pathname + router.state.location.search,
+});
 
 function App() {
   return (
-    <AppProviders>
+    <AppProviders queryClient={queryClient}>
       <RouterProvider router={router} />
     </AppProviders>
   );
 }
 
-export { App, AppProviders };
+export { App };

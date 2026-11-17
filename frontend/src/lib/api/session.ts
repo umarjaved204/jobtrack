@@ -183,6 +183,13 @@ export function createSessionManager(deps: SessionDeps) {
         listeners.delete(listener);
       };
     },
+    /** Tests only: forget the token, timer and listeners without notifying anyone. */
+    reset() {
+      current = null;
+      inFlight = null;
+      clearTimer();
+      listeners.clear();
+    },
   };
 }
 
