@@ -11,9 +11,8 @@ function RegisterPage() {
   const next = safeNextPath(params.get('next'));
 
   return (
-    <main className="mx-auto w-full max-w-md px-4 py-12 sm:py-16">
+    <>
       <AuthPageHeader
-        kicker="New here"
         title="Create your account"
         description="Track every application, interview and offer in one place."
       />
@@ -26,7 +25,7 @@ function RegisterPage() {
           Sign in
         </Link>
       </p>
-    </main>
+    </>
   );
 }
 

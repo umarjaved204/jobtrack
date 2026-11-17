@@ -3,12 +3,7 @@ import type { RouteObject } from 'react-router';
 
 import { AppShell } from '@/app/layouts/app-shell';
 import { NotFoundPage } from '@/app/not-found-page';
-import {
-  AppFallback,
-  IndexRedirect,
-  PageErrorBoundary,
-  RootErrorBoundary,
-} from '@/app/route-states';
+import { AppFallback, PageErrorBoundary, RootErrorBoundary } from '@/app/route-states';
 import { createAuthGuards } from '@/features/auth/guards';
 
 /*
@@ -30,16 +25,29 @@ export function createRoutes({ queryClient }: { queryClient: QueryClient }): Rou
           loader: guards.redirectIfSignedIn,
           children: [
             {
-              path: 'login',
+              index: true,
               lazy: async () => ({
-                Component: (await import('@/features/auth/login-page')).LoginPage,
+                Component: (await import('@/features/landing/landing-page')).LandingPage,
               }),
             },
             {
-              path: 'register',
               lazy: async () => ({
-                Component: (await import('@/features/auth/register-page')).RegisterPage,
+                Component: (await import('@/features/auth/auth-layout')).AuthLayout,
               }),
+              children: [
+                {
+                  path: 'login',
+                  lazy: async () => ({
+                    Component: (await import('@/features/auth/login-page')).LoginPage,
+                  }),
+                },
+                {
+                  path: 'register',
+                  lazy: async () => ({
+                    Component: (await import('@/features/auth/register-page')).RegisterPage,
+                  }),
+                },
+              ],
             },
           ],
         },
@@ -52,7 +60,6 @@ export function createRoutes({ queryClient }: { queryClient: QueryClient }): Rou
               // Pathless layout route: page errors render inside the shell.
               ErrorBoundary: PageErrorBoundary,
               children: [
-                { index: true, Component: IndexRedirect },
                 {
                   path: 'dashboard',
                   lazy: async () => ({

@@ -1,10 +1,12 @@
 import { Menu } from 'lucide-react';
 import { AnimatePresence, m } from 'motion/react';
 import { type RefObject, useEffect, useRef } from 'react';
-import { Link, NavLink, Outlet, ScrollRestoration, useLocation, useNavigation } from 'react-router';
+import { NavLink, Outlet, ScrollRestoration, useLocation, useNavigation } from 'react-router';
 
 import { navItems } from '@/app/navigation';
 import { ThemeMenu } from '@/components/theme-menu';
+import { UserMenu } from '@/components/user-menu';
+import { Wordmark } from '@/components/wordmark';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -24,17 +26,6 @@ const dateline = new Intl.DateTimeFormat(undefined, {
   month: 'long',
   year: 'numeric',
 });
-
-function Wordmark({ className }: { className?: string }) {
-  return (
-    <Link
-      to="/dashboard"
-      className={cn('display-face text-3xl leading-none font-semibold md:text-5xl', className)}
-    >
-      Job<span className="text-brand">Track</span>
-    </Link>
-  );
-}
 
 /** Desktop section bar under the masthead's double rule. */
 function SectionNav() {
@@ -160,11 +151,14 @@ function AppShell() {
       <header className="mx-auto w-full max-w-page px-4 pt-3 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between gap-4 border-b pb-2">
           <p className="kicker text-muted-foreground">{dateline.format(new Date())}</p>
-          <ThemeMenu />
+          <div className="flex items-center gap-1">
+            <ThemeMenu />
+            <UserMenu />
+          </div>
         </div>
         <div className="flex items-center gap-2 py-4 md:items-end md:justify-between md:py-6">
           <MobileNav />
-          <Wordmark />
+          <Wordmark to="/dashboard" />
           <p className="hidden font-display text-lg text-muted-foreground italic md:block">
             The job hunt, in print.
           </p>

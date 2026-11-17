@@ -1,5 +1,5 @@
 import { RotateCcw } from 'lucide-react';
-import { isRouteErrorResponse, Link, Navigate, useRouteError } from 'react-router';
+import { isRouteErrorResponse, Link, useRouteError } from 'react-router';
 
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -71,9 +71,4 @@ function AppFallback() {
   );
 }
 
-/** `/` → dashboard for now. Phase 5 replaces this with the landing / login page. */
-function IndexRedirect() {
-  return <Navigate to="/dashboard" replace />;
-}
-
-export { AppFallback, IndexRedirect, PageErrorBoundary, RootErrorBoundary };
+export { AppFallback, PageErrorBoundary, RootErrorBoundary };

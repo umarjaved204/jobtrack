@@ -13,12 +13,8 @@ function LoginPage() {
   const expired = params.get('reason') === 'expired';
 
   return (
-    <main className="mx-auto w-full max-w-md px-4 py-12 sm:py-16">
-      <AuthPageHeader
-        kicker="Welcome back"
-        title="Sign in"
-        description="Pick up your search where you left it."
-      />
+    <>
+      <AuthPageHeader title="Sign in" description="Pick up your search where you left it." />
       {expired && (
         <Alert tone="info" className="mt-6">
           Your session expired. Sign in again to carry on.
@@ -33,7 +29,7 @@ function LoginPage() {
           Create an account
         </Link>
       </p>
-    </main>
+    </>
   );
 }
 
