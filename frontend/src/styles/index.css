@@ -288,6 +288,18 @@
   background-image: linear-gradient(var(--fill-hover), var(--fill-hover));
 }
 
+/* Inline text link: accent ink, underline that thickens on hover. */
+@utility link {
+  font-weight: 600;
+  color: var(--primary-text);
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+  &:hover {
+    text-decoration-thickness: 2px;
+  }
+}
+
 /* Hairline rule and the heavier double rule used under mastheads. */
 @utility rule-hairline {
   border-top: 1px solid var(--rule);

@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 
-import { cleanup } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
 import { MotionGlobalConfig } from 'motion/react';
 import { afterAll, afterEach, beforeAll } from 'vitest';
 
@@ -12,6 +12,10 @@ import { server } from './msw';
 // Animations jump straight to their end state: jsdom has no real frame loop, and tests
 // assert outcomes (visible, focused), not motion.
 MotionGlobalConfig.skipAnimations = true;
+
+// findBy*/waitFor: the first visit to a lazy route compiles its chunk (form libraries
+// etc.) on demand in Vitest, which can exceed the 1 s default on a cold run.
+configure({ asyncUtilTimeout: 5000 });
 
 // Network: MSW. An unhandled request is a test bug (or a missing handler), so it fails.
 beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));

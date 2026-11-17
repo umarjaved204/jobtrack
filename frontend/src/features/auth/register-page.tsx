@@ -1,10 +1,31 @@
-import { PageHeader } from '@/components/page-header';
+import { Link, useSearchParams } from 'react-router';
 
-/** Route target for the auth guards. The sign-up form replaces this in the next commit. */
+import { safeNextPath } from '@/lib/safe-next-path';
+
+import { authLink } from './auth-link';
+import { AuthPageHeader } from './auth-page-parts';
+import { RegisterForm } from './register-form';
+
 function RegisterPage() {
+  const [params] = useSearchParams();
+  const next = safeNextPath(params.get('next'));
+
   return (
-    <main className="mx-auto max-w-page px-4 py-12 sm:px-6 lg:px-8">
-      <PageHeader kicker="New here" title="Create your account" />
+    <main className="mx-auto w-full max-w-md px-4 py-12 sm:py-16">
+      <AuthPageHeader
+        kicker="New here"
+        title="Create your account"
+        description="Track every application, interview and offer in one place."
+      />
+      <div className="mt-8">
+        <RegisterForm next={next} />
+      </div>
+      <p className="mt-8 text-sm text-muted-foreground">
+        Already have an account?{' '}
+        <Link to={authLink('/login', params.get('next'))} className="link">
+          Sign in
+        </Link>
+      </p>
     </main>
   );
 }
