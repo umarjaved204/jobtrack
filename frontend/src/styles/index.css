@@ -1,6 +1,297 @@
 @import 'tailwindcss';
+@import './tokens.css';
+
+/* Theme is a class on <html> (see index.html), so `dark:` follows it, not the OS directly. */
+@custom-variant dark (&:where(.dark, .dark *));
 
 /*
- * Design tokens (colors, type scale, spacing, radii, shadows, motion) are defined
- * in Phase 4 via `@theme` + CSS variables. Nothing custom yet.
+ * Tailwind theme. `inline` makes utilities reference the runtime CSS variables from
+ * tokens.css, so theme and accent switches need no rebuild.
+ *
+ * Tailwind's default colour palette is removed on purpose: only design tokens exist,
+ * so `bg-red-500` simply doesn't compile into anything.
  */
+@theme inline {
+  --color-*: initial;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-text: var(--primary-text);
+  --color-primary-tint: var(--primary-tint);
+  --color-brand: var(--brand);
+  --color-highlight: var(--highlight);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-rule: var(--rule);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-paper: var(--paper);
+  --color-paper-raised: var(--paper-raised);
+  --color-paper-sunken: var(--paper-sunken);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+
+  --color-vermilion: var(--palette-vermilion);
+  --color-vermilion-tint: var(--palette-vermilion-tint);
+  --color-cobalt: var(--palette-cobalt);
+  --color-cobalt-tint: var(--palette-cobalt-tint);
+  --color-teal: var(--palette-teal);
+  --color-teal-tint: var(--palette-teal-tint);
+  --color-ochre: var(--palette-ochre);
+  --color-ochre-tint: var(--palette-ochre-tint);
+  --color-forest: var(--palette-forest);
+  --color-forest-tint: var(--palette-forest-tint);
+  --color-plum: var(--palette-plum);
+  --color-plum-tint: var(--palette-plum-tint);
+  --color-oxblood: var(--palette-oxblood);
+  --color-oxblood-tint: var(--palette-oxblood-tint);
+  --color-stone: var(--palette-stone);
+  --color-stone-tint: var(--palette-stone-tint);
+  --color-on-palette: var(--palette-on);
+
+  --color-status-wishlist: var(--status-wishlist);
+  --color-status-wishlist-tint: var(--status-wishlist-tint);
+  --color-status-applied: var(--status-applied);
+  --color-status-applied-tint: var(--status-applied-tint);
+  --color-status-screening: var(--status-screening);
+  --color-status-screening-tint: var(--status-screening-tint);
+  --color-status-interview: var(--status-interview);
+  --color-status-interview-tint: var(--status-interview-tint);
+  --color-status-offer: var(--status-offer);
+  --color-status-offer-tint: var(--status-offer-tint);
+  --color-status-rejected: var(--status-rejected);
+  --color-status-rejected-tint: var(--status-rejected-tint);
+  --color-status-withdrawn: var(--status-withdrawn);
+  --color-status-withdrawn-tint: var(--status-withdrawn-tint);
+
+  /* Layered, warm shadows; colour/strength come from tokens.css per theme. */
+  --shadow-xs: 0 1px 0 rgb(var(--shadow-rgb) / calc(0.05 * var(--shadow-strength)));
+  --shadow-sm:
+    0 1px 1px rgb(var(--shadow-rgb) / calc(0.04 * var(--shadow-strength))),
+    0 2px 4px -1px rgb(var(--shadow-rgb) / calc(0.06 * var(--shadow-strength)));
+  --shadow-md:
+    0 1px 1px rgb(var(--shadow-rgb) / calc(0.04 * var(--shadow-strength))),
+    0 4px 8px -2px rgb(var(--shadow-rgb) / calc(0.06 * var(--shadow-strength))),
+    0 12px 24px -8px rgb(var(--shadow-rgb) / calc(0.08 * var(--shadow-strength)));
+  --shadow-lg:
+    0 1px 2px rgb(var(--shadow-rgb) / calc(0.05 * var(--shadow-strength))),
+    0 8px 16px -4px rgb(var(--shadow-rgb) / calc(0.08 * var(--shadow-strength))),
+    0 24px 48px -12px rgb(var(--shadow-rgb) / calc(0.14 * var(--shadow-strength)));
+}
+
+@theme {
+  /* ---- Type */
+  --font-display: 'Fraunces Variable', ui-serif, Georgia, 'Times New Roman', serif;
+  --font-sans: 'Instrument Sans Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+  /* Editorial display sizes: fluid between phone and wide desktop. */
+  --text-display-sm: clamp(1.75rem, 1.4rem + 1.5vw, 2.5rem);
+  --text-display-sm--line-height: 1.05;
+  --text-display-sm--letter-spacing: -0.01em;
+  --text-display: clamp(2.5rem, 1.8rem + 3vw, 4rem);
+  --text-display--line-height: 1;
+  --text-display--letter-spacing: -0.02em;
+  --text-display-lg: clamp(3.25rem, 2rem + 5.5vw, 6.5rem);
+  --text-display-lg--line-height: 0.95;
+  --text-display-lg--letter-spacing: -0.03em;
+  /* Oversized figures (stat cards). Used with font-mono or font-display + tabular-nums. */
+  --text-numeral: clamp(3.5rem, 2rem + 7vw, 8rem);
+  --text-numeral--line-height: 0.85;
+  --text-numeral--letter-spacing: -0.04em;
+
+  /* ---- Shape: crisp, newsprint-like corners */
+  --radius-xs: 1px;
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --radius-xl: 10px;
+  --radius-2xl: 16px;
+
+  /* ---- Layout */
+  --container-page: 88rem;
+  --container-prose: 42rem;
+
+  /* ---- Motion easing (durations live in tokens.css as --duration-*) */
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-quart: cubic-bezier(0.76, 0, 0.24, 1);
+
+  /*
+   * Enter/exit animations for Radix overlays (`data-[state=open]:animate-pop-in` etc.).
+   * Radix waits for the exit animation before unmounting. Durations are tokens, so
+   * prefers-reduced-motion (durations → 0) turns them off without extra code.
+   */
+  --animate-fade-in: fade-in var(--duration-base) var(--ease-out-quint) both;
+  --animate-fade-out: fade-out var(--duration-fast) ease-in both;
+  --animate-pop-in: pop-in var(--duration-base) var(--ease-out-quint) both;
+  --animate-pop-out: pop-out var(--duration-fast) ease-in both;
+  --animate-rise-in: rise-in var(--duration-slow) var(--ease-out-expo) both;
+  --animate-slide-in-left: slide-in-left var(--duration-slow) var(--ease-out-expo) both;
+  --animate-slide-out-left: slide-out-left var(--duration-base) var(--ease-in-out-quart) both;
+  --animate-slide-in-right: slide-in-right var(--duration-slow) var(--ease-out-expo) both;
+  --animate-slide-out-right: slide-out-right var(--duration-base) var(--ease-in-out-quart) both;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes fade-out {
+    to {
+      opacity: 0;
+    }
+  }
+  @keyframes pop-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px) scale(0.97);
+    }
+  }
+  @keyframes pop-out {
+    to {
+      opacity: 0;
+      transform: scale(0.97);
+    }
+  }
+  @keyframes rise-in {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+  }
+  @keyframes slide-in-left {
+    from {
+      transform: translateX(-100%);
+    }
+  }
+  @keyframes slide-out-left {
+    to {
+      transform: translateX(-100%);
+    }
+  }
+  @keyframes slide-in-right {
+    from {
+      transform: translateX(100%);
+    }
+  }
+  @keyframes slide-out-right {
+    to {
+      transform: translateX(100%);
+    }
+  }
+}
+
+@layer base {
+  *,
+  ::before,
+  ::after {
+    border-color: var(--color-border);
+  }
+
+  /*
+   * Paper grain lives in the page background only (never over content), so it can't
+   * reduce text contrast. Raised surfaces (cards, popovers) stay smooth.
+   */
+  html {
+    background-color: var(--background);
+    background-image: var(--grain);
+    background-attachment: fixed;
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-optical-sizing: auto;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    min-height: 100dvh;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  ::selection {
+    background-color: var(--brand);
+    color: var(--palette-on);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* Small-caps style label above headings and stat figures ("kicker" in newsroom terms). */
+@utility kicker {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  line-height: var(--text-xs--line-height);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* Figures that line up in columns: tables, stat cards, salaries. */
+@utility figures {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums slashed-zero;
+  font-feature-settings: 'zero' 1;
+}
+
+/* Fraunces at its most editorial: high optical size, a touch of softness. */
+@utility display-face {
+  font-family: var(--font-display);
+  font-variation-settings:
+    'opsz' 144,
+    'SOFT' 30,
+    'WONK' 0;
+}
+
+/* Hover/pressed overlay for solid fills; keeps on-fill text at or above its AA contrast. */
+@utility fill-hover {
+  background-image: linear-gradient(var(--fill-hover), var(--fill-hover));
+}
+
+/* Hairline rule and the heavier double rule used under mastheads. */
+@utility rule-hairline {
+  border-top: 1px solid var(--rule);
+}
+@utility rule-double {
+  border-top: 3px double var(--rule);
+}

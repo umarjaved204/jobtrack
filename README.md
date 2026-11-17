@@ -20,7 +20,7 @@
 
 | Layer    | Tech |
 | -------- | ---- |
-| Frontend | React 18, Vite, TypeScript (strict), Tailwind CSS v4, shadcn/ui + Radix, Motion, TanStack Query, React Router 7, React Hook Form + Zod, dnd-kit, Recharts |
+| Frontend | React 19, Vite, TypeScript (strict), Tailwind CSS v4, shadcn/ui + Radix, Motion, TanStack Query, React Router 8, React Hook Form + Zod, dnd-kit, Recharts |
 | Backend  | Python 3.12, FastAPI, Pydantic v2, SQLAlchemy 2.0, Alembic, PostgreSQL, PyJWT, pwdlib (argon2) |
 | Tooling  | uv, pnpm, Ruff, mypy, ESLint, Prettier, pytest, Vitest, Playwright, Storybook, pre-commit, GitHub Actions |
 | Deploy   | Vercel (frontend) · Render (API) · Neon (Postgres) |
@@ -69,6 +69,7 @@ cd ../frontend
 cp .env.example .env.local
 pnpm install
 pnpm dev                                # http://localhost:5173 (proxies /api to :8000)
+pnpm storybook                          # http://localhost:6006 (design tokens + components)
 ```
 
 ### Quality checks
@@ -80,7 +81,7 @@ so start it first: `docker compose up -d db`.
 # backend
 cd backend && uv run ruff check . && uv run ruff format --check . && uv run mypy app tests && uv run pytest
 # frontend
-cd frontend && pnpm lint && pnpm typecheck && pnpm build
+cd frontend && pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm build-storybook
 # git hooks (once)
 cd backend && uv run pre-commit install
 ```
@@ -93,7 +94,7 @@ cd backend && uv run pre-commit install
 | 1  | Repo scaffold: monorepo, Docker, lint/format, pre-commit, CI skeleton | ✅ |
 | 2  | Backend foundation: config, DB, models, migrations, auth (+ tests) | ✅ |
 | 3  | Applications API: CRUD, status history, filters, pagination (+ tests); tags API; login/register rate limiting | ✅ |
-| 4  | Frontend foundation: design tokens, base components, Storybook, routing | ⏳ |
+| 4  | Frontend foundation: design tokens (WCAG AA-tested), base components, Storybook, app shell + routing | ✅ |
 | 5  | Auth UI + API client (TanStack Query); cross-tab refresh coordination (Web Locks API, to verify); `429` handling | ⏳ |
 | 6  | Kanban + table views, application form, detail page; contacts API | ⏳ |
 | 7  | Dashboard: animated stat cards, custom charts | ⏳ |

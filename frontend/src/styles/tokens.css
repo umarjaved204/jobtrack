@@ -1,0 +1,223 @@
+/*
+ * JobTrack design tokens: "Broadsheet" (light) and "Night edition" (dark).
+ *
+ * Source of truth for every colour, shadow and motion value. `index.css` maps these
+ * onto Tailwind utilities via `@theme inline`; components never use raw hex values.
+ *
+ * Rules:
+ * - Colours are plain hex so `tokens.contrast.test.ts` can verify WCAG AA pairs.
+ *   Change a value here → run `pnpm test` → the contrast suite tells you if it broke AA.
+ * - Each named palette colour has three roles:
+ *     --palette-<name>        text-safe on paper/card AND usable as a solid fill
+ *     --palette-<name>-tint   quiet background (chips, badges); <name> text stays AA on it
+ *     --palette-on            text colour on any solid palette fill
+ * - Palette names are what the API stores for `users.accent` and `tags.color`.
+ * - Theme is a `.dark` class on <html> (set before first paint by the script in index.html).
+ */
+
+:root {
+  color-scheme: light;
+
+  /* ---- Surfaces & ink */
+  --paper: #f3ede2;
+  --paper-raised: #fbf8f2;
+  --paper-sunken: #eae2d3;
+  --ink: #16130f;
+  --ink-muted: #675d51;
+
+  /* ---- Named palette (light) */
+  --palette-vermilion: #b53019;
+  --palette-vermilion-tint: #f2ded6;
+  --palette-cobalt: #2b4bdb;
+  --palette-cobalt-tint: #e0e2ef;
+  --palette-teal: #0e6b68;
+  --palette-teal-tint: #dce6e0;
+  --palette-ochre: #8a5800;
+  --palette-ochre-tint: #ece3d3;
+  --palette-forest: #2e6a35;
+  --palette-forest-tint: #e0e6d9;
+  --palette-plum: #7c3a78;
+  --palette-plum-tint: #eadfe2;
+  --palette-oxblood: #8e2b2b;
+  --palette-oxblood-tint: #eddddb;
+  --palette-stone: #675d51;
+  --palette-stone-tint: #e8e4dd;
+  --palette-ink: #16130f;
+  --palette-ink-tint: #dddad4;
+  --palette-on: #fbf8f2;
+
+  /*
+   * The signature vermilion. #E4412B is only 3.5:1 on paper, so it is used for display
+   * type (≥ 24px), rules and graphics. Button fills use the slightly deeper `-fill`.
+   */
+  --vermilion-display: #e4412b;
+  --vermilion-fill: #c8361f;
+
+  /* ---- Semantic roles (shadcn-compatible names) */
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: var(--paper-raised);
+  --card-foreground: var(--ink);
+  --popover: var(--paper-raised);
+  --popover-foreground: var(--ink);
+  --muted: var(--paper-sunken);
+  --muted-foreground: #5e554a;
+  --secondary: var(--paper-sunken);
+  --secondary-foreground: var(--ink);
+  --accent: #e5dccb; /* hover/selected surface, not the brand colour */
+  --accent-foreground: var(--ink);
+  --destructive: var(--palette-oxblood);
+  --destructive-foreground: var(--palette-on);
+  --highlight: var(--palette-cobalt); /* the secondary brand colour: links, focus */
+
+  /* Lines: hairlines are decorative; --input must hit 3:1 (WCAG 1.4.11). */
+  --border: #d6cdbd;
+  --rule: var(--ink);
+  --input: #8a7f70;
+  --ring: var(--palette-cobalt);
+
+  /*
+   * Hover/pressed tint laid over solid fills (see the `fill-hover` utility). Darkens in light
+   * mode and lightens in dark mode: the direction that *raises* contrast with on-fill text.
+   */
+  --fill-hover: rgb(22 19 15 / 0.12);
+
+  /* ---- Shadows: warm ink, layered. Dark mode swaps the colour and strength. */
+  --shadow-rgb: 22 19 15;
+  --shadow-strength: 1;
+
+  /* ---- Motion (mirrored in src/lib/motion.ts for `motion/react`) */
+  --duration-instant: 80ms;
+  --duration-fast: 150ms;
+  --duration-base: 240ms;
+  --duration-slow: 400ms;
+  --duration-slower: 640ms;
+
+  /* ---- Texture: monochrome SVG noise, opacity baked in per theme */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.07'/%3E%3C/svg%3E");
+}
+
+.dark {
+  color-scheme: dark;
+
+  --paper: #12100e;
+  --paper-raised: #1c1915;
+  --paper-sunken: #0c0a09;
+  --ink: #ede5d6;
+  --ink-muted: #a89f90;
+
+  --palette-vermilion: #f2654e;
+  --palette-vermilion-tint: #3e251e;
+  --palette-cobalt: #8299ff;
+  --palette-cobalt-tint: #2c2d3a;
+  --palette-teal: #4ec0ba;
+  --palette-teal-tint: #24342f;
+  --palette-ochre: #e2a93f;
+  --palette-ochre-tint: #3c301c;
+  --palette-forest: #7cc284;
+  --palette-forest-tint: #2b3427;
+  --palette-plum: #d38ccb;
+  --palette-plum-tint: #392b32;
+  --palette-oxblood: #e37f76;
+  --palette-oxblood-tint: #3c2925;
+  --palette-stone: #a89f90;
+  --palette-stone-tint: #322e29;
+  --palette-ink: #ede5d6;
+  --palette-ink-tint: #3d3a34;
+  --palette-on: #12100e;
+
+  --vermilion-display: #f2654e;
+  --vermilion-fill: #e4412b;
+
+  --muted-foreground: #a89f90;
+  --accent: #2a2620;
+  --border: #322d27;
+  --input: #756c5f;
+
+  --fill-hover: rgb(237 229 214 / 0.14);
+  --shadow-rgb: 0 0 0;
+  --shadow-strength: 2.5;
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+}
+
+/*
+ * Accent (user setting): `data-accent` on <html> re-points the primary colour.
+ * Vermilion is the default, and the only palette colour with a separate fill shade.
+ */
+:root,
+[data-accent='vermilion'] {
+  --primary: var(--vermilion-fill);
+  --primary-text: var(--palette-vermilion);
+  --primary-tint: var(--palette-vermilion-tint);
+  --brand: var(--vermilion-display);
+}
+[data-accent='cobalt'] {
+  --primary: var(--palette-cobalt);
+  --primary-text: var(--palette-cobalt);
+  --primary-tint: var(--palette-cobalt-tint);
+  --brand: var(--palette-cobalt);
+}
+[data-accent='teal'] {
+  --primary: var(--palette-teal);
+  --primary-text: var(--palette-teal);
+  --primary-tint: var(--palette-teal-tint);
+  --brand: var(--palette-teal);
+}
+[data-accent='forest'] {
+  --primary: var(--palette-forest);
+  --primary-text: var(--palette-forest);
+  --primary-tint: var(--palette-forest-tint);
+  --brand: var(--palette-forest);
+}
+[data-accent='ochre'] {
+  --primary: var(--palette-ochre);
+  --primary-text: var(--palette-ochre);
+  --primary-tint: var(--palette-ochre-tint);
+  --brand: var(--palette-ochre);
+}
+[data-accent='plum'] {
+  --primary: var(--palette-plum);
+  --primary-text: var(--palette-plum);
+  --primary-tint: var(--palette-plum-tint);
+  --brand: var(--palette-plum);
+}
+[data-accent='ink'] {
+  --primary: var(--palette-ink);
+  --primary-text: var(--palette-ink);
+  --primary-tint: var(--palette-ink-tint);
+  --brand: var(--palette-ink);
+}
+:root {
+  --primary-foreground: var(--palette-on);
+}
+
+/*
+ * Application status ramp (7 steps, follows the pipeline left → right).
+ * Rejected uses oxblood, not vermilion, so it never reads as the brand colour.
+ */
+:root {
+  --status-wishlist: var(--palette-stone);
+  --status-wishlist-tint: var(--palette-stone-tint);
+  --status-applied: var(--palette-cobalt);
+  --status-applied-tint: var(--palette-cobalt-tint);
+  --status-screening: var(--palette-teal);
+  --status-screening-tint: var(--palette-teal-tint);
+  --status-interview: var(--palette-ochre);
+  --status-interview-tint: var(--palette-ochre-tint);
+  --status-offer: var(--palette-forest);
+  --status-offer-tint: var(--palette-forest-tint);
+  --status-rejected: var(--palette-oxblood);
+  --status-rejected-tint: var(--palette-oxblood-tint);
+  --status-withdrawn: var(--palette-plum);
+  --status-withdrawn-tint: var(--palette-plum-tint);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-instant: 0ms;
+    --duration-fast: 0ms;
+    --duration-base: 0ms;
+    --duration-slow: 0ms;
+    --duration-slower: 0ms;
+  }
+}
