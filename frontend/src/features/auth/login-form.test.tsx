@@ -37,6 +37,9 @@ describe('LoginForm', () => {
     const app = await openLogin('/login?next=%2Fcalendar');
 
     expect(emailField()).toHaveAttribute('autocomplete', 'email');
+    // Phones must not auto-capitalise or "correct" an email address.
+    expect(emailField()).toHaveAttribute('spellcheck', 'false');
+    expect(emailField()).toHaveAttribute('autocapitalize', 'none');
     expect(passwordField()).toHaveAttribute('autocomplete', 'current-password');
     await user.type(emailField(), testUser.email);
     await user.type(passwordField(), TEST_PASSWORD);
@@ -131,7 +134,7 @@ describe('LoginForm', () => {
     await user.type(passwordField(), TEST_PASSWORD);
     await user.click(submit());
 
-    expect(await screen.findByRole('alert')).toHaveTextContent("Can't reach JobTrack");
+    expect(await screen.findByRole('alert')).toHaveTextContent('Can’t reach JobTrack');
     expect(passwordField()).toHaveValue(TEST_PASSWORD);
   });
 

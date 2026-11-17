@@ -10,7 +10,7 @@ function ApplicationsPage() {
       <PageHeader
         kicker="Pipeline"
         title="Applications"
-        description="Every role you're tracking, from wishlist to offer."
+        description="Every role you’re tracking, from wishlist to offer."
       />
       <EmptyState icon={SquareKanban} title="No applications yet" className="mt-10">
         The kanban board, the searchable table and the application form arrive in Phase 6.

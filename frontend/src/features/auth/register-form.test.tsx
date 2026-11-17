@@ -27,6 +27,8 @@ describe('RegisterForm', () => {
     const app = await openRegister();
 
     expect(screen.getByLabelText('Full name')).toHaveAttribute('autocomplete', 'name');
+    expect(screen.getByLabelText('Email')).toHaveAttribute('spellcheck', 'false');
+    expect(screen.getByLabelText('Email')).toHaveAttribute('autocapitalize', 'none');
     expect(screen.getByLabelText('Password')).toHaveAttribute('autocomplete', 'new-password');
     await fillIn({
       name: 'Amara Nwosu',
@@ -76,7 +78,7 @@ describe('RegisterForm', () => {
     });
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      "Can't reach JobTrack. Check your connection and try again.",
+      'Can’t reach JobTrack. Check your connection and try again.',
     );
   });
 

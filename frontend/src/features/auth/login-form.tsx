@@ -46,7 +46,14 @@ function LoginForm({ next }: { next: string }) {
     <form noValidate onSubmit={onSubmit} className="grid gap-5">
       {alert.message && <Alert>{alert.message}</Alert>}
       <FormField label="Email" error={errors.email?.message}>
-        <Input type="email" autoComplete="email" inputMode="email" {...form.register('email')} />
+        <Input
+          type="email"
+          autoComplete="email"
+          inputMode="email"
+          spellCheck={false}
+          autoCapitalize="none"
+          {...form.register('email')}
+        />
       </FormField>
       <FormField label="Password" error={errors.password?.message}>
         <PasswordInput autoComplete="current-password" {...form.register('password')} />

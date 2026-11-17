@@ -64,6 +64,30 @@ describe('landing page', () => {
   });
 });
 
+describe('skip link and brand name', () => {
+  it.each([
+    ['/', 'Every application, accounted for.'],
+    ['/login', 'Sign in'],
+    ['/register', 'Create your account'],
+  ])('on %s the first Tab stop skips to the main content', async (path, heading) => {
+    const user = userEvent.setup();
+    renderApp(path);
+    await findPageHeading(heading);
+
+    await user.tab();
+    const skip = screen.getByRole('link', { name: 'Skip to content' });
+    expect(skip).toHaveFocus();
+    expect(skip).toHaveAttribute('href', '#main');
+    expect(screen.getByRole('main')).toHaveAttribute('id', 'main');
+  });
+
+  it('keeps the JobTrack wordmark out of browser translation', async () => {
+    renderApp('/');
+    await findPageHeading('Every application, accounted for.');
+    expect(screen.getByRole('link', { name: 'JobTrack' })).toHaveAttribute('translate', 'no');
+  });
+});
+
 describe('auth layout', () => {
   it('links the nameplate home and keeps the sample week out of the accessibility tree', async () => {
     renderApp('/login');

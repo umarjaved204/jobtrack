@@ -12,7 +12,7 @@ function MatchPage() {
         title="Match a job description"
         description="Paste a job description to score it against one of your resumes."
       />
-      <EmptyState icon={Sparkles} title="Matching isn't switched on yet" className="mt-10">
+      <EmptyState icon={Sparkles} title="Matching isn’t switched on yet" className="mt-10">
         The match score, missing skills and suggested keywords arrive in Phase 9.
       </EmptyState>
     </>

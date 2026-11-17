@@ -4,6 +4,7 @@ import { type RefObject, useEffect, useRef } from 'react';
 import { NavLink, Outlet, ScrollRestoration, useLocation, useNavigation } from 'react-router';
 
 import { navItems } from '@/app/navigation';
+import { SkipLink } from '@/components/skip-link';
 import { ThemeMenu } from '@/components/theme-menu';
 import { UserMenu } from '@/components/user-menu';
 import { Wordmark } from '@/components/wordmark';
@@ -66,7 +67,7 @@ function MobileNav() {
       </SheetTrigger>
       <SheetContent side="left">
         <SheetHeader className="border-b">
-          <SheetTitle className="display-face text-3xl">
+          <SheetTitle translate="no" className="display-face text-3xl">
             Job<span className="text-brand">Track</span>
           </SheetTitle>
           <SheetDescription>Sections</SheetDescription>
@@ -140,12 +141,7 @@ function AppShell() {
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <a
-        href="#main"
-        className="sr-only z-50 rounded-md bg-primary px-4 py-2 font-semibold text-primary-foreground focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
-      >
-        Skip to content
-      </a>
+      <SkipLink />
       <NavigationProgress />
 
       <header className="mx-auto w-full max-w-page px-4 pt-3 sm:px-6 lg:px-8">

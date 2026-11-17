@@ -47,7 +47,14 @@ function RegisterForm({ next }: { next: string }) {
         <Input autoComplete="name" {...form.register('full_name')} />
       </FormField>
       <FormField label="Email" error={errors.email?.message}>
-        <Input type="email" autoComplete="email" inputMode="email" {...form.register('email')} />
+        <Input
+          type="email"
+          autoComplete="email"
+          inputMode="email"
+          spellCheck={false}
+          autoCapitalize="none"
+          {...form.register('email')}
+        />
       </FormField>
       <FormField
         label="Password"

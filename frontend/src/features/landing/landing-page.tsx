@@ -1,5 +1,6 @@
 import { Link } from 'react-router';
 
+import { SkipLink } from '@/components/skip-link';
 import { ThemeMenu } from '@/components/theme-menu';
 import { Button } from '@/components/ui/button';
 import { Wordmark } from '@/components/wordmark';
@@ -39,6 +40,7 @@ function LandingPage() {
   return (
     <div className="flex min-h-dvh flex-col">
       <title>JobTrack: every application, accounted for</title>
+      <SkipLink />
 
       <header className="mx-auto w-full max-w-page px-4 pt-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between gap-4 pb-4">
