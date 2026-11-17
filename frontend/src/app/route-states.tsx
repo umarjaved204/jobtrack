@@ -1,12 +1,17 @@
 import { RotateCcw } from 'lucide-react';
-import { isRouteErrorResponse, Link, Navigate, useRouteError } from 'react-router';
+import { isRouteErrorResponse, Link, useRouteError } from 'react-router';
 
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { isApiError } from '@/lib/api/errors';
 
 function describeError(error: unknown) {
   if (isRouteErrorResponse(error)) {
     return { code: String(error.status), message: error.statusText || 'Request failed.' };
+  }
+  if (isApiError(error)) {
+    // e.g. the API is unreachable while restoring the session (status 0).
+    return { code: error.status ? String(error.status) : 'Offline', message: error.detail };
   }
   return {
     code: 'Error',
@@ -66,9 +71,4 @@ function AppFallback() {
   );
 }
 
-/** `/` → dashboard for now. Phase 5 replaces this with the landing / login page. */
-function IndexRedirect() {
-  return <Navigate to="/dashboard" replace />;
-}
-
-export { AppFallback, IndexRedirect, PageErrorBoundary, RootErrorBoundary };
+export { AppFallback, PageErrorBoundary, RootErrorBoundary };

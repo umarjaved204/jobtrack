@@ -34,6 +34,9 @@ export default defineConfig(({ mode }) => {
       include: ['src/**/*.test.{ts,tsx}'],
       environment: 'jsdom',
       setupFiles: ['./src/test/setup.ts'],
+      // Integration tests mount the real app; a cold run compiles lazy route chunks on
+      // demand, which under parallel load can exceed the 5 s default for one test.
+      testTimeout: 15_000,
       // Vitest stubs CSS imports by default; the token tests read the real stylesheets.
       css: { include: [/src\/styles\/.+\.css/] },
     },

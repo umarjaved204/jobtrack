@@ -1,16 +1,36 @@
 import '@testing-library/jest-dom/vitest';
 
-import { cleanup } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
 import { MotionGlobalConfig } from 'motion/react';
-import { afterEach } from 'vitest';
+import { afterAll, afterEach, beforeAll } from 'vitest';
+
+import { session } from '@/lib/api/session';
+import { resetThemeForTests } from '@/lib/theme';
+
+import { server } from './msw';
 
 // Animations jump straight to their end state: jsdom has no real frame loop, and tests
 // assert outcomes (visible, focused), not motion.
 MotionGlobalConfig.skipAnimations = true;
 
-// RTL only auto-cleans when test globals are enabled; we import from 'vitest' explicitly.
+// findBy*/waitFor: the first visit to a lazy route compiles its chunk (form libraries
+// etc.) on demand in Vitest, which can exceed the 1 s default on a cold run.
+configure({ asyncUtilTimeout: 5000 });
+
+// Network: MSW. An unhandled request is a test bug (or a missing handler), so it fails.
+beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));
+afterAll(() => server.close());
+
 afterEach(() => {
+  // RTL only auto-cleans when test globals are enabled; we import from 'vitest' explicitly.
   cleanup();
+  server.resetHandlers();
+  // Module singletons must not leak between tests: the in-memory token, the theme cache.
+  session.reset();
+  localStorage.clear();
+  document.documentElement.className = '';
+  delete document.documentElement.dataset['accent'];
+  resetThemeForTests();
 });
 
 /*

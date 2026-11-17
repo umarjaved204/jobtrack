@@ -1,31 +1,15 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { createMemoryRouter } from 'react-router';
-import { RouterProvider } from 'react-router/dom';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
-import { AppProviders } from '@/app/app';
-import { routes } from '@/app/routes';
+import { mockAuthBackend } from '@/test/msw';
+import { findPageHeading, renderApp } from '@/test/render-app';
 
-function renderAt(path: string) {
-  const router = createMemoryRouter(routes, { initialEntries: [path] });
-  render(
-    <AppProviders>
-      <RouterProvider router={router} />
-    </AppProviders>,
-  );
-  return router;
-}
+const renderAt = (path: string) => renderApp(path).router;
 
-/**
- * Waits for a page's h1 and for it to become visible. Pages fade in (motion), and
- * motion applies the end state on its next animation frame, so visibility is async.
- */
-async function findPageHeading(name: string) {
-  const heading = await screen.findByRole('heading', { level: 1, name });
-  await waitFor(() => expect(heading).toBeVisible());
-  return heading;
-}
+beforeEach(() => {
+  mockAuthBackend({ signedIn: true });
+});
 
 /** The desktop section bar (the drawer's nav only exists while it is open). */
 const sectionNav = () => screen.getByRole('navigation', { name: 'Sections' });
