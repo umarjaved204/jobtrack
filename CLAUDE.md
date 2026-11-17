@@ -217,3 +217,26 @@ jobtrack/
 - Theme state: `src/lib/theme.ts` (`useTheme`, external store; follows the OS while on "system").
 - Tests: Vitest + jsdom + RTL (`src/test/setup.ts` polyfills what Radix needs). Stories sit next to components.
 - pnpm `allowBuilds` in `frontend/pnpm-workspace.yaml` (esbuild denied); the Dockerfile copies it.
+
+## Frontend conventions (established in Phase 5)
+- API calls go through `api` (`src/lib/api/client.ts`); failures are always `ApiError`
+  (`status`, `detail`, `fieldErrors` from 422, `retryAfterSeconds` from 429; status 0 or a bare
+  502/503/504 = "can't reach JobTrack"). Never call `fetch` directly for `/api`.
+- Session: `session` (`src/lib/api/session.ts`) holds the access token in memory only. Design and
+  the cross-tab/Web Locks reasoning: ADR 0002 "Client implementation". Don't add refresh-and-retry
+  to `/auth/*`, and never put tokens in storage.
+- Server state: TanStack Query. The signed-in user is the `['session']` query
+  (`sessionQueryOptions`); route loaders (`createAuthGuards`) gate pages. `createRoutes({queryClient})`
+  is a factory. Sign-out (any source) clears the whole query cache via `installSignOutHandler`.
+- Redirect targets from the URL go through `safeNextPath`.
+- Forms: React Hook Form + Zod (`zodResolver` from `@hookform/resolvers/zod`), schemas mirror the
+  backend limits. Wrap controls in `FormField` (label/hint/error + ARIA). Server errors:
+  `applyServerError` (422 → fields, 429 → wait) + `useFormAlert` (fixed alert text, countdown on
+  the button). Autocomplete attributes on every credential field.
+- Tests: MSW v3 is the network (`src/test/msw.ts`; `http`/`HttpResponse` from `msw/http`,
+  `onUnhandledFrame: 'error'`, so unhandled requests fail). `mockAuthBackend({signedIn})` is a
+  stateful fake of auth + `PATCH /users/me`. `renderApp(path)` mounts the real routes/guards;
+  `findPageHeading(name)` waits for the fade-in. Setup resets the session, theme and localStorage
+  after each test. Use `vi.fn<typeof fetch>()`-style typed fakes; `createSessionManager(deps)` takes
+  injectable fetch/locks/channel/clock for unit tests.
+- Copy: no all-caps labels above titles on new pages, no "→" in buttons, sentence case.

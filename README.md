@@ -22,7 +22,7 @@
 | -------- | ---- |
 | Frontend | React 19, Vite, TypeScript (strict), Tailwind CSS v4, shadcn/ui + Radix, Motion, TanStack Query, React Router 8, React Hook Form + Zod, dnd-kit, Recharts |
 | Backend  | Python 3.12, FastAPI, Pydantic v2, SQLAlchemy 2.0, Alembic, PostgreSQL, PyJWT, pwdlib (argon2) |
-| Tooling  | uv, pnpm, Ruff, mypy, ESLint, Prettier, pytest, Vitest, Playwright, Storybook, pre-commit, GitHub Actions |
+| Tooling  | uv, pnpm, Ruff, mypy, ESLint, Prettier, pytest, Vitest, MSW, Playwright, Storybook, pre-commit, GitHub Actions |
 | Deploy   | Vercel (frontend) · Render (API) · Neon (Postgres) |
 
 ## Repository layout
@@ -72,6 +72,10 @@ pnpm dev                                # http://localhost:5173 (proxies /api to
 pnpm storybook                          # http://localhost:6006 (design tokens + components)
 ```
 
+The frontend needs the API running: with the backend stopped, sign-in and sign-up show
+"Can't reach JobTrack" (the Vite proxy answers `502`). Start Docker Desktop first, then the
+database and the API in one terminal and `pnpm dev` in another.
+
 ### Quality checks
 
 Backend tests run against a real Postgres database (`jobtrack_test`, created automatically),
@@ -95,7 +99,7 @@ cd backend && uv run pre-commit install
 | 2  | Backend foundation: config, DB, models, migrations, auth (+ tests) | ✅ |
 | 3  | Applications API: CRUD, status history, filters, pagination (+ tests); tags API; login/register rate limiting | ✅ |
 | 4  | Frontend foundation: design tokens (WCAG AA-tested), base components, Storybook, app shell + routing | ✅ |
-| 5  | Auth UI + API client (TanStack Query); cross-tab refresh coordination (Web Locks API, to verify); `429` handling | ⏳ |
+| 5  | Landing page, sign-in/up forms, API client (TanStack Query), route guards; cross-tab refresh coordination (Web Locks); `429` handling | ✅ |
 | 6  | Kanban + table views, application form, detail page; contacts API | ⏳ |
 | 7  | Dashboard: animated stat cards, custom charts | ⏳ |
 | 8  | Calendar, reminders, resume versions | ⏳ |
@@ -106,7 +110,8 @@ cd backend && uv run pre-commit install
 
 ### Known limitations and optional work
 
-- **Rate limiting** on login/register: backend done (Phase 3, in-process, single instance); UI handling of `429` in Phase 5. Verify client-IP handling before the public deploy (see deployment notes).
+- **Rate limiting** on login/register: backend (Phase 3, in-process, single instance) and UI countdown from `Retry-After` (Phase 5). Verify client-IP handling before the public deploy (see deployment notes).
+- **Cross-tab sessions** use the Web Locks API, which needs a secure context (HTTPS or `localhost`). Opening the dev server from another device via a LAN IP uses the fallback path; see ADR 0002.
 - Password change/reset: optional, not scheduled.
 - Email verification: not planned (known limitation).
 
