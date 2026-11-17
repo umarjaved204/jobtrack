@@ -51,9 +51,26 @@ describe('ApiError.fromResponse', () => {
   });
 
   it('falls back to a readable message for non-JSON bodies', async () => {
-    const error = await ApiError.fromResponse(response(502, '<html>Bad gateway</html>'));
-    expect(error.status).toBe(502);
+    const error = await ApiError.fromResponse(response(500, '<html>Internal error</html>'));
+    expect(error.status).toBe(500);
     expect(error.detail).toBe('Something went wrong. Please try again.');
+  });
+
+  it.each([502, 503, 504])(
+    'treats a bare %i from a proxy as "server unreachable" (API not running)',
+    async (status) => {
+      // What Vite's dev proxy returns when the backend is down: no JSON detail.
+      const error = await ApiError.fromResponse(response(status, ''));
+      expect(error.status).toBe(status);
+      expect(error.detail).toBe(ApiError.network().detail);
+    },
+  );
+
+  it('keeps the API’s own message when a 503 has one', async () => {
+    const error = await ApiError.fromResponse(
+      response(503, { detail: 'Database unavailable, try again shortly' }),
+    );
+    expect(error.detail).toBe('Database unavailable, try again shortly');
   });
 });
 

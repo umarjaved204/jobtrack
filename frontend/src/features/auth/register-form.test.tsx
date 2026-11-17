@@ -64,6 +64,22 @@ describe('RegisterForm', () => {
     expect(email).toHaveFocus();
   });
 
+  it('says the server is unreachable when the dev proxy answers 502 (API not running)', async () => {
+    mockAuthBackend();
+    server.use(http.post('/api/v1/auth/register', () => new HttpResponse(null, { status: 502 })));
+    await openRegister();
+
+    await fillIn({
+      name: 'Amara Nwosu',
+      email: 'amara.nwosu@example.com',
+      password: TEST_PASSWORD,
+    });
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      "Can't reach JobTrack. Check your connection and try again.",
+    );
+  });
+
   it('maps server field errors (422) onto the form', async () => {
     mockAuthBackend();
     server.use(

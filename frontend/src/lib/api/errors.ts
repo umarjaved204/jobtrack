@@ -39,19 +39,29 @@ export class ApiError extends Error {
         retryAfterSeconds,
       });
     }
-    const detail =
-      typeof rawDetail === 'string' && rawDetail
-        ? rawDetail
-        : (FALLBACK_MESSAGES[response.status] ?? 'Something went wrong. Please try again.');
+    if (typeof rawDetail === 'string' && rawDetail) {
+      return new ApiError(response.status, rawDetail, { retryAfterSeconds });
+    }
+    // A gateway error without our JSON body comes from a proxy (Vite in dev, Vercel in
+    // production) that couldn't reach the API: to the user, the server is unreachable.
+    if (GATEWAY_STATUSES.has(response.status)) {
+      return new ApiError(response.status, UNREACHABLE_MESSAGE, { retryAfterSeconds });
+    }
+    const detail = FALLBACK_MESSAGES[response.status] ?? 'Something went wrong. Please try again.';
     return new ApiError(response.status, detail, { retryAfterSeconds });
   }
 
   static network(): ApiError {
-    return new ApiError(0, "Can't reach JobTrack. Check your connection and try again.");
+    return new ApiError(0, UNREACHABLE_MESSAGE);
   }
 }
 
 export const isApiError = (error: unknown): error is ApiError => error instanceof ApiError;
+
+const UNREACHABLE_MESSAGE = "Can't reach JobTrack. Check your connection and try again.";
+
+/** Bad Gateway, Service Unavailable, Gateway Timeout. */
+const GATEWAY_STATUSES = new Set([502, 503, 504]);
 
 const FALLBACK_MESSAGES: Record<number, string> = {
   401: 'Please sign in to continue.',
