@@ -56,6 +56,11 @@ class Settings(BaseSettings):
     rate_limit_login_per_email: int = Field(default=5, gt=0)
     rate_limit_login_email_window_seconds: int = Field(default=300, gt=0)
 
+    # ---- Sign-up email check: reject domains that DNS confirms can't receive mail.
+    # Register only; fails open on DNS errors/timeouts (app/core/email_domain.py).
+    email_domain_check_enabled: bool = True
+    email_dns_timeout_seconds: int = Field(default=3, gt=0)
+
     @field_validator("database_url", "migration_database_url", mode="before")
     @classmethod
     def _use_psycopg_driver(cls, value: object) -> object:

@@ -5,6 +5,7 @@ description = "JobTrack API: job application tracker backend (FastAPI + PostgreS
 requires-python = ">=3.12"
 dependencies = [
     "alembic>=1.20.1",
+    "dnspython>=2.9.2",
     "email-validator>=2.4.0",
     "fastapi>=0.163.1",
     "psycopg[binary]>=3.3.9",
