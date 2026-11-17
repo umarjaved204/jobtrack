@@ -193,6 +193,12 @@ jobtrack/
   created together would tie). Flush the parent row before adding events (no ORM relationship).
 - List query params are repeatable (`?status=a&status=b`); `from`/`to` filter `applied_on`.
 - SQLAlchemy 2.1 typing: `Select[Model]`, not `Select[tuple[Model]]`.
+- Sign-up email domain check: `app/core/email_domain.py` (register only; reject only DNS-confirmed
+  undeliverable; fail open otherwise). Field-level server errors use `FieldValidationError(field, msg)`,
+  rendered in FastAPI's 422 list shape. Tests: the autouse `fake_dns` fixture fakes every lookup and
+  any real DNS query fails the test; use ordinary fictional domains (`mailbox-ok.com`), not
+  `.test`/`.example` (email-validator treats special-use names as invalid syntax).
+  Seed/demo data must not go through the register endpoint (example.com has a null MX).
 - Frontend commands run from `frontend/`: `pnpm dev`, `pnpm lint`, `pnpm typecheck`, `pnpm build`.
 
 ## Frontend conventions (established in Phase 4)

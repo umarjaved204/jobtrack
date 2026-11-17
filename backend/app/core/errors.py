@@ -34,6 +34,19 @@ class UnprocessableError(AppError):
     status_code: ClassVar[int] = 422
 
 
+class FieldValidationError(AppError):
+    """One request field failed a server-side check that schema validation can't do
+    (e.g. a DNS lookup). Rendered in FastAPI's own 422 shape, so clients map it onto the
+    field exactly like a schema error."""
+
+    status_code: ClassVar[int] = 422
+
+    def __init__(self, field: str, detail: str, *, error_type: str = "value_error") -> None:
+        super().__init__(detail)
+        self.field = field
+        self.error_type = error_type
+
+
 class UnauthorizedError(AppError):
     status_code: ClassVar[int] = 401
     default_headers: ClassVar[dict[str, str] | None] = {"WWW-Authenticate": "Bearer"}
@@ -46,6 +59,9 @@ class RateLimitedError(AppError):
 def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(AppError)
     async def _handle_app_error(_: Request, exc: AppError) -> JSONResponse:
+        if isinstance(exc, FieldValidationError):
+            error = {"type": exc.error_type, "loc": ["body", exc.field], "msg": exc.detail}
+            return JSONResponse(status_code=exc.status_code, content={"detail": [error]})
         return JSONResponse(
             status_code=exc.status_code, content={"detail": exc.detail}, headers=exc.headers
         )

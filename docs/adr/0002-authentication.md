@@ -139,7 +139,7 @@ is only an extra or a skipped (then retried) call, never a security issue.
 | Login/register rate limiting | Done (verify client IP before the public deploy) | Backend limiter in Phase 3 (in-process; fine for one Render instance). UI handling of `429` (Retry-After countdown) in Phase 5 |
 | Cross-tab refresh coordination | Done (Phase 5) | Web Locks + in-tab sharing, retry-once fallback; see *Client implementation* |
 | Email verification + password reset | **Planned: Phase 12** (before deploy) | See *Planned: email verification and password reset* below |
-| Email domain check at sign-up (MX) | Planned: small backend branch after the frontend audit fixes | Register only, fail open on DNS errors, mocked DNS in tests |
+| Email domain check at sign-up (MX) | Done | `app/core/email_domain.py`: register only, rejects only DNS-confirmed undeliverable domains (NXDOMAIN, no MX/A/AAAA, null MX, SPF `-all`), fails open on timeouts and resolver errors, 3 s cached resolver, faked DNS in tests |
 | Machine-readable auth error codes | Optional | Would remove the client's match on two `detail` strings (see *Coupling*) |
 
 ## Planned: email verification and password reset (Phase 12)

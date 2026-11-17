@@ -17,6 +17,7 @@ from collections.abc import Callable, Iterator  # noqa: E402
 from pathlib import Path  # noqa: E402
 from typing import Any  # noqa: E402
 
+import dns.resolver  # noqa: E402
 import pytest  # noqa: E402
 from alembic.config import Config  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
@@ -24,10 +25,12 @@ from sqlalchemy import Engine, create_engine, make_url, text  # noqa: E402
 from sqlalchemy.orm import Session  # noqa: E402
 
 from alembic import command  # noqa: E402
+from app.core import email_domain  # noqa: E402
 from app.core.config import get_settings  # noqa: E402
 from app.core.rate_limit import limiter  # noqa: E402
 from app.db.session import connect_args, get_db  # noqa: E402
 from app.main import create_app  # noqa: E402
+from tests.fake_dns import FakeResolver  # noqa: E402
 
 ALEMBIC_INI = Path(__file__).resolve().parents[1] / "alembic.ini"
 DEFAULT_PASSWORD = "correct-horse-battery"
@@ -69,6 +72,21 @@ def engine() -> Iterator[Engine]:
 
     yield eng
     eng.dispose()
+
+
+@pytest.fixture(autouse=True)
+def fake_dns(monkeypatch: pytest.MonkeyPatch) -> FakeResolver:
+    """Every test gets a fake resolver for the sign-up email domain check (by default every
+    domain has an MX record), and any *real* DNS query fails the test: CI never hits DNS."""
+
+    def _no_real_dns(*_: object, **__: object) -> None:
+        raise AssertionError("Real DNS lookup attempted in a test; configure `fake_dns` instead")
+
+    monkeypatch.setattr(dns.resolver.Resolver, "resolve", _no_real_dns)
+    monkeypatch.setattr(dns.resolver, "resolve", _no_real_dns)
+    fake = FakeResolver()
+    monkeypatch.setattr(email_domain, "get_resolver", lambda: fake)
+    return fake
 
 
 @pytest.fixture(autouse=True)

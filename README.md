@@ -135,7 +135,7 @@ This is intentional; see [ADR 0002](docs/adr/0002-authentication.md).
 
 - **Rate limiting** on login/register: backend (Phase 3, in-process, single instance) and UI countdown from `Retry-After` (Phase 5). Verify client-IP handling before the public deploy (see deployment notes).
 - **Cross-tab sessions** use the Web Locks API, which needs a secure context (HTTPS or `localhost`). Opening the dev server from another device via a LAN IP uses the fallback path; see ADR 0002.
-- **Email addresses** are checked for format only (client and server). A domain (MX) check at sign-up is planned next; verification links and password reset are Phase 12.
+- **Email addresses**: format is checked on client and server, and sign-up rejects domains that DNS confirms can't receive mail (typos like `gmial.com`). That doesn't prove the inbox exists: verification links and password reset are Phase 12.
 
 See [docs/adr/0002-authentication.md](docs/adr/0002-authentication.md) and [docs/deployment.md](docs/deployment.md).
 

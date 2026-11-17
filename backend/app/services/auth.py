@@ -8,7 +8,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
-from app.core.errors import ConflictError, UnauthorizedError
+from app.core.email_domain import UNDELIVERABLE_MESSAGE, domain_accepts_mail
+from app.core.errors import ConflictError, FieldValidationError, UnauthorizedError
 from app.core.security import (
     burn_password_check_time,
     generate_refresh_token,
@@ -34,6 +35,11 @@ class RefreshRaceError(UnauthorizedError):
 def register_user(db: Session, data: RegisterRequest) -> User:
     if db.scalar(select(User.id).where(User.email == data.email)) is not None:
         raise ConflictError("An account with this email already exists")
+    # DNS lookup (cached, short timeout, fails open). Sync endpoint: runs in the threadpool.
+    if not domain_accepts_mail(data.email):
+        raise FieldValidationError(
+            "email", UNDELIVERABLE_MESSAGE, error_type="value_error.email_undeliverable"
+        )
 
     user = User(
         email=data.email, password_hash=hash_password(data.password), full_name=data.full_name
