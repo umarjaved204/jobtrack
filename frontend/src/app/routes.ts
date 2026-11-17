@@ -1,10 +1,12 @@
 import type { QueryClient } from '@tanstack/react-query';
 import type { RouteObject } from 'react-router';
 
-import { AppShell } from '@/app/layouts/app-shell';
 import { NotFoundPage } from '@/app/not-found-page';
 import { AppFallback, PageErrorBoundary, RootErrorBoundary } from '@/app/route-states';
 import { createAuthGuards } from '@/features/auth/guards';
+// Eager: the landing page is the most common first paint, so it ships in the main bundle
+// (no extra chunk round trip) and renders without waiting for the session check.
+import { LandingPage } from '@/features/landing/landing-page';
 
 /*
  * Route table (React Router data mode). Feature pages are lazy-loaded so each one is its
@@ -20,16 +22,13 @@ export function createRoutes({ queryClient }: { queryClient: QueryClient }): Rou
       HydrateFallback: AppFallback,
       ErrorBoundary: RootErrorBoundary,
       children: [
-        // ---------------------------------------------------------- public (signed out)
+        // ---------------------------------------------------------- public
+        // No loader: renders at once; signed-in visitors see "Open your dashboard".
+        { index: true, Component: LandingPage },
+        // Sign-in / sign-up: signed-in visitors are forwarded before anything renders.
         {
           loader: guards.redirectIfSignedIn,
           children: [
-            {
-              index: true,
-              lazy: async () => ({
-                Component: (await import('@/features/landing/landing-page')).LandingPage,
-              }),
-            },
             {
               lazy: async () => ({
                 Component: (await import('@/features/auth/auth-layout')).AuthLayout,
@@ -53,7 +52,9 @@ export function createRoutes({ queryClient }: { queryClient: QueryClient }): Rou
         },
         // ---------------------------------------------------------- app (signed in)
         {
-          Component: AppShell,
+          // Lazy: menus, drawer and motion stay out of the public pages' bundle. The chunk
+          // loads in parallel with the guard's session check.
+          lazy: async () => ({ Component: (await import('@/app/layouts/app-shell')).AppShell }),
           loader: guards.requireUser,
           children: [
             {

@@ -15,12 +15,6 @@ beforeEach(() => {
 const sectionNav = () => screen.getByRole('navigation', { name: 'Sections' });
 
 describe('App shell', () => {
-  it('redirects / to the dashboard', async () => {
-    const router = renderAt('/');
-    await findPageHeading('Dashboard');
-    expect(router.state.location.pathname).toBe('/dashboard');
-  });
-
   it('marks the current section and sets the document title', async () => {
     renderAt('/calendar');
     await findPageHeading('Calendar');
