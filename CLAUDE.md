@@ -20,7 +20,8 @@ A portfolio project: clean code, tests, docs and a live deployment.
 - shadcn/ui + Radix primitives as an accessible base, heavily restyled
 - `motion` (import from `motion/react`) for transitions; `@number-flow/react` for animated counters
 - lucide-react, Fontsource (self-hosted fonts), `cmdk` for the ⌘K palette
-- React Router 7 with browser routing (+ `vercel.json` SPA rewrite)
+- React Router 8 (data mode: `createBrowserRouter`, lazy feature routes) with browser routing
+  (+ `vercel.json` SPA rewrite). v8 = v7 with its future flags made default; chosen in Phase 4.
 - TanStack Query v5, React Hook Form + Zod (check `@hookform/resolvers` compatibility with installed Zod)
 - `@dnd-kit/core` + `@dnd-kit/sortable`, Recharts, date-fns
 - Storybook, Vitest + React Testing Library, Playwright (1-2 e2e flows)
@@ -208,5 +209,11 @@ jobtrack/
 - Component files export only components (Fast Refresh); cva recipes live in `components/ui/variants.ts`.
 - Hover on solid fills: `hover:fill-hover` (contrast-safe overlay), never `bg-x/90`.
 - Motion: CSS `--duration-*` / `--ease-*`, mirrored in `src/lib/motion.ts` for `motion/react` (tested).
+  The app runs inside `<LazyMotion features={domAnimation} strict>`: use `m.div`, never `motion.div`
+  (strict mode throws). Tests skip animations (`MotionGlobalConfig.skipAnimations`) and render with
+  `AppProviders`; wait for visibility (`waitFor(... toBeVisible())`) since end states land next frame.
+- Routing: route table in `src/app/routes.ts` (lazy feature pages, page errors render inside the shell).
+  Pages use `PageHeader` (sets `<title>`, focusable h1: the shell focuses it after navigation).
+- Theme state: `src/lib/theme.ts` (`useTheme`, external store; follows the OS while on "system").
 - Tests: Vitest + jsdom + RTL (`src/test/setup.ts` polyfills what Radix needs). Stories sit next to components.
 - pnpm `allowBuilds` in `frontend/pnpm-workspace.yaml` (esbuild denied); the Dockerfile copies it.

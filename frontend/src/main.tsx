@@ -8,7 +8,7 @@ import '@fontsource-variable/fraunces/full-italic.css';
 import '@fontsource-variable/instrument-sans/wdth.css'; // wght + wdth
 import '@fontsource-variable/jetbrains-mono';
 
-import App from './App.tsx';
+import { App } from '@/app/app';
 import './styles/index.css';
 
 const rootElement = document.getElementById('root');

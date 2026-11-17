@@ -141,6 +141,10 @@
   --animate-pop-in: pop-in var(--duration-base) var(--ease-out-quint) both;
   --animate-pop-out: pop-out var(--duration-fast) ease-in both;
   --animate-rise-in: rise-in var(--duration-slow) var(--ease-out-expo) both;
+  --animate-slide-in-left: slide-in-left var(--duration-slow) var(--ease-out-expo) both;
+  --animate-slide-out-left: slide-out-left var(--duration-base) var(--ease-in-out-quart) both;
+  --animate-slide-in-right: slide-in-right var(--duration-slow) var(--ease-out-expo) both;
+  --animate-slide-out-right: slide-out-right var(--duration-base) var(--ease-in-out-quart) both;
 
   @keyframes fade-in {
     from {
@@ -168,6 +172,26 @@
     from {
       opacity: 0;
       transform: translateY(12px);
+    }
+  }
+  @keyframes slide-in-left {
+    from {
+      transform: translateX(-100%);
+    }
+  }
+  @keyframes slide-out-left {
+    to {
+      transform: translateX(-100%);
+    }
+  }
+  @keyframes slide-in-right {
+    from {
+      transform: translateX(100%);
+    }
+  }
+  @keyframes slide-out-right {
+    to {
+      transform: translateX(100%);
     }
   }
 }
