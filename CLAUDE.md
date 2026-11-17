@@ -14,7 +14,8 @@ A portfolio project: clean code, tests, docs and a live deployment.
 ## Stack
 
 **Frontend**
-- React 18 + Vite + TypeScript (strict)
+- React 19 + Vite + TypeScript (strict). Upgraded from 18 in Phase 4: shadcn/ui v4 components
+  take `ref` as a plain prop (React 19 only), which Radix `asChild` triggers rely on.
 - Tailwind CSS v4 (CSS-first `@theme`, `@tailwindcss/vite`), custom theme driven by design tokens (CSS variables)
 - shadcn/ui + Radix primitives as an accessible base, heavily restyled
 - `motion` (import from `motion/react`) for transitions; `@number-flow/react` for animated counters
@@ -191,3 +192,21 @@ jobtrack/
 - List query params are repeatable (`?status=a&status=b`); `from`/`to` filter `applied_on`.
 - SQLAlchemy 2.1 typing: `Select[Model]`, not `Select[tuple[Model]]`.
 - Frontend commands run from `frontend/`: `pnpm dev`, `pnpm lint`, `pnpm typecheck`, `pnpm build`.
+
+## Frontend conventions (established in Phase 4)
+- Tokens: `src/styles/tokens.css` (hex values, light + `.dark`, `[data-accent]` blocks) → mapped to
+  Tailwind in `src/styles/index.css` via `@theme inline`. Tailwind's default palette is disabled
+  (`--color-*: initial`): only token colours exist. `tokens.contrast.test.ts` enforces WCAG AA for every
+  pairing, theme and accent; change a colour → run `pnpm test`.
+- Palette names (`src/lib/palette.ts`) are what the API stores in `users.accent` / `tags.color`.
+- Theme = `.dark` class + `data-accent` on `<html>`, set pre-paint by the inline script in `index.html`
+  (localStorage keys `jobtrack:theme`, `jobtrack:accent`).
+- `cn` comes from `@/lib/utils` (the `cn` package configured with our custom text/ease keys), never
+  directly from `"cn"`. shadcn: `pnpm dlx shadcn@latest add <name>` only (never `init`, it rewrites
+  index.css), then fix the import to `@/lib/utils`, restyle to tokens, and replace `tw-animate-css`
+  classes with ours (`animate-fade-in/out`, `animate-pop-in/out`, `animate-rise-in`).
+- Component files export only components (Fast Refresh); cva recipes live in `components/ui/variants.ts`.
+- Hover on solid fills: `hover:fill-hover` (contrast-safe overlay), never `bg-x/90`.
+- Motion: CSS `--duration-*` / `--ease-*`, mirrored in `src/lib/motion.ts` for `motion/react` (tested).
+- Tests: Vitest + jsdom + RTL (`src/test/setup.ts` polyfills what Radix needs). Stories sit next to components.
+- pnpm `allowBuilds` in `frontend/pnpm-workspace.yaml` (esbuild denied); the Dockerfile copies it.

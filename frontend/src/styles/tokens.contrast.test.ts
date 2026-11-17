@@ -124,15 +124,41 @@ function expectContrast(vars: Vars, fg: string, bg: string, min: number) {
   expect(contrast(a, b), `${a} on ${b}`).toBeGreaterThanOrEqual(min);
 }
 
+/** A fill with the `--fill-hover` overlay (rgb(r g b / a)) alpha-composited on top. */
+function hovered(vars: Vars, fill: string): string {
+  const overlay = /^rgb\((\d+) (\d+) (\d+) \/ ([\d.]+)\)$/.exec(resolve(vars, 'fill-hover'));
+  if (!overlay) throw new Error('--fill-hover must be rgb(r g b / a)');
+  const [, r, g, b, alpha] = overlay.map(Number) as [number, number, number, number, number];
+  const base = parseInt(resolve(vars, fill).slice(1), 16);
+  const mix = (top: number, bottom: number) => Math.round(top * alpha + bottom * (1 - alpha));
+  const out = [mix(r, base >> 16), mix(g, (base >> 8) & 255), mix(b, base & 255)];
+  return `#${out.map((c) => c.toString(16).padStart(2, '0')).join('')}`;
+}
+
+function expectHoverContrast(vars: Vars, fg: string, fill: string) {
+  const [a, b] = [resolve(vars, fg), hovered(vars, fill)];
+  expect(contrast(a, b), `${a} on hovered ${b}`).toBeGreaterThanOrEqual(TEXT);
+}
+
 describe.each(Object.entries(themes))('%s theme', (_theme, themeVars) => {
   it.each(themePairs)('--%s on --%s ≥ %s:1', (fg, bg, min) => {
     expectContrast(themeVars, fg, bg, min);
+  });
+
+  it.each([
+    ['destructive-foreground', 'destructive'],
+    ['secondary-foreground', 'secondary'],
+  ])('--%s on hovered --%s stays AA', (fg, fill) => {
+    expectHoverContrast(themeVars, fg, fill);
   });
 
   describe.each(accentColors)('accent %s', (accent) => {
     const vars = { ...themeVars, ...varsFor(`[data-accent='${accent}']`) };
     it.each(accentPairs)('--%s on --%s ≥ %s:1', (fg, bg, min) => {
       expectContrast(vars, fg, bg, min);
+    });
+    it('--primary-foreground on hovered --primary stays AA', () => {
+      expectHoverContrast(vars, 'primary-foreground', 'primary');
     });
   });
 });

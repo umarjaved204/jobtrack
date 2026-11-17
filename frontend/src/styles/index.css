@@ -130,6 +130,46 @@
   --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out-quart: cubic-bezier(0.76, 0, 0.24, 1);
+
+  /*
+   * Enter/exit animations for Radix overlays (`data-[state=open]:animate-pop-in` etc.).
+   * Radix waits for the exit animation before unmounting. Durations are tokens, so
+   * prefers-reduced-motion (durations → 0) turns them off without extra code.
+   */
+  --animate-fade-in: fade-in var(--duration-base) var(--ease-out-quint) both;
+  --animate-fade-out: fade-out var(--duration-fast) ease-in both;
+  --animate-pop-in: pop-in var(--duration-base) var(--ease-out-quint) both;
+  --animate-pop-out: pop-out var(--duration-fast) ease-in both;
+  --animate-rise-in: rise-in var(--duration-slow) var(--ease-out-expo) both;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes fade-out {
+    to {
+      opacity: 0;
+    }
+  }
+  @keyframes pop-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px) scale(0.97);
+    }
+  }
+  @keyframes pop-out {
+    to {
+      opacity: 0;
+      transform: scale(0.97);
+    }
+  }
+  @keyframes rise-in {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+  }
 }
 
 @layer base {
@@ -217,6 +257,11 @@
     'opsz' 144,
     'SOFT' 30,
     'WONK' 0;
+}
+
+/* Hover/pressed overlay for solid fills; keeps on-fill text at or above its AA contrast. */
+@utility fill-hover {
+  background-image: linear-gradient(var(--fill-hover), var(--fill-hover));
 }
 
 /* Hairline rule and the heavier double rule used under mastheads. */
