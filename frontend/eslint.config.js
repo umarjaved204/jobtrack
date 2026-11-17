@@ -20,6 +20,18 @@ export default defineConfig([
     languageOptions: {
       globals: globals.browser,
     },
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          // new Date("2026-11-17") is UTC midnight: the previous day west of UTC.
+          selector:
+            "NewExpression[callee.name='Date'][arguments.length=1][arguments.0.type='Literal'][arguments.0.value=/^\\d{4}-\\d{2}-\\d{2}$/]",
+          message:
+            'Date-only strings parse as UTC midnight (wrong day west of UTC). Use parseDateOnly() from @/lib/dates.',
+        },
+      ],
+    },
   },
   // Story-file rules (CSF conventions, no stray imports from renderer packages).
   storybook.configs['flat/recommended'],
