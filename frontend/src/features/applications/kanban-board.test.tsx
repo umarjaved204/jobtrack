@@ -225,6 +225,7 @@ describe('board states', () => {
       ),
     );
     renderApp('/applications');
+    await findPageHeading('Applications'); // the page fades in; visibility lands after it
     expect(await screen.findByText('Your board didn’t load')).toBeVisible();
     expect(screen.getByRole('button', { name: 'Try again' })).toBeVisible();
   });
