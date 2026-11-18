@@ -1,4 +1,9 @@
-import { differenceInCalendarDays, format, isValid, parseISO } from 'date-fns';
+// Per-function imports: the 'date-fns' barrel loads hundreds of modules in Vitest (no
+// tree-shaking), ~5 s cold. The production bundle is the same either way.
+import { differenceInCalendarDays } from 'date-fns/differenceInCalendarDays';
+import { format } from 'date-fns/format';
+import { isValid } from 'date-fns/isValid';
+import { parseISO } from 'date-fns/parseISO';
 
 import type { DateOnly } from '@/types/application';
 

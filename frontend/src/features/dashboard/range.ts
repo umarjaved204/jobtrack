@@ -1,4 +1,4 @@
-import { subDays } from 'date-fns';
+import { subDays } from 'date-fns/subDays';
 import { useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router';
 import { z } from 'zod';
