@@ -8,7 +8,10 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { AppProviders } from '@/app/providers';
 import { createQueryClient } from '@/lib/query-client';
 
-import { mockApplicationsBackend } from '@/test/fake-applications';
+import { addDays } from 'date-fns/addDays';
+
+import { toDateOnly } from '@/lib/dates';
+import { makeApplication, mockApplicationsBackend } from '@/test/fake-applications';
 import { mockAuthBackend, server } from '@/test/msw';
 import { findPageHeading, renderApp } from '@/test/render-app';
 
@@ -185,6 +188,27 @@ describe('Kanban board', () => {
   });
 });
 
+describe('apply-by tag', () => {
+  it('shows on wishlist cards due within a week, not on applied ones', async () => {
+    const inDays = (n: number) => toDateOnly(addDays(new Date(), n));
+    mockApplicationsBackend({
+      applications: [
+        makeApplication({
+          company: 'Figma',
+          status: 'wishlist',
+          applied_on: null,
+          deadline_on: inDays(2),
+        }),
+        makeApplication({ company: 'Monzo', status: 'applied', deadline_on: inDays(2) }),
+      ],
+    });
+    await openBoard();
+
+    expect(within(column('Wishlist')).getByText('Apply in 2d')).toBeVisible();
+    expect(within(column('Applied')).queryByText(/Apply in/)).not.toBeInTheDocument();
+  });
+});
+
 describe('board states', () => {
   it('invites you to add the first application when there are none', async () => {
     mockApplicationsBackend({ applications: [] });
@@ -201,6 +225,7 @@ describe('board states', () => {
       ),
     );
     renderApp('/applications');
+    await findPageHeading('Applications'); // the page fades in; visibility lands after it
     expect(await screen.findByText('Your board didn’t load')).toBeVisible();
     expect(screen.getByRole('button', { name: 'Try again' })).toBeVisible();
   });

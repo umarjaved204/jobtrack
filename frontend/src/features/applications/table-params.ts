@@ -176,7 +176,7 @@ export const sortLabels: Record<ApplicationSort, string> = {
   applied_on: 'Applied, oldest first',
   company: 'Company, A to Z',
   '-company': 'Company, Z to A',
-  deadline_on: 'Deadline, soonest first',
+  deadline_on: 'Apply by, soonest first',
 };
 
 /** Sortable table columns and the API sorts each one offers, in click order. */

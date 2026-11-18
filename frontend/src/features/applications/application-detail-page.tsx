@@ -59,7 +59,9 @@ function salaryText({ salary_min: min, salary_max: max, salary_currency: cur }: 
   return null;
 }
 
-function deadlineHint(deadline: string): string {
+/** How long until (or since) the apply-by date. Shown only while on the wishlist: once
+ * applied, the date is history. */
+function applyByHint(deadline: string): string {
   const days = daysUntil(deadline);
   if (days === 0) return 'today';
   if (days === 1) return 'tomorrow';
@@ -85,13 +87,15 @@ function Details({ application: a }: { application: Application }) {
       ),
     ],
     [
-      'Deadline',
+      'Apply by',
       a.deadline_on && (
         <>
           <time dateTime={a.deadline_on} className="font-mono">
             {formatDateOnly(a.deadline_on)}
-          </time>{' '}
-          <span className="text-muted-foreground">({deadlineHint(a.deadline_on)})</span>
+          </time>
+          {a.status === 'wishlist' && (
+            <span className="text-muted-foreground"> ({applyByHint(a.deadline_on)})</span>
+          )}
         </>
       ),
     ],

@@ -6,6 +6,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 
+import { analyticsKeys } from '@/features/dashboard/api';
 import { api } from '@/lib/api/client';
 import type {
   Application,
@@ -98,6 +99,7 @@ export const tagsQuery = () =>
 function invalidateViews(queryClient: QueryClient, id?: string) {
   void queryClient.invalidateQueries({ queryKey: applicationKeys.lists() });
   void queryClient.invalidateQueries({ queryKey: applicationKeys.board() });
+  void queryClient.invalidateQueries({ queryKey: analyticsKeys.all });
   if (id) void queryClient.invalidateQueries({ queryKey: applicationKeys.events(id) });
 }
 
@@ -149,7 +151,8 @@ export function useDeleteApplication() {
  *   is the last one pending; otherwise restoring its snapshot would undo the later moves,
  *   and the refetch after the last move settles corrects the board instead.
  * - The board refetches once, when the last move settles (the server may have re-spaced
- *   a crowded column). Lists, detail and timeline refetch too: the status may have changed.
+ *   a crowded column). Lists, analytics, detail and timeline refetch too: the status
+ *   may have changed.
  */
 export function useMoveApplication() {
   const queryClient = useQueryClient();
@@ -172,6 +175,7 @@ export function useMoveApplication() {
     onSettled: (_data, _error, move) => {
       if (isLastMove()) void queryClient.invalidateQueries({ queryKey: boardKey });
       void queryClient.invalidateQueries({ queryKey: applicationKeys.lists() });
+      void queryClient.invalidateQueries({ queryKey: analyticsKeys.all });
       void queryClient.invalidateQueries({ queryKey: applicationKeys.detail(move.id) });
       void queryClient.invalidateQueries({ queryKey: applicationKeys.events(move.id) });
     },

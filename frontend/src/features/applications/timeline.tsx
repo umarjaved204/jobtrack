@@ -1,6 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery } from '@tanstack/react-query';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns/format';
+import { parseISO } from 'date-fns/parseISO';
 import { ArrowRight, RotateCcw } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';

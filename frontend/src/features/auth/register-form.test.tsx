@@ -1,9 +1,11 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw/http';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import { session } from '@/lib/api/session';
+import { emptyAnalytics, mockAnalyticsBackend } from '@/test/fake-analytics';
+import { mockApplicationsBackend } from '@/test/fake-applications';
 import { mockAuthBackend, server, TEST_PASSWORD, testUser } from '@/test/msw';
 import { findPageHeading, renderApp } from '@/test/render-app';
 
@@ -20,6 +22,12 @@ async function fillIn(values: { name: string; email: string; password: string })
   await user.type(screen.getByLabelText('Password'), values.password);
   await user.click(screen.getByRole('button', { name: 'Create account' }));
 }
+
+// These flows end on the dashboard, which loads analytics and the board.
+beforeEach(() => {
+  mockAnalyticsBackend(emptyAnalytics());
+  mockApplicationsBackend({ applications: [] });
+});
 
 describe('RegisterForm', () => {
   it('creates the account, signs in and opens the dashboard', async () => {

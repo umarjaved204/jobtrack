@@ -56,7 +56,7 @@ refresh_tokens(id, user_id, token_hash UNIQUE, expires_at, revoked_at, created_a
 resume_versions(id, user_id, label, content_text, is_default, created_at, updated_at)
 applications(id, user_id, company, role_title, location, work_mode, job_url,
   salary_min, salary_max, salary_currency, source, status, position,
-  applied_on, deadline_on, resume_version_id NULL, created_at, updated_at)
+  applied_on, deadline_on (= "apply by"; only meaningful on the wishlist), resume_version_id NULL, created_at, updated_at)
   status enum: wishlist, applied, screening, interview, offer, rejected, withdrawn
   work_mode enum (nullable): remote, hybrid, onsite
   source: free text (≤ 50 chars, e.g. "LinkedIn", "Referral"), filtered case-insensitively; NOT an enum
@@ -88,7 +88,7 @@ REMINDERS GET/POST /reminders; PATCH/DELETE /reminders/{id}
 CALENDAR  GET /calendar?from&to (merged feed); POST /calendar-events; PATCH/DELETE /calendar-events/{id}
 RESUMES   GET/POST /resumes; GET/PATCH/DELETE /resumes/{id}
 MATCH     POST /match; GET /match; GET /match/{id}
-ANALYTICS GET /analytics/summary|timeseries|funnel|sources
+ANALYTICS GET /analytics/summary|timeseries|funnel|sources (?from&to: cohort by applied_on)
 EXPORT    GET /export?format=csv|json
 HEALTH    GET /health; GET /health/ready
 ```
@@ -141,8 +141,8 @@ jobtrack/
 4. Frontend foundation: design tokens, fonts, Tailwind theme, base UI components in Storybook; layout, navigation, routing, page transitions (done)
 5. Auth UI (hero landing/login) + API client with TanStack Query (done; then a Lighthouse + web-interface-guidelines audit, fixed on `chore/frontend-audit-fixes`)
 6. Kanban + table views, application form and detail page (done; drag-and-drop choice in ADR 0003)
-7. Dashboard with animated stat cards and custom charts
-8. Calendar, reminders, resume versions
+7. Dashboard with animated stat cards and custom charts (done; metric definitions in docs/architecture.md)
+8. Calendar, reminders, resume versions (+ assessment/interview events and reminders join the dashboard's "Coming up")
 9. AI match service, endpoint and UI
 10. Polish: offer celebration, animated funnel, ⌘K palette, empty/loading/error states, a11y, responsive, reduced motion
 11. Tests (unit, integration, 1-2 Playwright flows) and CI
@@ -282,3 +282,21 @@ jobtrack/
   `pages` is 0 when nothing matches, empty dates sort last): drift there hides real bugs.
 - Radix modals hide the page from the accessibility tree: query background content with
   `{ hidden: true }` while a dialog is open.
+
+## Conventions (established in Phase 7)
+- Analytics: `app/services/analytics.py` loads the cohort in one query and aggregates in
+  Python; definitions (cohort, stages from history, null rates, ISO weeks) live in
+  docs/architecture.md "Dashboard metrics". Change a definition there and in the tests together.
+- Dates the user sees as "today" come from the browser (`todayDateOnly()`), never the
+  server: the dashboard range and "Coming up" are computed client-side.
+- `date-fns`: import per function (`date-fns/format`), never the barrel (ESLint enforces it;
+  the barrel costs ~5 s per cold test file).
+- Dashboard sections render through `section()` in `dashboard-page.tsx`: own skeleton, own
+  `LoadError` with retry, previous data dimmed while a new range loads.
+- Charts: follow the dataviz skill (form first, one hue per job, validator for palettes,
+  value-first tooltips, keyboard access). Every chart has a caption summary and a
+  visually hidden data table; bar lists hide their decorative bars from assistive tech.
+- Counters: `Counter` (NumberFlow) animates only when its `cause` (the range) changes.
+  NumberFlow can't run in jsdom: tests use `src/test/number-flow-stub.tsx` (data-animated).
+- Tests that pin "today" fake only Date: `vi.useFakeTimers({ toFake: ['Date'] })`.
+- Small samples (n < 5) are flagged with italic + asterisk, not a fainter colour (AA).

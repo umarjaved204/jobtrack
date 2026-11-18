@@ -144,6 +144,7 @@ describe('applications table', () => {
     backend = mockApplicationsBackend();
     const user = userEvent.setup();
     const app = renderApp('/applications?view=table&q=nothing-like-this&status=offer');
+    await findPageHeading('Applications'); // the page fades in; visibility lands after it
 
     expect(await screen.findByText('No applications match')).toBeVisible();
     expect(query(app.location()).get('page')).toBeNull(); // 0 pages isn't "past the end"
@@ -169,6 +170,7 @@ describe('applications table', () => {
   it('invites you to add the first application when there are none', async () => {
     backend = mockApplicationsBackend({ applications: [] });
     renderApp('/applications?view=table');
+    await findPageHeading('Applications'); // the page fades in; visibility lands after it
     expect(await screen.findByText('No applications yet')).toBeVisible();
     expect(screen.queryByRole('search')).not.toBeInTheDocument();
   });

@@ -31,6 +31,19 @@ export default defineConfig([
             'Date-only strings parse as UTC midnight (wrong day west of UTC). Use parseDateOnly() from @/lib/dates.',
         },
       ],
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              // The barrel costs ~5 s per cold test file in Vitest (no tree-shaking).
+              name: 'date-fns',
+              message:
+                "Import each function from its subpath: import { format } from 'date-fns/format'.",
+            },
+          ],
+        },
+      ],
     },
   },
   // Story-file rules (CSF conventions, no stray imports from renderer packages).
