@@ -23,7 +23,7 @@ const URL_MAX = 2048; // job_url column
 /** "75,000" / "75 000" → "75000". */
 const digitsOnly = (value: string) => value.replace(/[\s,]/g, '');
 
-function isHttpUrl(value: string): boolean {
+export function isHttpUrl(value: string): boolean {
   try {
     const url = new URL(value);
     return (url.protocol === 'http:' || url.protocol === 'https:') && Boolean(url.hostname);

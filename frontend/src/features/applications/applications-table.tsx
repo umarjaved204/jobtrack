@@ -1,6 +1,6 @@
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 import type * as React from 'react';
-import { Link } from 'react-router';
+import { Link, useLocation } from 'react-router';
 
 import { StatusBadge } from '@/components/status-badge';
 import { TagChip } from '@/components/tag-chip';
@@ -104,6 +104,9 @@ type ApplicationsTableProps = SortProps & {
 };
 
 function ApplicationsTable({ applications, sort, onSort, stale, caption }: ApplicationsTableProps) {
+  // The detail page's back link returns here, filters and page included.
+  const { pathname, search } = useLocation();
+  const from = pathname + search;
   return (
     <div className="overflow-x-auto">
       <table
@@ -121,6 +124,7 @@ function ApplicationsTable({ applications, sort, onSort, stale, caption }: Appli
               <td className={cn(td, 'sm:min-w-48')}>
                 <Link
                   to={`/applications/${a.id}`}
+                  state={{ from }}
                   className="font-display text-base leading-tight font-semibold underline-offset-4 hover:underline"
                 >
                   {a.company}
