@@ -96,6 +96,65 @@ Re-presenting a rotated token after a 10 s grace window revokes that login's tok
 - **Detail page** (`/applications/:id`): application, timeline (`/events`) and contacts are
   three queries, so each section loads and fails independently.
 
+## Dashboard metrics
+
+Endpoints: `GET /api/v1/analytics/summary|funnel|sources|timeseries?from&to`
+(`app/services/analytics.py`). The dashboard reads them plus the board.
+
+**Cohort.** Every range-scoped figure is computed over one cohort: the user's applications
+whose `applied_on` falls in `[from, to]` (inclusive; either end may be open). With no range,
+every application that has an `applied_on`. The range picker (30 days, 90 days, all time)
+computes `from`/`to` from the **browser's** calendar day, so it never depends on the
+server's UTC date.
+
+**Stages reached.** Applied < Screening < Interview < Offer. An application's furthest
+stage comes from its timeline (`status_change` events) plus its current status, not the
+current status alone, so a role rejected after an interview still counts as interviewed.
+Reaching a stage counts every stage before it (a move from Applied straight to Interview
+counts as Screening too). Rejected and Withdrawn are outcomes, not stages.
+
+- A role moved from the wishlist straight to Withdrawn gets an `applied_on` (leaving the
+  wishlist fills it in) but never reached Applied, so it is left out of every count.
+- **Trade-off:** a mistaken move to a later stage that is moved back still counts as
+  reached. The history can't tell a mistake from a real step.
+
+**Stat strip** (`summary`):
+
+| Figure | Definition |
+| --- | --- |
+| Applied | Cohort applications that reached Applied or later |
+| Active | Cohort applications now in Applied, Screening, Interview or Offer |
+| Interview rate | Reached Interview or later ÷ Applied, shown with its counts ("6 of 35") |
+| Offers | Reached Offer; offer rate = Offers ÷ Applied |
+| Wishlist | Applications on the wishlist now. **Ignores the range** (they have no `applied_on`) |
+
+**Rates** are fractions in [0, 1], or `null` when the denominator is 0; the UI shows "—"
+(read out as "Not enough data"), never 0%.
+
+**Funnel** (`funnel`): for each stage, how many cohort applications reached it or a later
+one, and `rate_from_previous` (count ÷ the previous stage's count; `null` for Applied or when
+the previous stage is 0). The first bar is the same cohort as the Applied figure.
+
+**Sources** (`sources`): cohort applications that reached Applied, grouped by source
+case-insensitively (`source` is free text, not an enum) and labelled with the most common
+spelling; no source is `null` ("Not set"). Each row: applied, interviewed, interview rate.
+Rates from fewer than 5 applications are shown italic with an asterisk and a footnote.
+
+**Over time** (`timeseries`): cohort applications that reached Applied, counted by
+`applied_on` into ISO weeks (Monday start), or calendar months when the range spans more
+than 26 weeks (182 days). Buckets are zero-filled across the whole range; an open end is
+taken from the data. The bucket holding today is drawn lighter and labelled "so far".
+
+**Coming up** (computed in the browser from the board, not an analytics endpoint):
+apply-by dates (`deadline_on`) of roles **on the wishlist only**. Once applied, the date
+needs no action. "Due soon" is today through today + 13 days; "Past the deadline" lists
+dates missed in the last 30 days and summarises older ones as "+N older". All against the
+browser's calendar day. Assessment and interview dates, and reminders, join in Phase 8.
+
+**Motion and accessibility.** Counters (NumberFlow) animate on first load and range
+changes only, never on background refetches, and not at all under reduced motion. Every
+chart has a caption summary and a visually hidden data table.
+
 ## Health checks
 
 - `GET /api/v1/health`: liveness, process only (used by Docker healthchecks).
