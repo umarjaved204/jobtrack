@@ -89,7 +89,7 @@ function TableHead({ sort, onSort }: SortProps) {
           Applied
         </SortHeader>
         <SortHeader column="deadline" sort={sort} onSort={onSort} className={cn(th, wide)}>
-          Deadline
+          Apply by
         </SortHeader>
       </tr>
     </thead>
@@ -169,7 +169,7 @@ function ApplicationsTable({ applications, sort, onSort, stale, caption }: Appli
                 <DateCell value={a.applied_on} none="Not applied yet" />
               </td>
               <td className={cn(td, wide)}>
-                <DateCell value={a.deadline_on} none="No deadline" />
+                <DateCell value={a.deadline_on} none="No apply-by date" />
               </td>
             </tr>
           ))}

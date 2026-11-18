@@ -3,6 +3,9 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw/http';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { addDays } from 'date-fns/addDays';
+
+import { toDateOnly } from '@/lib/dates';
 import { mockApplicationsBackend } from '@/test/fake-applications';
 import { mockAuthBackend, server } from '@/test/msw';
 import { findPageHeading, renderApp } from '@/test/render-app';
@@ -186,6 +189,34 @@ describe('application detail page', () => {
 
     await screen.findByRole('table');
     expect(app.location()).toBe('/applications?view=table&status=applied');
+  });
+});
+
+describe('apply-by date', () => {
+  // Relative to the real today, so no clock faking is needed.
+  const inDays = (n: number) => toDateOnly(addDays(new Date(), n));
+  const applyByRow = () =>
+    within(screen.getByRole('region', { name: 'Details' }))
+      .getByText('Apply by', { selector: 'dt' })
+      .parentElement?.querySelector('dd');
+
+  it('says how long is left while the role is on the wishlist', async () => {
+    setup();
+    const monzo = backend.applications.find((a) => a.id === monzoId);
+    Object.assign(monzo ?? {}, { status: 'wishlist', applied_on: null, deadline_on: inDays(3) });
+    await openMonzo();
+
+    expect(applyByRow()).toHaveTextContent('(in 3 days)');
+  });
+
+  it('shows just the date once applied: it no longer needs action', async () => {
+    setup();
+    const monzo = backend.applications.find((a) => a.id === monzoId);
+    Object.assign(monzo ?? {}, { deadline_on: inDays(-3) }); // status: applied
+    await openMonzo();
+
+    expect(applyByRow()?.textContent).not.toMatch(/ago|in \d/);
+    expect(applyByRow()?.querySelector('time')).toBeInTheDocument();
   });
 });
 

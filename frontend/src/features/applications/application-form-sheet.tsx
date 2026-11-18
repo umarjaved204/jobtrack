@@ -305,7 +305,11 @@ function ApplicationForm({
           >
             <Input type="date" {...form.register('applied_on')} />
           </FormField>
-          <FormField label="Deadline" {...field('deadline_on')}>
+          <FormField
+            label="Apply by"
+            description="The last day to apply, if the ad gives one."
+            {...field('deadline_on')}
+          >
             <Input type="date" {...form.register('deadline_on')} />
           </FormField>
         </div>

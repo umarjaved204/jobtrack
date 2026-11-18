@@ -148,7 +148,11 @@ function BoardCard({
 
 /** Card content, shared with the drag preview. */
 function CardBody({ application }: { application: Application }) {
-  const deadlineDays = application.deadline_on ? daysUntil(application.deadline_on) : null;
+  // The apply-by date only matters while the role is still on the wishlist.
+  const applyInDays =
+    application.status === 'wishlist' && application.deadline_on
+      ? daysUntil(application.deadline_on)
+      : null;
   const meta = [
     application.location,
     application.work_mode ? workModeLabels[application.work_mode] : null,
@@ -162,7 +166,7 @@ function CardBody({ application }: { application: Application }) {
       </h3>
       <p className="pr-16 text-sm">{application.role_title}</p>
       {meta.length > 0 && <p className="text-xs text-muted-foreground">{meta.join(', ')}</p>}
-      {(application.tags.length > 0 || deadlineDays !== null || application.applied_on) && (
+      {(application.tags.length > 0 || applyInDays !== null || application.applied_on) && (
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
           {application.tags.slice(0, 2).map((tag) => (
             <TagChip key={tag.id} name={tag.name} color={tag.color} />
@@ -172,10 +176,10 @@ function CardBody({ application }: { application: Application }) {
               +{application.tags.length - 2} more
             </span>
           )}
-          {deadlineDays !== null && deadlineDays >= 0 && deadlineDays <= 7 && (
+          {applyInDays !== null && applyInDays >= 0 && applyInDays <= 7 && (
             <span className="inline-flex items-center gap-1 text-xs font-semibold text-ochre">
               <CalendarClock aria-hidden="true" className="size-3.5" />
-              {deadlineDays === 0 ? 'Due today' : `Due in ${deadlineDays}d`}
+              {applyInDays === 0 ? 'Apply today' : `Apply in ${applyInDays}d`}
             </span>
           )}
           {application.applied_on && application.status !== 'wishlist' && (

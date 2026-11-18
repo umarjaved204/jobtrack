@@ -146,6 +146,9 @@ describe('ApplicationFormSheet: edit', () => {
 
     expect(field(panel, 'Company')).toHaveValue('Monzo');
     expect(field(panel, 'Applied on')).toHaveValue(monzo.applied_on); // date-only string
+    expect(field(panel, 'Apply by')).toHaveAccessibleDescription(
+      'The last day to apply, if the ad gives one.',
+    );
     await user.clear(field(panel, 'Location'));
     await user.type(field(panel, 'Location'), 'Remote (UK)');
     await user.click(within(panel).getByRole('button', { name: 'Save changes' }));

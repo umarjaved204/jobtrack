@@ -206,23 +206,31 @@ describe('coming up', () => {
     vi.useRealTimers();
   });
 
-  it('lists overdue deadlines first, then those due soon, by the browser’s date', async () => {
+  it('lists missed apply-by dates first, then those due soon, by the browser’s date', async () => {
     mockAnalyticsBackend();
+    const wishlist = (company: string, deadline_on: string) =>
+      makeApplication({ company, deadline_on, status: 'wishlist', applied_on: null });
     mockApplicationsBackend({
       applications: [
-        makeApplication({ company: 'Monzo', deadline_on: '2026-11-18' }), // today, late evening
-        makeApplication({ company: 'Wise', deadline_on: '2026-11-17', status: 'wishlist' }),
-        makeApplication({ company: 'Figma', deadline_on: '2026-11-25', status: 'interview' }),
-        makeApplication({ company: 'Starling', deadline_on: '2026-11-19', status: 'rejected' }),
-        makeApplication({ company: 'Octopus', deadline_on: '2026-12-02' }), // 14 days: too far
+        wishlist('Monzo', '2026-11-18'), // today, late evening: still due, not missed
+        wishlist('Wise', '2026-11-17'),
+        wishlist('Figma', '2026-11-25'),
+        wishlist('Old', '2026-09-01'), // missed long ago: counted, not listed
+        makeApplication({ company: 'Starling', deadline_on: '2026-11-19', status: 'applied' }),
+        wishlist('Octopus', '2026-12-02'), // 14 days: too far
       ],
     });
     await openDashboard();
 
     const panel = await screen.findByRole('region', { name: 'Coming up' });
-    const overdue = within(panel).getByRole('region', { name: 'Past the deadline (1)' });
-    expect(within(overdue).getByRole('link', { name: 'Wise' })).toBeVisible();
-    expect(within(overdue).getByText('Yesterday')).toBeVisible();
+    const missed = within(panel).getByRole('region', { name: 'Past the deadline (2)' });
+    expect(
+      within(missed)
+        .getAllByRole('link')
+        .map((l) => l.textContent),
+    ).toEqual(['Wise']);
+    expect(within(missed).getByText('Yesterday')).toBeVisible();
+    expect(within(missed).getByText('+1 older (more than 30 days ago).')).toBeVisible();
     const soon = within(panel).getByRole('region', { name: 'Due soon (2)' });
     expect(
       within(soon)
@@ -231,16 +239,18 @@ describe('coming up', () => {
     ).toEqual(['Monzo', 'Figma']);
     expect(within(soon).getByText('Today')).toBeVisible();
     expect(within(soon).getByText('In 7 days')).toBeVisible();
-    expect(within(panel).queryByText('Starling')).not.toBeInTheDocument();
+    expect(within(panel).queryByText('Starling')).not.toBeInTheDocument(); // already applied
   });
 
   it('says when nothing is due', async () => {
     mockAnalyticsBackend();
-    mockApplicationsBackend({ applications: [makeApplication({ deadline_on: null })] });
+    mockApplicationsBackend({
+      applications: [makeApplication({ deadline_on: '2026-11-20', status: 'applied' })],
+    });
     await openDashboard();
 
     const panel = await screen.findByRole('region', { name: 'Coming up' });
-    expect(within(panel).getByText(/Nothing due in the next 14 days/)).toBeVisible();
+    expect(within(panel).getByText(/Nothing to apply for in the next 14 days/)).toBeVisible();
     expect(
       within(panel).queryByRole('region', { name: /Past the deadline/ }),
     ).not.toBeInTheDocument();
