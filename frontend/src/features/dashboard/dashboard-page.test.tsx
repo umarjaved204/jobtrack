@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw/http';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { todayDateOnly } from '@/lib/dates';
 import { emptyAnalytics, mockAnalyticsBackend } from '@/test/fake-analytics';
@@ -115,5 +115,57 @@ describe('stat strip', () => {
 
     expect(await screen.findByText('Your figures didn’t load')).toBeVisible();
     expect(screen.getByRole('button', { name: 'Try again' })).toBeVisible();
+  });
+});
+
+describe('applications over time', () => {
+  // The chart marks the bucket holding "today" as "so far", so pin the date (Date only:
+  // real timers keep MSW and the router running normally).
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 10, 18, 12)); // Wed 18 Nov 2026, local time
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('summarises the chart in its caption and gives the data as a table', async () => {
+    mockAnalyticsBackend();
+    await openDashboard();
+
+    const chart = await screen.findByRole('figure', { name: 'Applications over time' });
+    expect(
+      within(chart).getByText(
+        '32 applications over 13 weeks, about 2.5 a week. Busiest: week of 5 Oct 2026 (5). ' +
+          'This week so far: 2.',
+      ),
+    ).toBeVisible();
+    const table = within(chart).getByRole('table', { name: 'Applications per week' });
+    const rows = within(table).getAllByRole('row');
+    expect(rows).toHaveLength(14); // header + 13 weeks, zero weeks included
+    expect(rows[5]).toHaveTextContent('Week of 21 Sep 2026' + '0');
+    expect(rows[13]).toHaveTextContent('Week of 16 Nov 2026' + '2 so far');
+  });
+
+  it('says what will appear when the period has no applications', async () => {
+    mockAnalyticsBackend(emptyAnalytics());
+    await openDashboard();
+
+    const chart = await screen.findByRole('figure', { name: 'Applications over time' });
+    expect(within(chart).getByText('No applications in this period.')).toBeVisible();
+    expect(within(chart).getByText(/will show here, week by week/)).toBeVisible();
+  });
+
+  it('fails on its own: the figures still show', async () => {
+    mockAnalyticsBackend();
+    server.use(
+      http.get('/api/v1/analytics/timeseries', () =>
+        HttpResponse.json({ detail: 'Not found' }, { status: 404 }),
+      ),
+    );
+    await openDashboard();
+
+    expect(await screen.findByText('Applications over time didn’t load')).toBeVisible();
+    expect(figure('Applied')).toHaveTextContent('32');
   });
 });
