@@ -112,6 +112,7 @@ describe('stat strip', () => {
       ),
     );
     renderApp('/dashboard');
+    await findPageHeading('Dashboard'); // the page fades in
 
     expect(await screen.findByText('Your figures didn’t load')).toBeVisible();
     expect(screen.getByRole('button', { name: 'Try again' })).toBeVisible();
@@ -167,5 +168,29 @@ describe('applications over time', () => {
 
     expect(await screen.findByText('Applications over time didn’t load')).toBeVisible();
     expect(figure('Applied')).toHaveTextContent('32');
+  });
+});
+
+describe('pipeline and sources', () => {
+  it('show alongside the other sections', async () => {
+    mockAnalyticsBackend();
+    await openDashboard();
+
+    expect(await screen.findByRole('figure', { name: 'Pipeline' })).toBeVisible();
+    expect(screen.getByRole('figure', { name: 'Sources' })).toBeVisible();
+  });
+
+  it('fail independently', async () => {
+    mockAnalyticsBackend();
+    server.use(
+      http.get('/api/v1/analytics/funnel', () =>
+        HttpResponse.json({ detail: 'Not found' }, { status: 404 }),
+      ),
+    );
+    await openDashboard();
+
+    expect(await screen.findByText('The pipeline didn’t load')).toBeVisible();
+    expect(await screen.findByRole('figure', { name: 'Sources' })).toBeVisible();
+    expect(screen.getByRole('figure', { name: 'Applications over time' })).toBeVisible();
   });
 });
