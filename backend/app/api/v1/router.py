@@ -4,6 +4,7 @@ from app.api.v1 import (
     analytics,
     applications,
     auth,
+    calendar,
     contacts,
     health,
     reminders,
@@ -22,3 +23,4 @@ api_router.include_router(contacts.router)
 api_router.include_router(analytics.router)
 api_router.include_router(resumes.router)
 api_router.include_router(reminders.router)
+api_router.include_router(calendar.router)
