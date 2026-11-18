@@ -17,6 +17,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { applicationEventsQuery } from '@/features/calendar/api';
+import { remindersQuery } from '@/features/reminders/api';
+import { RemindersSection } from '@/features/reminders/reminders-section';
+import { resumesQuery } from '@/features/resumes/api';
 import { isApiError } from '@/lib/api/errors';
 import { daysUntil, formatDateOnly } from '@/lib/dates';
 import {
@@ -69,6 +73,28 @@ function applyByHint(deadline: string): string {
   return days === -1 ? 'yesterday' : `${-days} days ago`;
 }
 
+/** The version sent, linking to it on the Resumes page. */
+function ResumeSent({ id }: { id: string }) {
+  const resumes = useQuery(resumesQuery());
+  if (resumes.isPending) return <Skeleton className="h-4 w-40" />;
+  const resume = resumes.data?.find((r) => r.id === id);
+  if (!resume) return <span className="text-muted-foreground">Unavailable</span>;
+  return (
+    <Link
+      to={`/resumes?version=${resume.id}`}
+      className="text-primary-text underline-offset-4 hover:underline"
+    >
+      {resume.label}
+      {resume.archived_at && (
+        <>
+          {' '}
+          <span className="text-muted-foreground">(archived)</span>
+        </>
+      )}
+    </Link>
+  );
+}
+
 function Details({ application: a }: { application: Application }) {
   const salary = salaryText(a);
   const rows: [string, ReactNode][] = [
@@ -114,6 +140,7 @@ function Details({ application: a }: { application: Application }) {
         </a>
       ),
     ],
+    ['Resume', a.resume_version_id && <ResumeSent id={a.resume_version_id} />],
     [
       'Tags',
       a.tags.length > 0 && (
@@ -186,6 +213,20 @@ function StatusPicker({ application }: { application: Application }) {
   );
 }
 
+const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
+/** What else goes with the application (the server deletes its reminders and events too). */
+function DeleteWarning({ applicationId }: { applicationId: string }) {
+  const reminders = useQuery(remindersQuery({ status: 'all', application_id: applicationId }));
+  const events = useQuery(applicationEventsQuery(applicationId));
+  const extras = [
+    reminders.data?.length ? count(reminders.data.length, 'follow-up', 'follow-ups') : null,
+    events.data?.length ? count(events.data.length, 'calendar event', 'calendar events') : null,
+  ].filter(Boolean);
+  const also = extras.length ? `, along with ${extras.join(' and ')}` : '';
+  return <>Its timeline, notes and contacts are deleted too{also}. This can’t be undone.</>;
+}
+
 function ApplicationView({ application, back }: { application: Application; back: string }) {
   const navigate = useNavigate();
   const remove = useDeleteApplication();
@@ -233,6 +274,7 @@ function ApplicationView({ application, back }: { application: Application; back
         <Timeline applicationId={application.id} />
         <aside className="grid content-start gap-10" aria-label="About this application">
           <Details application={application} />
+          <RemindersSection applicationId={application.id} company={application.company} />
           <ContactsSection applicationId={application.id} />
         </aside>
       </div>
@@ -246,7 +288,7 @@ function ApplicationView({ application, back }: { application: Application; back
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
         title={`Delete ${application.company}?`}
-        description="Its timeline, notes and contacts are deleted too. This can’t be undone."
+        description={<DeleteWarning applicationId={application.id} />}
         confirmLabel="Delete application"
         pending={remove.isPending}
         error={

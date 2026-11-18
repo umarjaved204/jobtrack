@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { addDays } from 'date-fns/addDays';
 
 import { toDateOnly } from '@/lib/dates';
-import { mockApplicationsBackend } from '@/test/fake-applications';
+import { makeResume, mockApplicationsBackend } from '@/test/fake-applications';
 import { mockAuthBackend, server } from '@/test/msw';
 import { findPageHeading, renderApp } from '@/test/render-app';
 import type { Contact } from '@/types/application';
@@ -189,6 +189,30 @@ describe('application detail page', () => {
 
     await screen.findByRole('table');
     expect(app.location()).toBe('/applications?view=table&status=applied');
+  });
+});
+
+describe('resume sent', () => {
+  it('names the version sent and links to it, saying if it was archived since', async () => {
+    setup();
+    backend.resumes.push(
+      makeResume({ id: 'resume-v1', label: 'Frontend v1', archived_at: '2026-09-01T10:00:00Z' }),
+    );
+    const monzo = backend.applications.find((a) => a.id === monzoId);
+    Object.assign(monzo ?? {}, { resume_version_id: 'resume-v1' });
+    await openMonzo();
+
+    const details = screen.getByRole('region', { name: 'Details' });
+    const link = await within(details).findByRole('link', { name: 'Frontend v1 (archived)' });
+    expect(link).toHaveAttribute('href', '/resumes?version=resume-v1');
+  });
+
+  it('says "Not set" when no version was recorded', async () => {
+    setup();
+    await openMonzo();
+    const details = screen.getByRole('region', { name: 'Details' });
+    const row = within(details).getByText('Resume').closest('div');
+    expect(row).toHaveTextContent('ResumeNot set');
   });
 });
 

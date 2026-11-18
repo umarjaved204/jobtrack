@@ -11,6 +11,9 @@ import {
   type Contact,
   type Tag,
 } from '@/types/application';
+import type { CalendarEvent, CalendarEventInput, CalendarItem } from '@/types/calendar';
+import type { Reminder, ReminderInput, ReminderPatch } from '@/types/reminder';
+import type { Resume, ResumeInput, ResumePatch } from '@/types/resume';
 
 import { server } from './msw';
 
@@ -20,7 +23,15 @@ import { server } from './msw';
  * - new cards and status changes go to the end of their column (positions 1024 apart);
  * - leaving the wishlist fills applied_on with today if it's empty;
  * - every status change appends a status_change event (and creation logs the first one);
- * - everything requires a bearer token; unknown ids are 404.
+ * - everything requires a bearer token; unknown ids are 404;
+ * - resume versions (backend/app/services/resumes.py): used ones keep their text and
+ *   can't be deleted (409), archived ones can't be the default (409) or be newly linked
+ *   (422), and usage counts come from the applications here;
+ * - reminders (backend/app/services/reminders.py): exactly one of due_on / due_at, links
+ *   only to existing applications (404), deleted with their application;
+ * - calendar events and GET /calendar (backend/app/services/calendar.py): events by
+ *   overlap with [from, to); apply-by dates (wishlist only) and all-day reminders by the
+ *   local days of the offsets sent; open reminders unless include_done.
  * Combine with `mockAuthBackend({ signedIn: true })` so the client has a token.
  */
 
@@ -66,11 +77,65 @@ export function sampleApplications(): Application[] {
   ]; // prettier-ignore
 }
 
+export function makeResume(overrides: Partial<Resume> = {}): Resume {
+  const created = nowIso();
+  const content_text =
+    overrides.content_text ?? 'Sam Okafor\nFrontend engineer\n\nReact, TypeScript, Playwright';
+  return {
+    id: nextId('resume'),
+    label: 'Frontend v1',
+    is_default: false,
+    archived_at: null,
+    application_count: 0,
+    match_count: 0,
+    created_at: created,
+    updated_at: created,
+    ...overrides,
+    content_text,
+    char_count: content_text.length,
+  };
+}
+
+/** A stored reminder: like the API's, but holding the application id (the ref is derived). */
+export type StoredReminder = Omit<Reminder, 'application'> & { application_id: string | null };
+
+/** Exactly one of due_on / due_at, like the API: passing `due_at` makes it timed. */
+export function makeReminder(overrides: Partial<StoredReminder> = {}): StoredReminder {
+  return {
+    id: nextId('reminder'),
+    title: 'Follow up with the recruiter',
+    application_id: null,
+    due_on: overrides.due_at ? null : '2026-11-20',
+    due_at: null,
+    done_at: null,
+    ...overrides,
+  };
+}
+
+/** A stored event: like the API's, but holding the application id. */
+export type StoredEvent = Omit<CalendarEvent, 'application'> & { application_id: string | null };
+
+export function makeEvent(overrides: Partial<StoredEvent> = {}): StoredEvent {
+  return {
+    id: nextId('event'),
+    kind: 'interview',
+    title: 'Technical interview',
+    starts_at: '2026-11-20T15:00:00.000Z',
+    ends_at: null,
+    location_or_link: null,
+    application_id: null,
+    ...overrides,
+  };
+}
+
 type State = {
   applications: Application[];
   events: Map<string, ApplicationEvent[]>;
   contacts: Contact[];
   tags: Tag[];
+  resumes: Resume[];
+  reminders: StoredReminder[];
+  calendarEvents: StoredEvent[];
   calls: string[];
 };
 
@@ -84,6 +149,9 @@ export function mockApplicationsBackend({
   applications = sampleApplications(),
   tags = [],
   contacts = [],
+  resumes = [],
+  reminders = [],
+  calendarEvents = [],
   moveLatencyMs = 0,
   failMovesFor = [],
   boardLatencyMs = 0,
@@ -91,6 +159,9 @@ export function mockApplicationsBackend({
   applications?: Application[];
   tags?: Tag[];
   contacts?: Contact[];
+  resumes?: Resume[];
+  reminders?: StoredReminder[];
+  calendarEvents?: StoredEvent[];
   /** Keep move requests in flight this long (per card id, or for all). */
   moveLatencyMs?: number | ((id: string) => number);
   /** Card ids whose moves fail with 503 (after their latency). */
@@ -103,6 +174,9 @@ export function mockApplicationsBackend({
     events: new Map(),
     contacts: contacts.map((c) => ({ ...c })),
     tags: tags.map((t) => ({ ...t })),
+    resumes: resumes.map((r) => ({ ...r })),
+    reminders: reminders.map((r) => ({ ...r })),
+    calendarEvents: calendarEvents.map((e) => ({ ...e })),
     calls: [],
   };
   for (const a of state.applications) {
@@ -122,6 +196,63 @@ export function mockApplicationsBackend({
     Math.max(0, ...state.applications.filter((a) => a.status === status).map((a) => a.position)) +
     STEP;
   const resolveTags = (ids: string[] = []) => state.tags.filter((t) => ids.includes(t.id));
+
+  /** Like the API's response: counts come from the applications that link to it. */
+  const withUsage = (resume: Resume): Resume => ({
+    ...resume,
+    application_count: state.applications.filter((a) => a.resume_version_id === resume.id).length,
+    char_count: resume.content_text.length,
+  });
+  /** The list leaves the text out, like the API. */
+  const resumeSummary = (resume: Resume): Omit<Resume, 'content_text'> => {
+    const summary: Partial<Resume> = withUsage(resume);
+    delete summary.content_text;
+    return summary as Omit<Resume, 'content_text'>;
+  };
+  const inUse = (resume: Resume) => {
+    const used = withUsage(resume);
+    return used.application_count + used.match_count > 0;
+  };
+  const error = (status: number, detail: string) => HttpResponse.json({ detail }, { status });
+
+  const ref = (id: string | null) => {
+    const app = id ? find(id) : undefined;
+    return app ? { id: app.id, company: app.company, role_title: app.role_title } : null;
+  };
+  const eventRead = ({ application_id, ...rest }: StoredEvent): CalendarEvent => ({
+    ...rest,
+    application: ref(application_id),
+  });
+  /** The calendar day a "…T00:00:00±hh:mm" bound names, and the last day before `to`. */
+  const dayBounds = (from: string, to: string) => {
+    const toMidnight = to.slice(11, 19) === '00:00:00';
+    const last = new Date(`${to.slice(0, 10)}T12:00:00Z`);
+    if (toMidnight) last.setUTCDate(last.getUTCDate() - 1);
+    return [from.slice(0, 10), last.toISOString().slice(0, 10)] as const;
+  };
+
+  /** API shape: the application id becomes a ref {id, company, role_title}. */
+  const reminderRead = ({ application_id, ...rest }: StoredReminder): Reminder => {
+    const app = application_id ? find(application_id) : undefined;
+    return {
+      ...rest,
+      application: app ? { id: app.id, company: app.company, role_title: app.role_title } : null,
+    };
+  };
+  /** Like the API's order: open ones by due (UTC) day, all-day first; done ones newest first. */
+  const dueKey = (r: StoredReminder) => `${r.due_on ?? r.due_at?.slice(0, 10)} ${r.due_at ?? ''}`;
+  const reminderOrder = (a: StoredReminder, b: StoredReminder) =>
+    Number(Boolean(a.done_at)) - Number(Boolean(b.done_at)) ||
+    (b.done_at ?? '').localeCompare(a.done_at ?? '') ||
+    dueKey(a).localeCompare(dueKey(b));
+  /** A newly linked resume must exist and not be archived (an unchanged link is fine). */
+  function resumeLinkError(id: string | null | undefined, current: string | null = null) {
+    if (!id || id === current) return null;
+    const resume = state.resumes.find((r) => r.id === id);
+    if (!resume) return error(422, 'Resume version does not exist');
+    if (resume.archived_at) return error(422, 'Resume version is archived');
+    return null;
+  }
 
   function changeStatus(app: Application, to: ApplicationStatus) {
     if (app.status === to) return;
@@ -209,6 +340,8 @@ export function mockApplicationsBackend({
       if (!hasToken(request)) return unauthorized();
       state.calls.push('POST /applications');
       const { tag_ids, ...input } = (await request.json()) as ApplicationInput;
+      const linkError = resumeLinkError(input.resume_version_id);
+      if (linkError) return linkError;
       const status = input.status ?? 'wishlist';
       const app = makeApplication({
         location: null,
@@ -241,6 +374,8 @@ export function mockApplicationsBackend({
       const app = find(String(params['id']));
       if (!app) return notFound();
       const { tag_ids, status, ...patch } = (await request.json()) as ApplicationInput;
+      const linkError = resumeLinkError(patch.resume_version_id, app.resume_version_id);
+      if (linkError) return linkError;
       Object.assign(app, patch, { updated_at: nowIso() });
       if (tag_ids) app.tags = resolveTags(tag_ids);
       if (status && status !== app.status) {
@@ -256,6 +391,8 @@ export function mockApplicationsBackend({
       state.calls.push('DELETE /applications');
       state.applications = state.applications.filter((a) => a.id !== id);
       state.contacts = state.contacts.filter((c) => c.application_id !== id);
+      state.reminders = state.reminders.filter((r) => r.application_id !== id); // cascade
+      state.calendarEvents = state.calendarEvents.filter((e) => e.application_id !== id); // cascade
       state.events.delete(id);
       return new HttpResponse(null, { status: 204 });
     }),
@@ -338,6 +475,221 @@ export function mockApplicationsBackend({
       const id = String(params['id']);
       if (!state.contacts.some((c) => c.id === id)) return notFound('Contact');
       state.contacts = state.contacts.filter((c) => c.id !== id);
+      return new HttpResponse(null, { status: 204 });
+    }),
+
+    http.get('/api/v1/reminders', ({ request }) => {
+      if (!hasToken(request)) return unauthorized();
+      state.calls.push('GET /reminders');
+      const params = new URL(request.url).searchParams;
+      const status = params.get('status') ?? 'open';
+      const applicationId = params.get('application_id');
+      const listed = state.reminders.filter(
+        (r) =>
+          (status === 'all' || (status === 'done') === Boolean(r.done_at)) &&
+          (!applicationId || r.application_id === applicationId),
+      );
+      return HttpResponse.json([...listed].sort(reminderOrder).map(reminderRead));
+    }),
+    http.post('/api/v1/reminders', async ({ request }) => {
+      if (!hasToken(request)) return unauthorized();
+      state.calls.push('POST /reminders');
+      const input = (await request.json()) as ReminderInput;
+      if (Boolean(input.due_on) === Boolean(input.due_at)) {
+        return error(422, 'Send exactly one of due_on (all day) or due_at (timed)');
+      }
+      if (input.application_id && !find(input.application_id)) return notFound();
+      const reminder = makeReminder({
+        title: input.title.trim(),
+        application_id: input.application_id ?? null,
+        due_on: input.due_on ?? null,
+        due_at: input.due_at ? new Date(input.due_at).toISOString() : null,
+      });
+      state.reminders.push(reminder);
+      return HttpResponse.json(reminderRead(reminder), { status: 201 });
+    }),
+    http.patch('/api/v1/reminders/:id', async ({ request, params }) => {
+      if (!hasToken(request)) return unauthorized();
+      state.calls.push('PATCH /reminders');
+      const reminder = state.reminders.find((r) => r.id === String(params['id']));
+      if (!reminder) return notFound('Reminder');
+      const patch = (await request.json()) as ReminderPatch;
+      if (patch.application_id && !find(patch.application_id)) return notFound();
+      if (patch.title !== undefined) reminder.title = patch.title.trim();
+      if (patch.application_id !== undefined) reminder.application_id = patch.application_id;
+      if (patch.due_on) Object.assign(reminder, { due_on: patch.due_on, due_at: null });
+      if (patch.due_at) {
+        Object.assign(reminder, { due_on: null, due_at: new Date(patch.due_at).toISOString() });
+      }
+      if (patch.done === true) reminder.done_at ??= nowIso();
+      if (patch.done === false) reminder.done_at = null;
+      return HttpResponse.json(reminderRead(reminder));
+    }),
+    http.delete('/api/v1/reminders/:id', ({ request, params }) => {
+      if (!hasToken(request)) return unauthorized();
+      const id = String(params['id']);
+      if (!state.reminders.some((r) => r.id === id)) return notFound('Reminder');
+      state.calls.push('DELETE /reminders');
+      state.reminders = state.reminders.filter((r) => r.id !== id);
+      return new HttpResponse(null, { status: 204 });
+    }),
+
+    http.get('/api/v1/calendar', ({ request }) => {
+      if (!hasToken(request)) return unauthorized();
+      const params = new URL(request.url).searchParams;
+      const [from, to] = [params.get('from') ?? '', params.get('to') ?? ''];
+      state.calls.push(`GET /calendar?from=${from}&to=${to}`);
+      const [start, end] = [Date.parse(from), Date.parse(to)];
+      if (!(end > start)) return error(422, "'to' must be after 'from'");
+      const [firstDay, lastDay] = dayBounds(from, to);
+      const inDays = (day: string | null) => day !== null && day >= firstDay && day <= lastDay;
+      const items: CalendarItem[] = [
+        ...state.calendarEvents
+          .filter((e) => {
+            const s = Date.parse(e.starts_at);
+            const finish = Date.parse(e.ends_at ?? e.starts_at);
+            return s < end && (finish > start || s >= start);
+          })
+          .map((e) => ({ type: 'event' as const, ...eventRead(e) })),
+        ...state.applications
+          .filter((a) => a.status === 'wishlist' && inDays(a.deadline_on))
+          .map((a) => ({
+            type: 'apply_by' as const,
+            id: a.id,
+            title: `Apply to ${a.company}`,
+            date: a.deadline_on ?? '',
+            application: { id: a.id, company: a.company, role_title: a.role_title },
+          })),
+        ...state.reminders
+          .filter((r) => params.get('include_done') === 'true' || !r.done_at)
+          .filter((r) =>
+            r.due_on ? inDays(r.due_on) : Date.parse(r.due_at ?? '') >= start && Date.parse(r.due_at ?? '') < end,
+          )
+          .map((r) => ({
+            type: 'reminder' as const,
+            id: r.id,
+            title: r.title,
+            date: r.due_on,
+            starts_at: r.due_at,
+            done_at: r.done_at,
+            application: ref(r.application_id),
+          })),
+      ]; // prettier-ignore
+      return HttpResponse.json({ items });
+    }),
+    http.get('/api/v1/calendar-events', ({ request }) => {
+      if (!hasToken(request)) return unauthorized();
+      const applicationId = new URL(request.url).searchParams.get('application_id');
+      const listed = state.calendarEvents
+        .filter((e) => !applicationId || e.application_id === applicationId)
+        .sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+      return HttpResponse.json(listed.map(eventRead));
+    }),
+    http.post('/api/v1/calendar-events', async ({ request }) => {
+      if (!hasToken(request)) return unauthorized();
+      state.calls.push('POST /calendar-events');
+      const input = (await request.json()) as CalendarEventInput;
+      if (input.application_id && !find(input.application_id)) return notFound();
+      const event = makeEvent({
+        kind: input.kind,
+        title: input.title,
+        starts_at: new Date(input.starts_at).toISOString(),
+        ends_at: input.ends_at ? new Date(input.ends_at).toISOString() : null,
+        location_or_link: input.location_or_link ?? null,
+        application_id: input.application_id ?? null,
+      });
+      state.calendarEvents.push(event);
+      return HttpResponse.json(eventRead(event), { status: 201 });
+    }),
+    http.patch('/api/v1/calendar-events/:id', async ({ request, params }) => {
+      if (!hasToken(request)) return unauthorized();
+      state.calls.push('PATCH /calendar-events');
+      const event = state.calendarEvents.find((e) => e.id === String(params['id']));
+      if (!event) return notFound('Calendar event');
+      const patch = (await request.json()) as Partial<CalendarEventInput>;
+      if (patch.application_id && !find(patch.application_id)) return notFound();
+      const iso = (v: string | null | undefined) => (v ? new Date(v).toISOString() : null);
+      Object.assign(event, {
+        ...patch,
+        ...(patch.starts_at !== undefined ? { starts_at: iso(patch.starts_at) } : {}),
+        ...(patch.ends_at !== undefined ? { ends_at: iso(patch.ends_at) } : {}),
+      });
+      return HttpResponse.json(eventRead(event));
+    }),
+    http.delete('/api/v1/calendar-events/:id', ({ request, params }) => {
+      if (!hasToken(request)) return unauthorized();
+      const id = String(params['id']);
+      if (!state.calendarEvents.some((e) => e.id === id)) return notFound('Calendar event');
+      state.calls.push('DELETE /calendar-events');
+      state.calendarEvents = state.calendarEvents.filter((e) => e.id !== id);
+      return new HttpResponse(null, { status: 204 });
+    }),
+
+    http.get('/api/v1/resumes', ({ request }) => {
+      if (!hasToken(request)) return unauthorized();
+      state.calls.push('GET /resumes');
+      // Like the API: the default first, then newest first; archived last.
+      const rank = (r: Resume) => (r.archived_at ? 2 : r.is_default ? 0 : 1);
+      const sorted = [...state.resumes].sort(
+        (a, b) => rank(a) - rank(b) || b.updated_at.localeCompare(a.updated_at),
+      );
+      return HttpResponse.json(sorted.map(resumeSummary));
+    }),
+    http.get('/api/v1/resumes/:id', ({ request, params }) => {
+      if (!hasToken(request)) return unauthorized();
+      const resume = state.resumes.find((r) => r.id === String(params['id']));
+      return resume ? HttpResponse.json(withUsage(resume)) : notFound('Resume version');
+    }),
+    http.post('/api/v1/resumes', async ({ request }) => {
+      if (!hasToken(request)) return unauthorized();
+      state.calls.push('POST /resumes');
+      const input = (await request.json()) as ResumeInput;
+      const resume = makeResume({ label: input.label, content_text: input.content_text });
+      if (input.is_default) {
+        for (const r of state.resumes) r.is_default = false;
+        resume.is_default = true;
+      }
+      state.resumes.push(resume);
+      return HttpResponse.json(withUsage(resume), { status: 201 });
+    }),
+    http.patch('/api/v1/resumes/:id', async ({ request, params }) => {
+      if (!hasToken(request)) return unauthorized();
+      state.calls.push('PATCH /resumes');
+      const resume = state.resumes.find((r) => r.id === String(params['id']));
+      if (!resume) return notFound('Resume version');
+      const patch = (await request.json()) as ResumePatch;
+      const textChanges =
+        patch.content_text !== undefined && patch.content_text !== resume.content_text;
+      if (textChanges && inUse(resume)) {
+        return error(409, "This version has been used, so its text can't change. Duplicate it instead.");
+      } // prettier-ignore
+      if (patch.label !== undefined) resume.label = patch.label;
+      if (patch.content_text !== undefined) resume.content_text = patch.content_text;
+      if (patch.archived === true) {
+        resume.archived_at ??= nowIso();
+        resume.is_default = false;
+      } else if (patch.archived === false) {
+        resume.archived_at = null;
+      }
+      if (patch.is_default === true && !resume.is_default) {
+        if (resume.archived_at) return error(409, "An archived resume can't be the default");
+        for (const r of state.resumes) r.is_default = false;
+        resume.is_default = true;
+      } else if (patch.is_default === false) {
+        resume.is_default = false;
+      }
+      resume.updated_at = nowIso();
+      return HttpResponse.json(withUsage(resume));
+    }),
+    http.delete('/api/v1/resumes/:id', ({ request, params }) => {
+      if (!hasToken(request)) return unauthorized();
+      const resume = state.resumes.find((r) => r.id === String(params['id']));
+      if (!resume) return notFound('Resume version');
+      if (inUse(resume)) {
+        return error(409, "This version has been used, so it can't be deleted. Archive it instead.");
+      } // prettier-ignore
+      state.calls.push('DELETE /resumes');
+      state.resumes = state.resumes.filter((r) => r.id !== resume.id);
       return new HttpResponse(null, { status: 204 });
     }),
   );

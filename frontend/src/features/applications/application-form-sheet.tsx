@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useQuery } from '@tanstack/react-query';
 import { type RefObject, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 
@@ -30,6 +31,8 @@ import {
 } from '@/components/ui/sheet';
 import { applyServerError } from '@/features/auth/form-errors';
 import { useFormAlert } from '@/features/auth/use-form-alert';
+import { resumesQuery } from '@/features/resumes/api';
+import { ResumePicker } from '@/features/resumes/resume-picker';
 import {
   type Application,
   type ApplicationStatus,
@@ -201,6 +204,8 @@ function ApplicationForm({
   const field = (name: keyof ApplicationFormValues) => ({
     error: errors[name]?.message,
   });
+  const resumes = useQuery(resumesQuery());
+  const hasResumes = resumes.isPending || resumes.isError || resumes.data.length > 0;
 
   return (
     <form noValidate onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col">
@@ -313,6 +318,33 @@ function ApplicationForm({
             <Input type="date" {...form.register('deadline_on')} />
           </FormField>
         </div>
+
+        <FormField
+          label="Resume sent"
+          description={
+            hasResumes
+              ? 'The version you sent, so you can see which one works best.'
+              : 'No versions yet: add them on the Resumes page.'
+          }
+          {...field('resume_version_id')}
+        >
+          {(control) => (
+            <Controller
+              control={form.control}
+              name="resume_version_id"
+              render={({ field: f }) => (
+                <ResumePicker
+                  {...control}
+                  value={f.value}
+                  onChange={f.onChange}
+                  onBlur={f.onBlur}
+                  ref={f.ref}
+                  savedId={mode.type === 'edit' ? mode.application.resume_version_id : null}
+                />
+              )}
+            />
+          )}
+        </FormField>
 
         <FormField label="Tags" {...field('tag_ids')}>
           {(control) => (

@@ -64,13 +64,17 @@ def _resolve_tags(db: Session, user: User, tag_ids: list[uuid.UUID]) -> list[Tag
 
 
 def _check_resume_version(db: Session, user: User, resume_version_id: uuid.UUID) -> None:
-    owned = db.scalar(
-        select(
-            exists().where(ResumeVersion.id == resume_version_id, ResumeVersion.user_id == user.id)
+    """A newly linked resume must be the user's own and not archived. An application that
+    already points at a since-archived version keeps it (callers skip unchanged values)."""
+    row = db.execute(
+        select(ResumeVersion.archived_at).where(
+            ResumeVersion.id == resume_version_id, ResumeVersion.user_id == user.id
         )
-    )
-    if not owned:
+    ).one_or_none()
+    if row is None:
         raise UnprocessableError("Resume version does not exist")
+    if row.archived_at is not None:
+        raise UnprocessableError("Resume version is archived")
 
 
 def _end_of_column(db: Session, user: User, status: ApplicationStatus) -> float:
@@ -154,8 +158,9 @@ def update_application(
 
     if "tag_ids" in changes:
         application.tags = _resolve_tags(db, user, changes.pop("tag_ids"))
-    if changes.get("resume_version_id") is not None:
-        _check_resume_version(db, user, changes["resume_version_id"])
+    new_resume = changes.get("resume_version_id")
+    if new_resume is not None and new_resume != application.resume_version_id:
+        _check_resume_version(db, user, new_resume)
     new_status: ApplicationStatus | None = changes.pop("status", None)
 
     for field, value in changes.items():

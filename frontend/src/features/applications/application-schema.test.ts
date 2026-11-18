@@ -86,7 +86,14 @@ describe('toApplicationInput', () => {
       status: 'applied',
       applied_on: '2026-11-03', // a date-only string, never a Date
       deadline_on: null,
+      resume_version_id: null, // the picker's "None"
       tag_ids: ['tag-remote'],
+    });
+  });
+
+  it('sends the chosen resume version', () => {
+    expect(toApplicationInput({ ...valid, resume_version_id: 'resume-7' })).toMatchObject({
+      resume_version_id: 'resume-7',
     });
   });
 });

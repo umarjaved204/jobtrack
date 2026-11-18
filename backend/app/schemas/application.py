@@ -121,6 +121,14 @@ class ApplicationRead(BaseModel):
     updated_at: datetime
 
 
+class ApplicationRef(BaseModel):
+    """Enough to label and link to the application a reminder or event belongs to."""
+
+    id: uuid.UUID
+    company: str
+    role_title: str
+
+
 class MoveRequest(BaseModel):
     """Kanban drop: target column and float position. The client sends the midpoint of
     the two neighbours it was dropped between (or a value past either end)."""

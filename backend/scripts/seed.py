@@ -3,13 +3,16 @@
     cd backend && uv run python -m scripts.seed
 
 Everything is created through the real service functions (password hashing, initial
-status events, kanban positions, applied_on auto-fill, contacts, notes), so the data
-follows the same rules as the app. Two things are bent, on purpose:
+status events, kanban positions, applied_on auto-fill, contacts, notes, resume versions,
+reminders, calendar events), so the data follows the same rules as the app. Two things
+are bent, on purpose:
 
 * **Time.** The services read the clock through `app.services.applications._now`; the
   seed swaps in a controlled clock so events, applied_on and notes are backdated over
-  ~90 days. `created_at`/`updated_at` come from the database clock, so they are set to
-  match afterwards. (Phase 7's charts and funnel read this history.)
+  ~90 days. `created_at`/`updated_at` (and a resume's `archived_at`) come from the
+  database or real clock, so they are set to match afterwards. (Phase 7's charts and
+  funnel read this history.) Reminders and calendar events sit around today, so every
+  state the UI has is visible: overdue, due today, upcoming, done, overnight, multi-day.
 * **The sign-up email check** (DNS) is skipped for the demo account.
 
 Deterministic (fixed random seed): every run deletes the demo user (cascading all of its
@@ -18,6 +21,7 @@ data) and recreates the same history relative to today. Refuses to run in produc
 
 import random
 import sys
+import uuid
 from collections import Counter
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -29,15 +33,21 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.db.session import SessionLocal  # creates the engine only; connects on first use
-from app.models import Application, User
-from app.models.enums import ApplicationStatus, WorkMode
+from app.models import Application, ResumeVersion, User
+from app.models.enums import ApplicationStatus, CalendarEventKind, WorkMode
 from app.schemas.application import ApplicationCreate, ApplicationUpdate
 from app.schemas.auth import RegisterRequest
+from app.schemas.calendar import CalendarEventCreate
 from app.schemas.contact import ContactCreate
+from app.schemas.reminder import ReminderCreate, ReminderUpdate
+from app.schemas.resume import ResumeCreate, ResumeUpdate
 from app.schemas.tag import TagCreate
 from app.services import applications as applications_service
 from app.services import auth as auth_service
+from app.services import calendar as calendar_service
 from app.services import contacts as contacts_service
+from app.services import reminders as reminders_service
+from app.services import resumes as resumes_service
 from app.services import tags as tags_service
 from app.services import users as users_service
 
@@ -126,6 +136,81 @@ NOTES: dict[ApplicationStatus, list[str]] = {
     S.WITHDRAWN: ["Withdrew: the role turned out to be mostly backend."],
 }
 
+# Three versions sent over the search (v1 archived once v2 replaced it) and an unused draft.
+_CONTACT = "London | sam.okafor@jobtrack-demo.com | github.com/sam-okafor-demo"
+RESUMES: list[tuple[str, str]] = [
+    (
+        "Frontend v1 (general)",
+        f"""Sam Okafor
+{_CONTACT}
+
+Frontend engineer with five years of experience building web apps in React and TypeScript.
+
+Experience
+Frontend Engineer, Halden Insurance (2022 to now)
+- Rebuilt the quote journey in React and TypeScript; conversion up 12%.
+- Introduced Jest and React Testing Library; coverage from 20% to 75%.
+- Worked with designers on a shared component library.
+
+Junior Developer, Northgate Digital (2020 to 2022)
+- Built marketing sites and dashboards with React, Sass and REST APIs.
+
+Skills
+React, TypeScript, JavaScript, HTML, CSS, Sass, Jest, React Testing Library, Git, REST""",
+    ),
+    (
+        "Frontend v2 (design systems)",
+        f"""Sam Okafor
+{_CONTACT}
+
+Frontend engineer focused on design systems and accessibility. Five years of React and
+TypeScript, most recently leading a component library used by six product teams.
+
+Experience
+Frontend Engineer, Halden Insurance (2022 to now)
+- Led the design system: 60 accessible components, Storybook docs, visual regression tests.
+- Audited the quote journey against WCAG 2.2 AA and fixed 40+ issues with the team.
+- Rebuilt the quote journey in React and TypeScript; conversion up 12%.
+
+Junior Developer, Northgate Digital (2020 to 2022)
+- Built marketing sites and dashboards with React, Sass and REST APIs.
+
+Skills
+React, TypeScript, design systems, Storybook, accessibility (WCAG, ARIA), CSS architecture,
+Tailwind CSS, Jest, React Testing Library, Playwright, Figma""",
+    ),
+    (
+        "Frontend v3 (product)",
+        f"""Sam Okafor
+{_CONTACT}
+
+Product-minded frontend engineer. I ship measurable improvements to customer journeys,
+from research to release, with strong foundations in accessibility and testing.
+
+Experience
+Frontend Engineer, Halden Insurance (2022 to now)
+- Owned the quote journey end to end: A/B tests, analytics, React and TypeScript rebuild;
+  conversion up 12% and support tickets down 18%.
+- Led the design system (60 accessible components, Storybook, visual regression tests).
+- Mentored two junior engineers; ran the frontend guild's monthly sessions.
+
+Junior Developer, Northgate Digital (2020 to 2022)
+- Built dashboards with React, D3 and REST APIs for logistics clients.
+
+Skills
+React, TypeScript, Next.js, Node.js, GraphQL, PostgreSQL basics, experimentation,
+product analytics, accessibility, Playwright, CI/CD""",
+    ),
+    (
+        "Full-stack draft",
+        f"""Sam Okafor
+{_CONTACT}
+
+Draft: frontend engineer moving towards full-stack work with Node.js, PostgreSQL and React.""",
+    ),
+]
+DEFAULT_RESUME = "Frontend v3 (product)"
+
 RECRUITERS = ["Daniel Okoro", "Hannah Price", "Ravi Menon", "Chloe Martin", "Tom Fletcher"]
 MANAGERS = ["Priya Shah", "Marcus Lee", "Elena Rossi", "Kwame Mensah", "Sofia Novak"]
 
@@ -137,6 +222,9 @@ class SeedSummary:
     by_status: Counter[ApplicationStatus] = field(default_factory=Counter)
     notes: int = 0
     contacts: int = 0
+    resumes: int = 0
+    reminders: int = 0
+    events: int = 0
 
 
 class _Clock:
@@ -192,6 +280,8 @@ def seed_demo_data(db: Session, *, now: datetime | None = None) -> SeedSummary:
             for name, color in TAGS
         ]
         summary = SeedSummary(user_id=str(user.id), applications=0)
+        resumes = _create_resumes(db, user, start, now)
+        summary.resumes = len(resumes)
 
         companies = rng.sample(COMPANIES, k=len(COMPANIES))
         paths, weights = zip(*PATHS, strict=True)
@@ -222,6 +312,10 @@ def seed_demo_data(db: Session, *, now: datetime | None = None) -> SeedSummary:
                     if path[0] == S.WISHLIST
                     else None,
                     tag_ids=[t.id for t in rng.sample(tags, k=rng.randint(0, 2))],
+                    # The version that was current then (none for a wishlist-only idea).
+                    resume_version_id=None
+                    if path == [S.WISHLIST]
+                    else resumes[min((first_day - start.date()).days // 30, 2)].id,
                 ),
             )
 
@@ -249,7 +343,178 @@ def seed_demo_data(db: Session, *, now: datetime | None = None) -> SeedSummary:
             summary.applications += 1
             summary.by_status[application.status] += 1
 
+        # v1 was replaced by v2 a month in: archive it now that its applications exist.
+        resumes_service.update_resume(db, user, resumes[0].id, ResumeUpdate(archived=True))
+        resumes[0].archived_at = resumes[0].updated_at = start + timedelta(days=31)
+        db.commit()
+
+        summary.reminders = _create_reminders(db, user, now)
+        summary.events = _create_events(db, user, now)
+
     return summary
+
+
+def _create_resumes(db: Session, user: User, start: datetime, now: datetime) -> list[ResumeVersion]:
+    """v1 just before the search, v2 a month in, v3 (the default) two months in, and a
+    draft this week."""
+    written = [
+        start - timedelta(days=2),
+        start + timedelta(days=29),
+        start + timedelta(days=59),
+        now - timedelta(days=3),
+    ]
+    resumes = []
+    for (label, text), at in zip(RESUMES, written, strict=True):
+        created = resumes_service.create_resume(
+            db,
+            user,
+            ResumeCreate(label=label, content_text=text, is_default=label == DEFAULT_RESUME),
+        )
+        resume = db.get_one(ResumeVersion, created.id)
+        resume.created_at = resume.updated_at = at
+        resumes.append(resume)
+    db.commit()
+    return resumes
+
+
+def _pick(db: Session, user: User, status: ApplicationStatus, skip: int = 0) -> Application | None:
+    """A demo application in `status`, alphabetically (so the pick is stable)."""
+    return db.scalars(
+        select(Application)
+        .where(Application.user_id == user.id, Application.status == status)
+        .order_by(Application.company)
+        .offset(skip)
+        .limit(1)
+    ).first()
+
+
+def _id(application: Application | None) -> uuid.UUID | None:
+    return application.id if application is not None else None
+
+
+def _company(application: Application | None, fallback: str) -> str:
+    return application.company if application is not None else fallback
+
+
+def _at(day: date, hour: int, minute: int = 0) -> datetime:
+    return datetime.combine(day, time(hour, minute), tzinfo=UTC)
+
+
+def _create_reminders(db: Session, user: User, now: datetime) -> int:
+    """Open ones overdue (one beyond the 30-day cap), due today and upcoming; all-day and
+    timed; linked and not. Plus one done."""
+    today = now.date()
+    interview = _pick(db, user, S.INTERVIEW)
+    screening = _pick(db, user, S.SCREENING)
+    applied = _pick(db, user, S.APPLIED)
+    applied_2 = _pick(db, user, S.APPLIED, skip=1)
+    offer = _pick(db, user, S.OFFER)
+
+    def day(offset: int) -> date:
+        return today + timedelta(days=offset)
+
+    reminders = [
+        ReminderCreate(
+            title=f"Chase {_company(interview, 'the hiring team')} for take-home feedback",
+            application_id=_id(interview),
+            due_on=day(-3),
+        ),
+        ReminderCreate(title="Ask an old teammate for a referral", due_on=day(-41)),
+        ReminderCreate(
+            title=f"Follow up on the {_company(applied, 'latest')} application",
+            application_id=_id(applied),
+            due_at=_at(day(-1), 10),
+        ),
+        ReminderCreate(
+            title=f"Send a thank-you note to {_company(screening, 'the recruiter')}",
+            application_id=_id(screening),
+            due_on=today,
+        ),
+        ReminderCreate(
+            title=f"Call the {_company(offer, 'hiring')} recruiter about the offer",
+            application_id=_id(offer),
+            due_at=_at(day(1), 14),
+        ),
+        ReminderCreate(
+            title=f"Check in with {_company(applied_2, 'the company')} if no reply",
+            application_id=_id(applied_2),
+            due_on=day(6),
+        ),
+        ReminderCreate(title="Refresh portfolio screenshots", due_at=_at(day(9), 18)),
+    ]
+    for data in reminders:
+        reminders_service.create_reminder(db, user, data)
+
+    done = reminders_service.create_reminder(
+        db,
+        user,
+        ReminderCreate(title="Update the quote journey case study", due_on=day(-6)),
+    )
+    reminders_service.update_reminder(db, user, done.id, ReminderUpdate(done=True))
+    return len(reminders) + 1
+
+
+def _create_events(db: Session, user: User, now: datetime) -> int:
+    """A past screen, a multi-day take-home, upcoming interviews (one crosses midnight
+    UTC), an offer deadline, and one with a plain-text location."""
+    today = now.date()
+    interview = _pick(db, user, S.INTERVIEW)
+    interview_2 = _pick(db, user, S.INTERVIEW, skip=1)
+    screening = _pick(db, user, S.SCREENING)
+    offer = _pick(db, user, S.OFFER)
+
+    def day(offset: int) -> date:
+        return today + timedelta(days=offset)
+
+    events = [
+        CalendarEventCreate(
+            kind=CalendarEventKind.INTERVIEW,
+            title="Recruiter screen",
+            starts_at=_at(day(-5), 11),
+            ends_at=_at(day(-5), 11, 30),
+            location_or_link="Phone call",
+            application_id=_id(screening),
+        ),
+        CalendarEventCreate(
+            kind=CalendarEventKind.ASSESSMENT,
+            title="Take-home: accessible data table",
+            starts_at=_at(day(-1), 9),
+            ends_at=_at(day(4), 17),
+            application_id=_id(interview),
+        ),
+        CalendarEventCreate(
+            kind=CalendarEventKind.INTERVIEW,
+            title="Technical interview (pairing)",
+            starts_at=_at(day(2), 14),
+            ends_at=_at(day(2), 15, 30),
+            location_or_link="https://meet.example.org/sam-okafor-pairing",
+            application_id=_id(interview),
+        ),
+        CalendarEventCreate(
+            kind=CalendarEventKind.INTERVIEW,
+            title="Hiring manager call (Sydney team)",
+            starts_at=_at(day(3), 23),
+            ends_at=_at(day(4), 0, 30),  # crosses midnight UTC
+            location_or_link="https://meet.example.org/sam-okafor-sydney",
+            application_id=_id(interview_2),
+        ),
+        CalendarEventCreate(
+            kind=CalendarEventKind.DEADLINE,
+            title="Reply to the offer",
+            starts_at=_at(day(5), 17),
+            application_id=_id(offer),
+        ),
+        CalendarEventCreate(
+            kind=CalendarEventKind.OTHER,
+            title="Coffee with a former colleague",
+            starts_at=_at(day(8), 8, 30),
+            ends_at=_at(day(8), 9, 15),
+            location_or_link="Old Street, London",
+        ),
+    ]
+    for data in events:
+        calendar_service.create_event(db, user, data)
+    return len(events)
 
 
 def _add_contacts(
@@ -291,7 +556,11 @@ def main() -> int:
         f"{s.value} {summary.by_status[s]}" for s in ApplicationStatus if summary.by_status[s]
     )
     print(f"Seeded {summary.applications} applications ({statuses}),")
-    print(f"{summary.notes} notes and {summary.contacts} contacts over {HISTORY_DAYS} days.")
+    print(f"{summary.notes} notes and {summary.contacts} contacts over {HISTORY_DAYS} days;")
+    print(
+        f"{summary.resumes} resume versions, {summary.reminders} reminders "
+        f"and {summary.events} calendar events around today."
+    )
     print(f"Sign in as {DEMO_EMAIL} / {DEMO_PASSWORD}")
     return 0
 

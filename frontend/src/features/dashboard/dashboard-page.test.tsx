@@ -5,7 +5,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { todayDateOnly } from '@/lib/dates';
 import { emptyAnalytics, mockAnalyticsBackend } from '@/test/fake-analytics';
-import { makeApplication, mockApplicationsBackend } from '@/test/fake-applications';
+import { toInstant } from '@/features/reminders/due';
+import {
+  makeApplication,
+  makeEvent,
+  makeReminder,
+  mockApplicationsBackend,
+} from '@/test/fake-applications';
 import { mockAuthBackend, server } from '@/test/msw';
 import { findPageHeading, renderApp } from '@/test/render-app';
 
@@ -205,11 +211,15 @@ describe('coming up', () => {
   afterEach(() => {
     vi.useRealTimers();
   });
+  const wishlist = (company: string, deadline_on: string) =>
+    makeApplication({ company, deadline_on, status: 'wishlist', applied_on: null });
+  const links = (region: HTMLElement) =>
+    within(region)
+      .getAllByRole('link')
+      .map((l) => l.textContent);
 
   it('lists missed apply-by dates first, then those due soon, by the browser’s date', async () => {
     mockAnalyticsBackend();
-    const wishlist = (company: string, deadline_on: string) =>
-      makeApplication({ company, deadline_on, status: 'wishlist', applied_on: null });
     mockApplicationsBackend({
       applications: [
         wishlist('Monzo', '2026-11-18'), // today, late evening: still due, not missed
@@ -223,26 +233,58 @@ describe('coming up', () => {
     await openDashboard();
 
     const panel = await screen.findByRole('region', { name: 'Coming up' });
-    const missed = within(panel).getByRole('region', { name: 'Past the deadline (2)' });
-    expect(
-      within(missed)
-        .getAllByRole('link')
-        .map((l) => l.textContent),
-    ).toEqual(['Wise']);
+    const missed = await within(panel).findByRole('region', { name: 'Overdue (2)' });
+    expect(links(missed)).toEqual(['Apply to Wise']);
     expect(within(missed).getByText('Yesterday')).toBeVisible();
     expect(within(missed).getByText('+1 older (more than 30 days ago).')).toBeVisible();
-    const soon = within(panel).getByRole('region', { name: 'Due soon (2)' });
-    expect(
-      within(soon)
-        .getAllByRole('link')
-        .map((l) => l.textContent),
-    ).toEqual(['Monzo', 'Figma']);
+    const soon = within(panel).getByRole('region', { name: 'Next 14 days (2)' });
+    expect(links(soon)).toEqual(['Apply to Monzo', 'Apply to Figma']);
     expect(within(soon).getByText('Today')).toBeVisible();
     expect(within(soon).getByText('In 7 days')).toBeVisible();
-    expect(within(panel).queryByText('Starling')).not.toBeInTheDocument(); // already applied
+    expect(within(panel).queryByText(/Starling/)).not.toBeInTheDocument(); // already applied
   });
 
-  it('says when nothing is due', async () => {
+  it('joins follow-ups and interviews, and ticks a follow-up off from here', async () => {
+    mockAnalyticsBackend();
+    const deliveroo = makeApplication({ company: 'Deliveroo', status: 'interview' });
+    const backend = mockApplicationsBackend({
+      applications: [deliveroo, wishlist('Figma', '2026-11-20')],
+      reminders: [
+        makeReminder({ title: 'Chase the recruiter', application_id: deliveroo.id, due_on: '2026-11-16' }),
+        makeReminder({ title: 'Prep questions', due_at: toInstant('2026-11-19', '09:00') }),
+        makeReminder({ title: 'Done already', due_on: '2026-11-17', done_at: '2026-11-17T09:00:00Z' }),
+      ],
+      calendarEvents: [
+        makeEvent({ title: 'Pairing interview', application_id: deliveroo.id, starts_at: toInstant('2026-11-19', '14:00'), ends_at: toInstant('2026-11-19', '15:30') }),
+        makeEvent({ kind: 'other', title: 'Coffee chat', starts_at: toInstant('2026-11-19', '08:00') }),
+      ],
+    }); // prettier-ignore
+    await openDashboard();
+
+    const panel = await screen.findByRole('region', { name: 'Coming up' });
+    const overdue = await within(panel).findByRole('region', { name: 'Overdue (1)' });
+    expect(within(overdue).getByText('Chase the recruiter')).toBeVisible();
+    const soon = within(panel).getByRole('region', { name: 'Next 14 days (3)' });
+    const rows = within(soon)
+      .getAllByRole('listitem')
+      .map((li) => li.textContent);
+    expect(rows).toEqual([
+      '19 NovTomorrowPrep questionsFollow-up at 09:00',
+      '19 NovTomorrowPairing interviewInterview, 14:00–15:30, Deliveroo',
+      '20 NovIn 2 daysApply to FigmaSenior Frontend Engineer',
+    ]);
+    expect(within(panel).queryByText('Coffee chat')).not.toBeInTheDocument(); // "other"
+    expect(within(panel).queryByText('Done already')).not.toBeInTheDocument();
+
+    await userEvent.setup().click(within(overdue).getByRole('checkbox', { name: 'Chase the recruiter' }));
+    await waitFor(() =>
+      expect(within(panel).queryByRole('region', { name: /Overdue/ })).not.toBeInTheDocument(),
+    );
+    expect(backend.reminders.find((r) => r.title === 'Chase the recruiter')?.done_at).not.toBeNull();
+    expect(await screen.findByRole('button', { name: 'Undo' })).toBeInTheDocument(); // toast survives
+  }); // prettier-ignore
+
+  it('says when nothing is coming up', async () => {
     mockAnalyticsBackend();
     mockApplicationsBackend({
       applications: [makeApplication({ deadline_on: '2026-11-20', status: 'applied' })],
@@ -250,10 +292,12 @@ describe('coming up', () => {
     await openDashboard();
 
     const panel = await screen.findByRole('region', { name: 'Coming up' });
-    expect(within(panel).getByText(/Nothing to apply for in the next 14 days/)).toBeVisible();
-    expect(
-      within(panel).queryByRole('region', { name: /Past the deadline/ }),
-    ).not.toBeInTheDocument();
+    expect(await within(panel).findByText(/Nothing in the next 14 days/)).toBeVisible();
+    expect(within(panel).getByRole('link', { name: 'Calendar' })).toHaveAttribute(
+      'href',
+      '/calendar',
+    );
+    expect(within(panel).queryByRole('region', { name: /Overdue/ })).not.toBeInTheDocument();
   });
 });
 

@@ -6,7 +6,10 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 
+import { calendarKeys } from '@/features/calendar/api';
 import { analyticsKeys } from '@/features/dashboard/api';
+import { reminderKeys } from '@/features/reminders/api';
+import { resumeKeys } from '@/features/resumes/api';
 import { api } from '@/lib/api/client';
 import type {
   Application,
@@ -100,6 +103,10 @@ function invalidateViews(queryClient: QueryClient, id?: string) {
   void queryClient.invalidateQueries({ queryKey: applicationKeys.lists() });
   void queryClient.invalidateQueries({ queryKey: applicationKeys.board() });
   void queryClient.invalidateQueries({ queryKey: analyticsKeys.all });
+  // Resume usage counts ("sent with N applications") follow the links.
+  void queryClient.invalidateQueries({ queryKey: resumeKeys.all });
+  // The calendar shows apply-by dates and application names (and loses deleted ones' events).
+  void queryClient.invalidateQueries({ queryKey: calendarKeys.all });
   if (id) void queryClient.invalidateQueries({ queryKey: applicationKeys.events(id) });
 }
 
@@ -138,6 +145,8 @@ export function useDeleteApplication() {
         queryClient.removeQueries({ queryKey: key });
       }
       invalidateViews(queryClient);
+      // The server deletes the application's reminders with it.
+      void queryClient.invalidateQueries({ queryKey: reminderKeys.all });
     },
   });
 }
