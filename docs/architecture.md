@@ -145,11 +145,23 @@ Rates from fewer than 5 applications are shown italic with an asterisk and a foo
 than 26 weeks (182 days). Buckets are zero-filled across the whole range; an open end is
 taken from the data. The bucket holding today is drawn lighter and labelled "so far".
 
-**Coming up** (computed in the browser from the board, not an analytics endpoint):
-apply-by dates (`deadline_on`) of roles **on the wishlist only**. Once applied, the date
-needs no action. "Due soon" is today through today + 13 days; "Past the deadline" lists
-dates missed in the last 30 days and summarises older ones as "+N older". All against the
-browser's calendar day. Assessment and interview dates, and reminders, join in Phase 8.
+**Coming up** (computed in the browser, `features/dashboard/coming-up.ts`, from the board,
+the open reminders and the calendar feed; not an analytics endpoint). All against the
+browser's calendar day and clock ("today", "now"), never the server's UTC date.
+
+- *Window:* today through today + 13 days ("Next 14 days").
+- *Apply-by dates:* `deadline_on` of roles **on the wishlist only**. Once applied, the
+  date needs no action. Missed when the date is before today.
+- *Follow-up reminders* (open only): an all-day one is due on its date and overdue from
+  the next local day; a timed one is overdue once its time has passed (so earlier today
+  counts). Done reminders never show.
+- *Events:* kinds `interview`, `assessment` and `deadline` (not `other`) that overlap the
+  window and haven't ended (`ends_at`, or `starts_at` if there's no end). One that has
+  started but not ended (a take-home window) is listed today. Events are never overdue.
+- *Overdue:* missed apply-by dates and overdue reminders, oldest first. Those from the last
+  30 days are listed; older ones are summarised as "+N older".
+- *Order within a day:* all-day items first, then by time, then by title. Each group shows
+  five, then "And N more".
 
 **Motion and accessibility.** Counters (NumberFlow) animate on first load and range
 changes only, never on background refetches, and not at all under reduced motion. Every

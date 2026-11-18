@@ -1,49 +1,136 @@
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Bell, CalendarClock, Send } from 'lucide-react';
+import { useId } from 'react';
 import { Link } from 'react-router';
 
-import { StatusBadge } from '@/components/status-badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { itemTimeText } from '@/features/calendar/month';
+import { localTime } from '@/features/reminders/due';
+import { useToggleDone } from '@/features/reminders/use-toggle-done';
 import { formatDateOnly } from '@/lib/dates';
-import type { Board, DateOnly } from '@/types/application';
+import type { DateOnly } from '@/types/application';
+import { eventKindLabels } from '@/types/calendar';
 
-import { comingUp, type Deadline, LOOKAHEAD_DAYS, OVERDUE_DAYS, relativeDue } from './coming-up';
+import {
+  type ComingUpSources,
+  comingUp,
+  type Entry,
+  LOOKAHEAD_DAYS,
+  OVERDUE_DAYS,
+  relativeDue,
+} from './coming-up';
 
 /** Long lists stop here, with a count of the rest: this panel is a nudge, not an inbox. */
 const SHOWN = 5;
 
-function DeadlineList({ deadlines, overdue }: { deadlines: Deadline[]; overdue: boolean }) {
-  const shown = deadlines.slice(0, SHOWN);
-  const more = deadlines.length - shown.length;
+const ICONS = { apply_by: Send, event: CalendarClock, reminder: Bell } as const;
+const linkClass = 'font-semibold underline-offset-4 hover:underline';
+
+function EntryBody({ entry, onToggle }: { entry: Entry; onToggle: Toggle }) {
+  const id = useId();
+  if (entry.kind === 'apply_by') {
+    const a = entry.application;
+    return (
+      <>
+        <Link to={`/applications/${a.id}`} className={`truncate ${linkClass}`}>
+          Apply to {a.company}
+        </Link>
+        <span className="truncate text-sm text-muted-foreground">{a.role_title}</span>
+      </>
+    );
+  }
+  if (entry.kind === 'event') {
+    const { event } = entry;
+    const where = `/calendar?month=${entry.day.slice(0, 7)}&day=${entry.day}`;
+    return (
+      <>
+        <Link to={where} className={`truncate ${linkClass}`}>
+          {event.title}
+        </Link>
+        <span className="truncate text-sm text-muted-foreground">
+          {eventKindLabels[event.kind]}, {itemTimeText(event)}
+          {event.application && `, ${event.application.company}`}
+        </span>
+      </>
+    );
+  }
+  const { reminder } = entry;
+  return (
+    <>
+      <span className="flex min-w-0 items-center gap-2">
+        <Checkbox
+          id={id}
+          checked={false}
+          disabled={onToggle.pendingId === reminder.id}
+          onCheckedChange={() => onToggle.toggle(reminder, true)}
+        />
+        <label htmlFor={id} className="cursor-pointer truncate font-semibold">
+          {reminder.title}
+        </label>
+      </span>
+      <span className="truncate text-sm text-muted-foreground">
+        {reminder.due_at ? `Follow-up at ${localTime(reminder.due_at)}` : 'Follow-up'}
+        {reminder.application && (
+          <>
+            {', '}
+            <Link
+              to={`/applications/${reminder.application.id}`}
+              className="underline-offset-4 hover:underline"
+            >
+              {reminder.application.company}
+            </Link>
+          </>
+        )}
+      </span>
+    </>
+  );
+}
+
+type Toggle = ReturnType<typeof useToggleDone>;
+
+function EntryList({
+  entries,
+  overdue,
+  toggle,
+}: {
+  entries: Entry[];
+  overdue: boolean;
+  toggle: Toggle;
+}) {
+  const shown = entries.slice(0, SHOWN);
+  const more = entries.length - shown.length;
   return (
     <>
       <ul className="divide-y">
-        {shown.map(({ application: a, deadline, days }) => (
-          <li key={a.id} className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-x-3 gap-y-0.5 py-3">
-            <span className="row-span-2 grid content-start">
-              <time dateTime={deadline} className="figures text-sm font-semibold">
-                {formatDateOnly(deadline, 'd MMM')}
-              </time>
-              <span
-                className={overdue ? 'text-sm text-destructive' : 'text-sm text-muted-foreground'}
-              >
-                {relativeDue(days)}
+        {shown.map((entry) => {
+          const Icon = ICONS[entry.kind];
+          return (
+            <li
+              key={entry.key}
+              className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-x-3 gap-y-0.5 py-3"
+            >
+              <span className="row-span-2 grid content-start">
+                <time dateTime={entry.day} className="figures text-sm font-semibold">
+                  {formatDateOnly(entry.day, 'd MMM')}
+                </time>
+                <span
+                  className={overdue ? 'text-sm text-destructive' : 'text-sm text-muted-foreground'}
+                >
+                  {relativeDue(entry.days)}
+                </span>
               </span>
-            </span>
-            <span className="flex min-w-0 items-center gap-2">
-              <Link
-                to={`/applications/${a.id}`}
-                className="truncate font-semibold underline-offset-4 hover:underline"
-              >
-                {a.company}
-              </Link>
-              <StatusBadge status={a.status} />
-            </span>
-            <span className="truncate text-sm text-muted-foreground">{a.role_title}</span>
-          </li>
-        ))}
+              <span className="grid min-w-0 grid-cols-[1rem_minmax(0,1fr)] gap-x-2 gap-y-0.5">
+                <Icon aria-hidden="true" className="mt-1 size-4 text-muted-foreground" />
+                <span className="grid min-w-0 gap-0.5">
+                  <EntryBody entry={entry} onToggle={toggle} />
+                </span>
+              </span>
+            </li>
+          );
+        })}
       </ul>
       {more > 0 && (
         <p className="text-sm text-muted-foreground">
-          And {more} more {overdue ? 'past their deadline' : 'due soon'}.
+          And {more} more {overdue ? 'overdue' : 'coming up'}.
         </p>
       )}
     </>
@@ -51,12 +138,16 @@ function DeadlineList({ deadlines, overdue }: { deadlines: Deadline[]; overdue: 
 }
 
 /**
- * Apply-by dates for roles on the wishlist, from the board (every application) and the
- * browser's own calendar day. Missed ones come first, in their own group; older than
- * OVERDUE_DAYS they're only counted. Assessments and reminders join in Phase 8.
+ * Apply-by dates for wishlist roles, open follow-ups, and interviews, assessments and
+ * deadlines over the next LOOKAHEAD_DAYS days, against the browser's own day and clock.
+ * Overdue items come first, in their own group; older than OVERDUE_DAYS they're only
+ * counted. Definitions: docs/architecture.md ("Dashboard metrics").
  */
-function ComingUpPanel({ board, today }: { board: Board; today: DateOnly }) {
-  const { overdue, olderOverdue, upcoming } = comingUp(board, today);
+function ComingUpPanel({ sources, today }: { sources: ComingUpSources; today: DateOnly }) {
+  const { overdue, olderOverdue, upcoming } = comingUp(sources, today);
+  // One for the panel (it stays mounted), not one per list: marking the last overdue one
+  // done removes that list.
+  const toggle = useToggleDone();
   const missed = overdue.length + olderOverdue;
 
   return (
@@ -66,7 +157,8 @@ function ComingUpPanel({ board, today }: { board: Board; today: DateOnly }) {
           Coming up
         </h2>
         <p className="text-sm text-muted-foreground">
-          Apply-by dates for roles on your wishlist, over the next {LOOKAHEAD_DAYS} days.
+          Interviews, assessments, deadlines, follow-ups and apply-by dates over the next{' '}
+          {LOOKAHEAD_DAYS} days.
         </p>
       </div>
 
@@ -77,9 +169,9 @@ function ComingUpPanel({ board, today }: { board: Board; today: DateOnly }) {
             className="flex items-center gap-1.5 text-sm font-semibold text-destructive"
           >
             <AlertCircle aria-hidden="true" className="size-4" />
-            Past the deadline ({missed})
+            Overdue ({missed})
           </h3>
-          <DeadlineList deadlines={overdue} overdue />
+          <EntryList entries={overdue} overdue toggle={toggle} />
           {olderOverdue > 0 && (
             <p className="text-sm text-muted-foreground">
               +{olderOverdue} older (more than {OVERDUE_DAYS} days ago).
@@ -90,14 +182,17 @@ function ComingUpPanel({ board, today }: { board: Board; today: DateOnly }) {
 
       <section aria-labelledby="upcoming-heading" className="grid gap-1">
         <h3 id="upcoming-heading" className="text-sm font-semibold">
-          Due soon ({upcoming.length})
+          Next {LOOKAHEAD_DAYS} days ({upcoming.length})
         </h3>
         {upcoming.length > 0 ? (
-          <DeadlineList deadlines={upcoming} overdue={false} />
+          <EntryList entries={upcoming} overdue={false} toggle={toggle} />
         ) : (
           <p className="rounded-md border border-dashed px-4 py-6 text-sm text-muted-foreground">
-            Nothing to apply for in the next {LOOKAHEAD_DAYS} days. Give a wishlist role an apply-by
-            date to see it here.
+            Nothing in the next {LOOKAHEAD_DAYS} days. Add interviews and follow-ups on the{' '}
+            <Link to="/calendar" className="text-primary-text underline underline-offset-4">
+              Calendar
+            </Link>
+            , or an apply-by date to a wishlist role.
           </p>
         )}
       </section>
