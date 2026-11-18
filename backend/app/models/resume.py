@@ -1,12 +1,17 @@
 import uuid
+from datetime import datetime
 
-from sqlalchemy import ForeignKey, Index, String, Text, false
+from sqlalchemy import CheckConstraint, ForeignKey, Index, String, Text, false
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
 
 class ResumeVersion(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """One version of a resume, as pasted text. Once a version has been sent with an
+    application (or matched against a job description) its text is frozen and it can only
+    be archived, not deleted: see services/resumes.py."""
+
     __tablename__ = "resume_versions"
     __table_args__ = (
         # At most one default resume per user.
@@ -16,6 +21,7 @@ class ResumeVersion(UUIDPrimaryKeyMixin, TimestampMixin, Base):
             unique=True,
             postgresql_where="is_default",
         ),
+        CheckConstraint("archived_at IS NULL OR NOT is_default", name="archived_not_default"),
     )
 
     user_id: Mapped[uuid.UUID] = mapped_column(
@@ -24,3 +30,5 @@ class ResumeVersion(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     label: Mapped[str] = mapped_column(String(100))
     content_text: Mapped[str] = mapped_column(Text)
     is_default: Mapped[bool] = mapped_column(default=False, server_default=false())
+    # Hidden from pickers, kept for history (applications that used it still show it).
+    archived_at: Mapped[datetime | None]

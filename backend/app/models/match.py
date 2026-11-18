@@ -17,8 +17,11 @@ class MatchResult(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     )
 
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    # NO ACTION (not CASCADE): deleting a resume must never silently delete match history;
+    # the service only deletes unused resumes. Not RESTRICT either: RESTRICT is checked per
+    # row mid-cascade, so deleting a user (which cascades to both tables) could fail.
     resume_version_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("resume_versions.id", ondelete="CASCADE"), index=True
+        ForeignKey("resume_versions.id"), index=True
     )
     # Keep the analysis if the application is deleted.
     application_id: Mapped[uuid.UUID | None] = mapped_column(
