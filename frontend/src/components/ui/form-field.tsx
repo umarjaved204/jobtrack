@@ -1,6 +1,13 @@
 import { Slot } from 'radix-ui';
 import { type ReactElement, type ReactNode, useId } from 'react';
 
+/** Props that wire a control to its label, hint and error. */
+export type FieldControlProps = {
+  id: string;
+  'aria-invalid': true | undefined;
+  'aria-describedby': string | undefined;
+};
+
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 
@@ -10,8 +17,13 @@ type FormFieldProps = {
   description?: ReactNode;
   /** Validation message; also marks the control aria-invalid. */
   error?: string;
-  /** Exactly one form control (Input, Textarea, PasswordInput…). */
-  children: ReactElement;
+  /**
+   * Exactly one form control (Input, Textarea, PasswordInput, TagPicker…), which receives
+   * the wiring props. For a control whose labelled element is nested inside a root that
+   * renders no DOM (Radix Select), pass a function and spread the props where they belong:
+   * `{(control) => <Select><SelectTrigger {...control} /></Select>}`.
+   */
+  children: ReactElement | ((control: FieldControlProps) => ReactNode);
   className?: string;
 };
 
@@ -31,17 +43,21 @@ function FormField({ label, description, error, children, className }: FormField
   const describedBy = [description ? descriptionId : null, error ? errorId : null]
     .filter(Boolean)
     .join(' ');
+  const control: FieldControlProps = {
+    id,
+    'aria-invalid': error ? true : undefined,
+    'aria-describedby': describedBy || undefined,
+  };
 
   return (
-    <div data-slot="form-field" className={cn('grid gap-2', className)}>
+    // content-start: in a row next to a taller field, don't stretch label/control apart.
+    <div data-slot="form-field" className={cn('grid content-start gap-2', className)}>
       <Label htmlFor={id}>{label}</Label>
-      <Slot.Root
-        id={id}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={describedBy || undefined}
-      >
-        {children}
-      </Slot.Root>
+      {typeof children === 'function' ? (
+        children(control)
+      ) : (
+        <Slot.Root {...control}>{children}</Slot.Root>
+      )}
       {description && (
         <p id={descriptionId} className="text-sm text-muted-foreground">
           {description}

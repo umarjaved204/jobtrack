@@ -1,9 +1,15 @@
 import { screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw/http';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import { mockAuthBackend, server, testUser } from '@/test/msw';
+import { mockApplicationsBackend } from '@/test/fake-applications';
 import { findPageHeading, renderApp } from '@/test/render-app';
+
+// Signed-in pages load their data (e.g. /applications loads the board).
+beforeEach(() => {
+  mockApplicationsBackend({ applications: [] });
+});
 
 describe('route guards', () => {
   it('sends anonymous visitors to /login, remembering where they were going', async () => {

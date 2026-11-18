@@ -140,7 +140,7 @@ jobtrack/
 3. Applications API (CRUD, status history, filters/pagination) with tests (done; contacts API moved to Phase 6)
 4. Frontend foundation: design tokens, fonts, Tailwind theme, base UI components in Storybook; layout, navigation, routing, page transitions (done)
 5. Auth UI (hero landing/login) + API client with TanStack Query (done; then a Lighthouse + web-interface-guidelines audit, fixed on `chore/frontend-audit-fixes`)
-6. Kanban + table views, application form and detail page
+6. Kanban + table views, application form and detail page (done; drag-and-drop choice in ADR 0003)
 7. Dashboard with animated stat cards and custom charts
 8. Calendar, reminders, resume versions
 9. AI match service, endpoint and UI
@@ -151,7 +151,10 @@ jobtrack/
 
 ## Local dev notes
 - Windows dev machine. `uv` may not be on PATH; `py -m uv ...` works as a fallback.
-- Backend commands run from `backend/`: `uv run pytest`, `uv run ruff check .`, `uv run mypy app tests`.
+- Backend commands run from `backend/`: `uv run pytest`, `uv run ruff check .`, `uv run mypy app tests scripts`.
+- Dev data: `uv run python -m scripts.seed` (demo user `sam.okafor@jobtrack-demo.com` / `demo-password-2026`,
+  ~40 applications over 90 days through the real services with a backdated clock; recreated on each run;
+  refuses production). Keep it working when services change: `tests/test_seed.py` checks its invariants.
 - Tests need Postgres running (`docker compose up -d db`); they use `jobtrack_test` (auto-created),
   rebuild the schema via Alembic once per run, and roll back one transaction per test.
 - Never add Co-Authored-By / "Generated with Claude Code" lines to commits or PRs.
@@ -256,3 +259,26 @@ jobtrack/
   app shell is a lazy route chunk; keep heavy signed-in-only code out of public pages.
 - Lighthouse: measure a production build (`pnpm build && pnpm preview`, API running) and
   report medians of 5 runs. The anonymous `/auth/refresh` 401 is expected (ADR 0002).
+
+## Frontend conventions (established in Phase 6)
+- Applications data layer: `features/applications/api.ts` (query keys, queries, mutations).
+  Mutations invalidate the views that might show the change (list, board, detail, events).
+  The board move is optimistic; see the comment on `useMoveApplication` before changing it.
+- Kanban: classic `@dnd-kit/core` + `@dnd-kit/sortable` (ADR 0003, not `@dnd-kit/react`).
+  Drag maths and announcement text live in `board-dnd.ts` (pure, unit-tested); components
+  only wire events. Every drag has a non-drag path ("Move to…" menu). jsdom tests inject
+  `collisionDetection={() => []}`; real drag paths are for Playwright (README limitations).
+- Applications page state lives in the URL: `table-params.ts` parses each param with Zod
+  (invalid → that param's default, defaults omitted from the URL), `useTableParams` reads and
+  writes it (`preventScrollReset`). Any change except page/view resets to page 1.
+  The search box debounces (`SEARCH_DEBOUNCE_MS`) and ignores echoes of its own URL updates.
+- List links pass `state={{ from }}` so the detail page's back link restores the filtered list.
+- Destructive actions use `ConfirmDialog` (`components/confirm-dialog.tsx`); results of
+  background work (moves, deletes) use Sonner toasts (`toast` from `sonner`, `Toaster` in
+  `AppProviders`). Screen-reader-only updates use `LiveRegion`.
+- Form schemas mirror backend limits in `*-schema.ts` next to the form; edits send only dirty
+  fields (`toApplicationPatch`, `toContactPatch`) and "" becomes null (clears the field).
+- The fake backend (`src/test/fake-applications.ts`) must follow the real API's rules (e.g.
+  `pages` is 0 when nothing matches, empty dates sort last): drift there hides real bugs.
+- Radix modals hide the page from the accessibility tree: query background content with
+  `{ hidden: true }` while a dialog is open.

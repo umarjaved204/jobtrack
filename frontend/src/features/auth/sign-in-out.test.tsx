@@ -1,14 +1,20 @@
 import { QueryClient } from '@tanstack/react-query';
 import { act, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw/http';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { type AuthChannel, createSessionManager, session } from '@/lib/api/session';
 import { authResponse, mockAuthBackend, server, TEST_PASSWORD, testUser } from '@/test/msw';
+import { mockApplicationsBackend } from '@/test/fake-applications';
 import { findPageHeading, renderApp } from '@/test/render-app';
 
 import { signIn, signOut, signUp } from './api';
 import { installSignOutHandler } from './sign-out-handler';
+
+// Signed-in pages load their data (e.g. /applications loads the board).
+beforeEach(() => {
+  mockApplicationsBackend({ applications: [] });
+});
 
 describe('signIn / signUp', () => {
   it('signs in: token in memory, user cached, profile theme applied', async () => {

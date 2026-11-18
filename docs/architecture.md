@@ -84,6 +84,18 @@ API call       ──► Authorization: Bearer <access_token>
 
 Re-presenting a rotated token after a 10 s grace window revokes that login's token family only.
 
+## Applications page (frontend)
+
+- **Server state**: TanStack Query, keys in `features/applications/api.ts`. The board
+  (`GET /applications/board`) and the paged table (`GET /applications?…`) are separate
+  queries; every mutation invalidates the views that could show the change.
+- **Board moves** are optimistic with midpoint positions; see
+  [ADR 0003](./adr/0003-kanban-drag-and-drop.md).
+- **URL as state**: `/applications?view=table&q=…&status=…&sort=…&page=…` is parsed per
+  param with Zod, so a hand-edited or stale URL degrades to defaults instead of erroring.
+- **Detail page** (`/applications/:id`): application, timeline (`/events`) and contacts are
+  three queries, so each section loads and fails independently.
+
 ## Health checks
 
 - `GET /api/v1/health`: liveness, process only (used by Docker healthchecks).
