@@ -11,6 +11,7 @@ import {
   type Contact,
   type Tag,
 } from '@/types/application';
+import type { Resume, ResumeInput, ResumePatch } from '@/types/resume';
 
 import { server } from './msw';
 
@@ -20,7 +21,10 @@ import { server } from './msw';
  * - new cards and status changes go to the end of their column (positions 1024 apart);
  * - leaving the wishlist fills applied_on with today if it's empty;
  * - every status change appends a status_change event (and creation logs the first one);
- * - everything requires a bearer token; unknown ids are 404.
+ * - everything requires a bearer token; unknown ids are 404;
+ * - resume versions (backend/app/services/resumes.py): used ones keep their text and
+ *   can't be deleted (409), archived ones can't be the default (409) or be newly linked
+ *   (422), and usage counts come from the applications here.
  * Combine with `mockAuthBackend({ signedIn: true })` so the client has a token.
  */
 
@@ -66,11 +70,31 @@ export function sampleApplications(): Application[] {
   ]; // prettier-ignore
 }
 
+export function makeResume(overrides: Partial<Resume> = {}): Resume {
+  const created = nowIso();
+  const content_text =
+    overrides.content_text ?? 'Sam Okafor\nFrontend engineer\n\nReact, TypeScript, Playwright';
+  return {
+    id: nextId('resume'),
+    label: 'Frontend v1',
+    is_default: false,
+    archived_at: null,
+    application_count: 0,
+    match_count: 0,
+    created_at: created,
+    updated_at: created,
+    ...overrides,
+    content_text,
+    char_count: content_text.length,
+  };
+}
+
 type State = {
   applications: Application[];
   events: Map<string, ApplicationEvent[]>;
   contacts: Contact[];
   tags: Tag[];
+  resumes: Resume[];
   calls: string[];
 };
 
@@ -84,6 +108,7 @@ export function mockApplicationsBackend({
   applications = sampleApplications(),
   tags = [],
   contacts = [],
+  resumes = [],
   moveLatencyMs = 0,
   failMovesFor = [],
   boardLatencyMs = 0,
@@ -91,6 +116,7 @@ export function mockApplicationsBackend({
   applications?: Application[];
   tags?: Tag[];
   contacts?: Contact[];
+  resumes?: Resume[];
   /** Keep move requests in flight this long (per card id, or for all). */
   moveLatencyMs?: number | ((id: string) => number);
   /** Card ids whose moves fail with 503 (after their latency). */
@@ -103,6 +129,7 @@ export function mockApplicationsBackend({
     events: new Map(),
     contacts: contacts.map((c) => ({ ...c })),
     tags: tags.map((t) => ({ ...t })),
+    resumes: resumes.map((r) => ({ ...r })),
     calls: [],
   };
   for (const a of state.applications) {
@@ -122,6 +149,32 @@ export function mockApplicationsBackend({
     Math.max(0, ...state.applications.filter((a) => a.status === status).map((a) => a.position)) +
     STEP;
   const resolveTags = (ids: string[] = []) => state.tags.filter((t) => ids.includes(t.id));
+
+  /** Like the API's response: counts come from the applications that link to it. */
+  const withUsage = (resume: Resume): Resume => ({
+    ...resume,
+    application_count: state.applications.filter((a) => a.resume_version_id === resume.id).length,
+    char_count: resume.content_text.length,
+  });
+  /** The list leaves the text out, like the API. */
+  const resumeSummary = (resume: Resume): Omit<Resume, 'content_text'> => {
+    const summary: Partial<Resume> = withUsage(resume);
+    delete summary.content_text;
+    return summary as Omit<Resume, 'content_text'>;
+  };
+  const inUse = (resume: Resume) => {
+    const used = withUsage(resume);
+    return used.application_count + used.match_count > 0;
+  };
+  const error = (status: number, detail: string) => HttpResponse.json({ detail }, { status });
+  /** A newly linked resume must exist and not be archived (an unchanged link is fine). */
+  function resumeLinkError(id: string | null | undefined, current: string | null = null) {
+    if (!id || id === current) return null;
+    const resume = state.resumes.find((r) => r.id === id);
+    if (!resume) return error(422, 'Resume version does not exist');
+    if (resume.archived_at) return error(422, 'Resume version is archived');
+    return null;
+  }
 
   function changeStatus(app: Application, to: ApplicationStatus) {
     if (app.status === to) return;
@@ -209,6 +262,8 @@ export function mockApplicationsBackend({
       if (!hasToken(request)) return unauthorized();
       state.calls.push('POST /applications');
       const { tag_ids, ...input } = (await request.json()) as ApplicationInput;
+      const linkError = resumeLinkError(input.resume_version_id);
+      if (linkError) return linkError;
       const status = input.status ?? 'wishlist';
       const app = makeApplication({
         location: null,
@@ -241,6 +296,8 @@ export function mockApplicationsBackend({
       const app = find(String(params['id']));
       if (!app) return notFound();
       const { tag_ids, status, ...patch } = (await request.json()) as ApplicationInput;
+      const linkError = resumeLinkError(patch.resume_version_id, app.resume_version_id);
+      if (linkError) return linkError;
       Object.assign(app, patch, { updated_at: nowIso() });
       if (tag_ids) app.tags = resolveTags(tag_ids);
       if (status && status !== app.status) {
@@ -338,6 +395,74 @@ export function mockApplicationsBackend({
       const id = String(params['id']);
       if (!state.contacts.some((c) => c.id === id)) return notFound('Contact');
       state.contacts = state.contacts.filter((c) => c.id !== id);
+      return new HttpResponse(null, { status: 204 });
+    }),
+
+    http.get('/api/v1/resumes', ({ request }) => {
+      if (!hasToken(request)) return unauthorized();
+      state.calls.push('GET /resumes');
+      // Like the API: the default first, then newest first; archived last.
+      const rank = (r: Resume) => (r.archived_at ? 2 : r.is_default ? 0 : 1);
+      const sorted = [...state.resumes].sort(
+        (a, b) => rank(a) - rank(b) || b.updated_at.localeCompare(a.updated_at),
+      );
+      return HttpResponse.json(sorted.map(resumeSummary));
+    }),
+    http.get('/api/v1/resumes/:id', ({ request, params }) => {
+      if (!hasToken(request)) return unauthorized();
+      const resume = state.resumes.find((r) => r.id === String(params['id']));
+      return resume ? HttpResponse.json(withUsage(resume)) : notFound('Resume version');
+    }),
+    http.post('/api/v1/resumes', async ({ request }) => {
+      if (!hasToken(request)) return unauthorized();
+      state.calls.push('POST /resumes');
+      const input = (await request.json()) as ResumeInput;
+      const resume = makeResume({ label: input.label, content_text: input.content_text });
+      if (input.is_default) {
+        for (const r of state.resumes) r.is_default = false;
+        resume.is_default = true;
+      }
+      state.resumes.push(resume);
+      return HttpResponse.json(withUsage(resume), { status: 201 });
+    }),
+    http.patch('/api/v1/resumes/:id', async ({ request, params }) => {
+      if (!hasToken(request)) return unauthorized();
+      state.calls.push('PATCH /resumes');
+      const resume = state.resumes.find((r) => r.id === String(params['id']));
+      if (!resume) return notFound('Resume version');
+      const patch = (await request.json()) as ResumePatch;
+      const textChanges =
+        patch.content_text !== undefined && patch.content_text !== resume.content_text;
+      if (textChanges && inUse(resume)) {
+        return error(409, "This version has been used, so its text can't change. Duplicate it instead.");
+      } // prettier-ignore
+      if (patch.label !== undefined) resume.label = patch.label;
+      if (patch.content_text !== undefined) resume.content_text = patch.content_text;
+      if (patch.archived === true) {
+        resume.archived_at ??= nowIso();
+        resume.is_default = false;
+      } else if (patch.archived === false) {
+        resume.archived_at = null;
+      }
+      if (patch.is_default === true && !resume.is_default) {
+        if (resume.archived_at) return error(409, "An archived resume can't be the default");
+        for (const r of state.resumes) r.is_default = false;
+        resume.is_default = true;
+      } else if (patch.is_default === false) {
+        resume.is_default = false;
+      }
+      resume.updated_at = nowIso();
+      return HttpResponse.json(withUsage(resume));
+    }),
+    http.delete('/api/v1/resumes/:id', ({ request, params }) => {
+      if (!hasToken(request)) return unauthorized();
+      const resume = state.resumes.find((r) => r.id === String(params['id']));
+      if (!resume) return notFound('Resume version');
+      if (inUse(resume)) {
+        return error(409, "This version has been used, so it can't be deleted. Archive it instead.");
+      } // prettier-ignore
+      state.calls.push('DELETE /resumes');
+      state.resumes = state.resumes.filter((r) => r.id !== resume.id);
       return new HttpResponse(null, { status: 204 });
     }),
   );

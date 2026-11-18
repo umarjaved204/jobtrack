@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createQueryClient } from '@/lib/query-client';
-import { makeApplication, mockApplicationsBackend } from '@/test/fake-applications';
+import { makeApplication, makeResume, mockApplicationsBackend } from '@/test/fake-applications';
 import { mockAuthBackend, server } from '@/test/msw';
 import type { Application } from '@/types/application';
 
@@ -210,5 +210,55 @@ describe('ApplicationFormSheet: closing', () => {
     await user.type(field(panel, 'Source'), ' (via a friend)');
     await user.click(within(panel).getByRole('button', { name: 'Close' }));
     expect(await screen.findByRole('alertdialog', { name: 'Discard changes?' })).toBeVisible();
+  });
+});
+
+describe('ApplicationFormSheet: resume sent', () => {
+  const resumes = () => [
+    makeResume({ id: 'resume-v1', label: 'Frontend v1', archived_at: '2026-09-01T10:00:00Z' }),
+    makeResume({ id: 'resume-v2', label: 'Frontend v2' }),
+    makeResume({ id: 'resume-v3', label: 'Frontend v3', is_default: true }),
+  ];
+
+  it('offers active versions (default marked) and sends the one chosen', async () => {
+    backend = mockApplicationsBackend({ resumes: resumes() });
+    const { user, panel } = await openForm({ type: 'create', status: 'applied' });
+    await user.type(field(panel, 'Company'), 'Skyscanner');
+    await user.type(field(panel, 'Role'), 'Frontend Engineer');
+
+    await waitFor(() => expect(field(panel, 'Resume sent')).toBeEnabled());
+    await user.click(field(panel, 'Resume sent'));
+    const options = (await screen.findAllByRole('option')).map((o) => o.textContent);
+    expect(options).toEqual(['None', 'Frontend v3 (default)', 'Frontend v2']); // default first
+    await user.click(screen.getByRole('option', { name: 'Frontend v3 (default)' }));
+    await user.click(within(panel).getByRole('button', { name: 'Add application' }));
+
+    await waitFor(() =>
+      expect(backend.applications.find((a) => a.company === 'Skyscanner')).toMatchObject({
+        resume_version_id: 'resume-v3',
+      }),
+    );
+  });
+
+  it('keeps an archived version the application already used, marked as archived', async () => {
+    const application = makeApplication({ id: 'deliveroo', resume_version_id: 'resume-v1' });
+    backend = mockApplicationsBackend({ resumes: resumes(), applications: [application] });
+    const { user, panel } = await openForm({ type: 'edit', application });
+
+    await waitFor(() =>
+      expect(field(panel, 'Resume sent')).toHaveTextContent('Frontend v1 (archived)'),
+    );
+    await user.type(field(panel, 'Source'), ' (via a friend)');
+    await user.click(within(panel).getByRole('button', { name: 'Save changes' }));
+
+    await waitFor(() => expect(onSaved).toHaveBeenCalled());
+    expect(backend.applications[0]?.resume_version_id).toBe('resume-v1');
+  });
+
+  it('points to the Resumes page when there are no versions yet', async () => {
+    const { panel } = await openForm();
+    expect(
+      await within(panel).findByText('No versions yet: add them on the Resumes page.'),
+    ).toBeVisible();
   });
 });

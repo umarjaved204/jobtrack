@@ -78,6 +78,8 @@ export type ApplicationInput = {
   status?: ApplicationStatus;
   applied_on?: DateOnly | null;
   deadline_on?: DateOnly | null;
+  /** The resume version sent. Must be the user's own and not archived (unless unchanged). */
+  resume_version_id?: string | null;
   tag_ids?: string[];
 };
 

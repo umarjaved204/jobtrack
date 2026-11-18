@@ -18,6 +18,8 @@ import { MAX_TAGS } from './tag-picker';
  */
 
 export const SALARY_MAX = 100_000_000; // Salary: ge=0, le=100_000_000
+/** The resume picker's "none" value (Radix Select items can't have an empty value). */
+export const NO_RESUME = 'none';
 const URL_MAX = 2048; // job_url column
 
 /** "75,000" / "75 000" → "75000". */
@@ -68,6 +70,8 @@ export const applicationFormSchema = z
     status: z.enum(applicationStatuses),
     applied_on: dateOnly,
     deadline_on: dateOnly,
+    /** A resume version id, or NO_RESUME. */
+    resume_version_id: z.string(),
     tag_ids: z.array(z.string()).max(MAX_TAGS, `Up to ${MAX_TAGS} tags`),
   })
   .superRefine((values, ctx) => {
@@ -101,6 +105,7 @@ export function emptyFormValues(
     status,
     applied_on: '',
     deadline_on: '',
+    resume_version_id: NO_RESUME,
     tag_ids: [],
   };
 }
@@ -120,6 +125,7 @@ export function formValuesFrom(application: Application): ApplicationFormValues 
     status: application.status,
     applied_on: application.applied_on ?? '',
     deadline_on: application.deadline_on ?? '',
+    resume_version_id: application.resume_version_id ?? NO_RESUME,
     tag_ids: application.tags.map((t) => t.id),
   };
 }
@@ -142,6 +148,7 @@ const convert: { [K in keyof ApplicationFormValues]-?: (v: ApplicationFormValues
     status: (v) => v,
     applied_on: (v) => v || null,
     deadline_on: (v) => v || null,
+    resume_version_id: (v) => (v === NO_RESUME ? null : v),
     tag_ids: (v) => v,
   };
 

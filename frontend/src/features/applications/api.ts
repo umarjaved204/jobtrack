@@ -7,6 +7,7 @@ import {
 } from '@tanstack/react-query';
 
 import { analyticsKeys } from '@/features/dashboard/api';
+import { resumeKeys } from '@/features/resumes/api';
 import { api } from '@/lib/api/client';
 import type {
   Application,
@@ -100,6 +101,8 @@ function invalidateViews(queryClient: QueryClient, id?: string) {
   void queryClient.invalidateQueries({ queryKey: applicationKeys.lists() });
   void queryClient.invalidateQueries({ queryKey: applicationKeys.board() });
   void queryClient.invalidateQueries({ queryKey: analyticsKeys.all });
+  // Resume usage counts ("sent with N applications") follow the links.
+  void queryClient.invalidateQueries({ queryKey: resumeKeys.all });
   if (id) void queryClient.invalidateQueries({ queryKey: applicationKeys.events(id) });
 }
 

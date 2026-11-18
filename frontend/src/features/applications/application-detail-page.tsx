@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { resumesQuery } from '@/features/resumes/api';
 import { isApiError } from '@/lib/api/errors';
 import { daysUntil, formatDateOnly } from '@/lib/dates';
 import {
@@ -69,6 +70,28 @@ function applyByHint(deadline: string): string {
   return days === -1 ? 'yesterday' : `${-days} days ago`;
 }
 
+/** The version sent, linking to it on the Resumes page. */
+function ResumeSent({ id }: { id: string }) {
+  const resumes = useQuery(resumesQuery());
+  if (resumes.isPending) return <Skeleton className="h-4 w-40" />;
+  const resume = resumes.data?.find((r) => r.id === id);
+  if (!resume) return <span className="text-muted-foreground">Unavailable</span>;
+  return (
+    <Link
+      to={`/resumes?version=${resume.id}`}
+      className="text-primary-text underline-offset-4 hover:underline"
+    >
+      {resume.label}
+      {resume.archived_at && (
+        <>
+          {' '}
+          <span className="text-muted-foreground">(archived)</span>
+        </>
+      )}
+    </Link>
+  );
+}
+
 function Details({ application: a }: { application: Application }) {
   const salary = salaryText(a);
   const rows: [string, ReactNode][] = [
@@ -114,6 +137,7 @@ function Details({ application: a }: { application: Application }) {
         </a>
       ),
     ],
+    ['Resume', a.resume_version_id && <ResumeSent id={a.resume_version_id} />],
     [
       'Tags',
       a.tags.length > 0 && (
