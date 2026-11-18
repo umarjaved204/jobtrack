@@ -1,10 +1,16 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http } from 'msw/http';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
+import { emptyAnalytics, mockAnalyticsBackend } from '@/test/fake-analytics';
 import { mockAuthBackend, server, testUser } from '@/test/msw';
 import { findPageHeading, renderApp } from '@/test/render-app';
+
+// These flows end on the dashboard, which loads analytics.
+beforeEach(() => {
+  mockAnalyticsBackend(emptyAnalytics());
+});
 
 describe('landing page', () => {
   it('greets anonymous visitors with the pitch and both ways in', async () => {

@@ -2,7 +2,7 @@ import '@testing-library/jest-dom/vitest';
 
 import { cleanup, configure } from '@testing-library/react';
 import { MotionGlobalConfig } from 'motion/react';
-import { afterAll, afterEach, beforeAll } from 'vitest';
+import { afterAll, afterEach, beforeAll, vi } from 'vitest';
 
 import { session } from '@/lib/api/session';
 import { resetThemeForTests } from '@/lib/theme';
@@ -13,9 +13,14 @@ import { server } from './msw';
 // assert outcomes (visible, focused), not motion.
 MotionGlobalConfig.skipAnimations = true;
 
-// findBy*/waitFor: the first visit to a lazy route compiles its chunk (form libraries
-// etc.) on demand in Vitest, which can exceed the 1 s default on a cold run.
-configure({ asyncUtilTimeout: 5000 });
+// NumberFlow (animated counters) can't run in jsdom; see number-flow-stub.tsx.
+vi.mock('@number-flow/react', () => import('./number-flow-stub'));
+
+// findBy*/waitFor: the first visit to a lazy route compiles its chunk on demand in Vitest.
+// Cold, under a full parallel run (more so with a dev server busy alongside), that can
+// pass 5 s. 10 s keeps those runs green; a genuine failure just reports a little later.
+// (testTimeout in vite.config.ts is 15 s.)
+configure({ asyncUtilTimeout: 10_000 });
 
 // Network: MSW. An unhandled request is a test bug (or a missing handler), so it fails.
 beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));
