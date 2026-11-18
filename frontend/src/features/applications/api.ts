@@ -7,6 +7,7 @@ import {
 } from '@tanstack/react-query';
 
 import { analyticsKeys } from '@/features/dashboard/api';
+import { reminderKeys } from '@/features/reminders/api';
 import { resumeKeys } from '@/features/resumes/api';
 import { api } from '@/lib/api/client';
 import type {
@@ -141,6 +142,8 @@ export function useDeleteApplication() {
         queryClient.removeQueries({ queryKey: key });
       }
       invalidateViews(queryClient);
+      // The server deletes the application's reminders with it.
+      void queryClient.invalidateQueries({ queryKey: reminderKeys.all });
     },
   });
 }

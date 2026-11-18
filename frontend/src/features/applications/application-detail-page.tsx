@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { RemindersSection } from '@/features/reminders/reminders-section';
 import { resumesQuery } from '@/features/resumes/api';
 import { isApiError } from '@/lib/api/errors';
 import { daysUntil, formatDateOnly } from '@/lib/dates';
@@ -257,6 +258,7 @@ function ApplicationView({ application, back }: { application: Application; back
         <Timeline applicationId={application.id} />
         <aside className="grid content-start gap-10" aria-label="About this application">
           <Details application={application} />
+          <RemindersSection applicationId={application.id} company={application.company} />
           <ContactsSection applicationId={application.id} />
         </aside>
       </div>

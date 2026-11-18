@@ -11,6 +11,7 @@ import {
   type Contact,
   type Tag,
 } from '@/types/application';
+import type { Reminder, ReminderInput, ReminderPatch } from '@/types/reminder';
 import type { Resume, ResumeInput, ResumePatch } from '@/types/resume';
 
 import { server } from './msw';
@@ -24,7 +25,9 @@ import { server } from './msw';
  * - everything requires a bearer token; unknown ids are 404;
  * - resume versions (backend/app/services/resumes.py): used ones keep their text and
  *   can't be deleted (409), archived ones can't be the default (409) or be newly linked
- *   (422), and usage counts come from the applications here.
+ *   (422), and usage counts come from the applications here;
+ * - reminders (backend/app/services/reminders.py): exactly one of due_on / due_at, links
+ *   only to existing applications (404), deleted with their application.
  * Combine with `mockAuthBackend({ signedIn: true })` so the client has a token.
  */
 
@@ -89,12 +92,29 @@ export function makeResume(overrides: Partial<Resume> = {}): Resume {
   };
 }
 
+/** A stored reminder: like the API's, but holding the application id (the ref is derived). */
+export type StoredReminder = Omit<Reminder, 'application'> & { application_id: string | null };
+
+/** Exactly one of due_on / due_at, like the API: passing `due_at` makes it timed. */
+export function makeReminder(overrides: Partial<StoredReminder> = {}): StoredReminder {
+  return {
+    id: nextId('reminder'),
+    title: 'Follow up with the recruiter',
+    application_id: null,
+    due_on: overrides.due_at ? null : '2026-11-20',
+    due_at: null,
+    done_at: null,
+    ...overrides,
+  };
+}
+
 type State = {
   applications: Application[];
   events: Map<string, ApplicationEvent[]>;
   contacts: Contact[];
   tags: Tag[];
   resumes: Resume[];
+  reminders: StoredReminder[];
   calls: string[];
 };
 
@@ -109,6 +129,7 @@ export function mockApplicationsBackend({
   tags = [],
   contacts = [],
   resumes = [],
+  reminders = [],
   moveLatencyMs = 0,
   failMovesFor = [],
   boardLatencyMs = 0,
@@ -117,6 +138,7 @@ export function mockApplicationsBackend({
   tags?: Tag[];
   contacts?: Contact[];
   resumes?: Resume[];
+  reminders?: StoredReminder[];
   /** Keep move requests in flight this long (per card id, or for all). */
   moveLatencyMs?: number | ((id: string) => number);
   /** Card ids whose moves fail with 503 (after their latency). */
@@ -130,6 +152,7 @@ export function mockApplicationsBackend({
     contacts: contacts.map((c) => ({ ...c })),
     tags: tags.map((t) => ({ ...t })),
     resumes: resumes.map((r) => ({ ...r })),
+    reminders: reminders.map((r) => ({ ...r })),
     calls: [],
   };
   for (const a of state.applications) {
@@ -167,6 +190,21 @@ export function mockApplicationsBackend({
     return used.application_count + used.match_count > 0;
   };
   const error = (status: number, detail: string) => HttpResponse.json({ detail }, { status });
+
+  /** API shape: the application id becomes a ref {id, company, role_title}. */
+  const reminderRead = ({ application_id, ...rest }: StoredReminder): Reminder => {
+    const app = application_id ? find(application_id) : undefined;
+    return {
+      ...rest,
+      application: app ? { id: app.id, company: app.company, role_title: app.role_title } : null,
+    };
+  };
+  /** Like the API's order: open ones by due (UTC) day, all-day first; done ones newest first. */
+  const dueKey = (r: StoredReminder) => `${r.due_on ?? r.due_at?.slice(0, 10)} ${r.due_at ?? ''}`;
+  const reminderOrder = (a: StoredReminder, b: StoredReminder) =>
+    Number(Boolean(a.done_at)) - Number(Boolean(b.done_at)) ||
+    (b.done_at ?? '').localeCompare(a.done_at ?? '') ||
+    dueKey(a).localeCompare(dueKey(b));
   /** A newly linked resume must exist and not be archived (an unchanged link is fine). */
   function resumeLinkError(id: string | null | undefined, current: string | null = null) {
     if (!id || id === current) return null;
@@ -313,6 +351,7 @@ export function mockApplicationsBackend({
       state.calls.push('DELETE /applications');
       state.applications = state.applications.filter((a) => a.id !== id);
       state.contacts = state.contacts.filter((c) => c.application_id !== id);
+      state.reminders = state.reminders.filter((r) => r.application_id !== id); // cascade
       state.events.delete(id);
       return new HttpResponse(null, { status: 204 });
     }),
@@ -395,6 +434,62 @@ export function mockApplicationsBackend({
       const id = String(params['id']);
       if (!state.contacts.some((c) => c.id === id)) return notFound('Contact');
       state.contacts = state.contacts.filter((c) => c.id !== id);
+      return new HttpResponse(null, { status: 204 });
+    }),
+
+    http.get('/api/v1/reminders', ({ request }) => {
+      if (!hasToken(request)) return unauthorized();
+      state.calls.push('GET /reminders');
+      const params = new URL(request.url).searchParams;
+      const status = params.get('status') ?? 'open';
+      const applicationId = params.get('application_id');
+      const listed = state.reminders.filter(
+        (r) =>
+          (status === 'all' || (status === 'done') === Boolean(r.done_at)) &&
+          (!applicationId || r.application_id === applicationId),
+      );
+      return HttpResponse.json([...listed].sort(reminderOrder).map(reminderRead));
+    }),
+    http.post('/api/v1/reminders', async ({ request }) => {
+      if (!hasToken(request)) return unauthorized();
+      state.calls.push('POST /reminders');
+      const input = (await request.json()) as ReminderInput;
+      if (Boolean(input.due_on) === Boolean(input.due_at)) {
+        return error(422, 'Send exactly one of due_on (all day) or due_at (timed)');
+      }
+      if (input.application_id && !find(input.application_id)) return notFound();
+      const reminder = makeReminder({
+        title: input.title.trim(),
+        application_id: input.application_id ?? null,
+        due_on: input.due_on ?? null,
+        due_at: input.due_at ? new Date(input.due_at).toISOString() : null,
+      });
+      state.reminders.push(reminder);
+      return HttpResponse.json(reminderRead(reminder), { status: 201 });
+    }),
+    http.patch('/api/v1/reminders/:id', async ({ request, params }) => {
+      if (!hasToken(request)) return unauthorized();
+      state.calls.push('PATCH /reminders');
+      const reminder = state.reminders.find((r) => r.id === String(params['id']));
+      if (!reminder) return notFound('Reminder');
+      const patch = (await request.json()) as ReminderPatch;
+      if (patch.application_id && !find(patch.application_id)) return notFound();
+      if (patch.title !== undefined) reminder.title = patch.title.trim();
+      if (patch.application_id !== undefined) reminder.application_id = patch.application_id;
+      if (patch.due_on) Object.assign(reminder, { due_on: patch.due_on, due_at: null });
+      if (patch.due_at) {
+        Object.assign(reminder, { due_on: null, due_at: new Date(patch.due_at).toISOString() });
+      }
+      if (patch.done === true) reminder.done_at ??= nowIso();
+      if (patch.done === false) reminder.done_at = null;
+      return HttpResponse.json(reminderRead(reminder));
+    }),
+    http.delete('/api/v1/reminders/:id', ({ request, params }) => {
+      if (!hasToken(request)) return unauthorized();
+      const id = String(params['id']);
+      if (!state.reminders.some((r) => r.id === id)) return notFound('Reminder');
+      state.calls.push('DELETE /reminders');
+      state.reminders = state.reminders.filter((r) => r.id !== id);
       return new HttpResponse(null, { status: 204 });
     }),
 
