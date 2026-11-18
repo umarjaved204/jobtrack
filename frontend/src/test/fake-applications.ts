@@ -11,6 +11,7 @@ import {
   type Contact,
   type Tag,
 } from '@/types/application';
+import type { CalendarEvent, CalendarEventInput, CalendarItem } from '@/types/calendar';
 import type { Reminder, ReminderInput, ReminderPatch } from '@/types/reminder';
 import type { Resume, ResumeInput, ResumePatch } from '@/types/resume';
 
@@ -27,7 +28,10 @@ import { server } from './msw';
  *   can't be deleted (409), archived ones can't be the default (409) or be newly linked
  *   (422), and usage counts come from the applications here;
  * - reminders (backend/app/services/reminders.py): exactly one of due_on / due_at, links
- *   only to existing applications (404), deleted with their application.
+ *   only to existing applications (404), deleted with their application;
+ * - calendar events and GET /calendar (backend/app/services/calendar.py): events by
+ *   overlap with [from, to); apply-by dates (wishlist only) and all-day reminders by the
+ *   local days of the offsets sent; open reminders unless include_done.
  * Combine with `mockAuthBackend({ signedIn: true })` so the client has a token.
  */
 
@@ -108,6 +112,22 @@ export function makeReminder(overrides: Partial<StoredReminder> = {}): StoredRem
   };
 }
 
+/** A stored event: like the API's, but holding the application id. */
+export type StoredEvent = Omit<CalendarEvent, 'application'> & { application_id: string | null };
+
+export function makeEvent(overrides: Partial<StoredEvent> = {}): StoredEvent {
+  return {
+    id: nextId('event'),
+    kind: 'interview',
+    title: 'Technical interview',
+    starts_at: '2026-11-20T15:00:00.000Z',
+    ends_at: null,
+    location_or_link: null,
+    application_id: null,
+    ...overrides,
+  };
+}
+
 type State = {
   applications: Application[];
   events: Map<string, ApplicationEvent[]>;
@@ -115,6 +135,7 @@ type State = {
   tags: Tag[];
   resumes: Resume[];
   reminders: StoredReminder[];
+  calendarEvents: StoredEvent[];
   calls: string[];
 };
 
@@ -130,6 +151,7 @@ export function mockApplicationsBackend({
   contacts = [],
   resumes = [],
   reminders = [],
+  calendarEvents = [],
   moveLatencyMs = 0,
   failMovesFor = [],
   boardLatencyMs = 0,
@@ -139,6 +161,7 @@ export function mockApplicationsBackend({
   contacts?: Contact[];
   resumes?: Resume[];
   reminders?: StoredReminder[];
+  calendarEvents?: StoredEvent[];
   /** Keep move requests in flight this long (per card id, or for all). */
   moveLatencyMs?: number | ((id: string) => number);
   /** Card ids whose moves fail with 503 (after their latency). */
@@ -153,6 +176,7 @@ export function mockApplicationsBackend({
     tags: tags.map((t) => ({ ...t })),
     resumes: resumes.map((r) => ({ ...r })),
     reminders: reminders.map((r) => ({ ...r })),
+    calendarEvents: calendarEvents.map((e) => ({ ...e })),
     calls: [],
   };
   for (const a of state.applications) {
@@ -190,6 +214,22 @@ export function mockApplicationsBackend({
     return used.application_count + used.match_count > 0;
   };
   const error = (status: number, detail: string) => HttpResponse.json({ detail }, { status });
+
+  const ref = (id: string | null) => {
+    const app = id ? find(id) : undefined;
+    return app ? { id: app.id, company: app.company, role_title: app.role_title } : null;
+  };
+  const eventRead = ({ application_id, ...rest }: StoredEvent): CalendarEvent => ({
+    ...rest,
+    application: ref(application_id),
+  });
+  /** The calendar day a "…T00:00:00±hh:mm" bound names, and the last day before `to`. */
+  const dayBounds = (from: string, to: string) => {
+    const toMidnight = to.slice(11, 19) === '00:00:00';
+    const last = new Date(`${to.slice(0, 10)}T12:00:00Z`);
+    if (toMidnight) last.setUTCDate(last.getUTCDate() - 1);
+    return [from.slice(0, 10), last.toISOString().slice(0, 10)] as const;
+  };
 
   /** API shape: the application id becomes a ref {id, company, role_title}. */
   const reminderRead = ({ application_id, ...rest }: StoredReminder): Reminder => {
@@ -352,6 +392,7 @@ export function mockApplicationsBackend({
       state.applications = state.applications.filter((a) => a.id !== id);
       state.contacts = state.contacts.filter((c) => c.application_id !== id);
       state.reminders = state.reminders.filter((r) => r.application_id !== id); // cascade
+      state.calendarEvents = state.calendarEvents.filter((e) => e.application_id !== id); // cascade
       state.events.delete(id);
       return new HttpResponse(null, { status: 204 });
     }),
@@ -490,6 +531,97 @@ export function mockApplicationsBackend({
       if (!state.reminders.some((r) => r.id === id)) return notFound('Reminder');
       state.calls.push('DELETE /reminders');
       state.reminders = state.reminders.filter((r) => r.id !== id);
+      return new HttpResponse(null, { status: 204 });
+    }),
+
+    http.get('/api/v1/calendar', ({ request }) => {
+      if (!hasToken(request)) return unauthorized();
+      const params = new URL(request.url).searchParams;
+      const [from, to] = [params.get('from') ?? '', params.get('to') ?? ''];
+      state.calls.push(`GET /calendar?from=${from}&to=${to}`);
+      const [start, end] = [Date.parse(from), Date.parse(to)];
+      if (!(end > start)) return error(422, "'to' must be after 'from'");
+      const [firstDay, lastDay] = dayBounds(from, to);
+      const inDays = (day: string | null) => day !== null && day >= firstDay && day <= lastDay;
+      const items: CalendarItem[] = [
+        ...state.calendarEvents
+          .filter((e) => {
+            const s = Date.parse(e.starts_at);
+            const finish = Date.parse(e.ends_at ?? e.starts_at);
+            return s < end && (finish > start || s >= start);
+          })
+          .map((e) => ({ type: 'event' as const, ...eventRead(e) })),
+        ...state.applications
+          .filter((a) => a.status === 'wishlist' && inDays(a.deadline_on))
+          .map((a) => ({
+            type: 'apply_by' as const,
+            id: a.id,
+            title: `Apply to ${a.company}`,
+            date: a.deadline_on ?? '',
+            application: { id: a.id, company: a.company, role_title: a.role_title },
+          })),
+        ...state.reminders
+          .filter((r) => params.get('include_done') === 'true' || !r.done_at)
+          .filter((r) =>
+            r.due_on ? inDays(r.due_on) : Date.parse(r.due_at ?? '') >= start && Date.parse(r.due_at ?? '') < end,
+          )
+          .map((r) => ({
+            type: 'reminder' as const,
+            id: r.id,
+            title: r.title,
+            date: r.due_on,
+            starts_at: r.due_at,
+            done_at: r.done_at,
+            application: ref(r.application_id),
+          })),
+      ]; // prettier-ignore
+      return HttpResponse.json({ items });
+    }),
+    http.get('/api/v1/calendar-events', ({ request }) => {
+      if (!hasToken(request)) return unauthorized();
+      const applicationId = new URL(request.url).searchParams.get('application_id');
+      const listed = state.calendarEvents
+        .filter((e) => !applicationId || e.application_id === applicationId)
+        .sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+      return HttpResponse.json(listed.map(eventRead));
+    }),
+    http.post('/api/v1/calendar-events', async ({ request }) => {
+      if (!hasToken(request)) return unauthorized();
+      state.calls.push('POST /calendar-events');
+      const input = (await request.json()) as CalendarEventInput;
+      if (input.application_id && !find(input.application_id)) return notFound();
+      const event = makeEvent({
+        kind: input.kind,
+        title: input.title,
+        starts_at: new Date(input.starts_at).toISOString(),
+        ends_at: input.ends_at ? new Date(input.ends_at).toISOString() : null,
+        location_or_link: input.location_or_link ?? null,
+        application_id: input.application_id ?? null,
+      });
+      state.calendarEvents.push(event);
+      return HttpResponse.json(eventRead(event), { status: 201 });
+    }),
+    http.patch('/api/v1/calendar-events/:id', async ({ request, params }) => {
+      if (!hasToken(request)) return unauthorized();
+      state.calls.push('PATCH /calendar-events');
+      const event = state.calendarEvents.find((e) => e.id === String(params['id']));
+      if (!event) return notFound('Calendar event');
+      const patch = (await request.json()) as Partial<CalendarEventInput>;
+      if (patch.application_id && !find(patch.application_id)) return notFound();
+      const iso = (v: string | null | undefined) => (v ? new Date(v).toISOString() : null);
+      Object.assign(event, {
+        ...patch,
+        ...(patch.starts_at !== undefined ? { starts_at: iso(patch.starts_at) } : {}),
+        ...(patch.ends_at !== undefined ? { ends_at: iso(patch.ends_at) } : {}),
+      });
+      return HttpResponse.json(eventRead(event));
+    }),
+    http.delete('/api/v1/calendar-events/:id', ({ request, params }) => {
+      if (!hasToken(request)) return unauthorized();
+      const id = String(params['id']);
+      if (!state.calendarEvents.some((e) => e.id === id)) return notFound('Calendar event');
+      state.calls.push('DELETE /calendar-events');
+      state.calendarEvents = state.calendarEvents.filter((e) => e.id !== id);
       return new HttpResponse(null, { status: 204 });
     }),
 

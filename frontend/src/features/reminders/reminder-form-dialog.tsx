@@ -30,7 +30,7 @@ import {
 } from './reminder-schema';
 
 export type ReminderFormMode =
-  | { type: 'create'; applicationId: string | null; company?: string }
+  | { type: 'create'; applicationId: string | null; company?: string; date?: string }
   | { type: 'edit'; reminder: Reminder };
 
 type ReminderFormDialogProps = {
@@ -88,7 +88,11 @@ function ReminderForm({
   const form = useForm<ReminderFormValues>({
     resolver: zodResolver(reminderFormSchema),
     defaultValues:
-      mode.type === 'edit' ? reminderFormValues(mode.reminder) : newReminderValues(todayDateOnly()),
+      mode.type === 'edit'
+        ? reminderFormValues(mode.reminder)
+        : mode.date // opened from a calendar day
+          ? { title: '', date: mode.date, time: '' }
+          : newReminderValues(todayDateOnly()),
   });
   const { errors, isSubmitting, dirtyFields } = form.formState;
 

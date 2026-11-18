@@ -17,6 +17,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { applicationEventsQuery } from '@/features/calendar/api';
+import { remindersQuery } from '@/features/reminders/api';
 import { RemindersSection } from '@/features/reminders/reminders-section';
 import { resumesQuery } from '@/features/resumes/api';
 import { isApiError } from '@/lib/api/errors';
@@ -211,6 +213,20 @@ function StatusPicker({ application }: { application: Application }) {
   );
 }
 
+const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
+/** What else goes with the application (the server deletes its reminders and events too). */
+function DeleteWarning({ applicationId }: { applicationId: string }) {
+  const reminders = useQuery(remindersQuery({ status: 'all', application_id: applicationId }));
+  const events = useQuery(applicationEventsQuery(applicationId));
+  const extras = [
+    reminders.data?.length ? count(reminders.data.length, 'follow-up', 'follow-ups') : null,
+    events.data?.length ? count(events.data.length, 'calendar event', 'calendar events') : null,
+  ].filter(Boolean);
+  const also = extras.length ? `, along with ${extras.join(' and ')}` : '';
+  return <>Its timeline, notes and contacts are deleted too{also}. This can’t be undone.</>;
+}
+
 function ApplicationView({ application, back }: { application: Application; back: string }) {
   const navigate = useNavigate();
   const remove = useDeleteApplication();
@@ -272,7 +288,7 @@ function ApplicationView({ application, back }: { application: Application; back
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
         title={`Delete ${application.company}?`}
-        description="Its timeline, notes and contacts are deleted too. This can’t be undone."
+        description={<DeleteWarning applicationId={application.id} />}
         confirmLabel="Delete application"
         pending={remove.isPending}
         error={

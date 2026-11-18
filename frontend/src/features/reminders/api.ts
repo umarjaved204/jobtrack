@@ -1,5 +1,6 @@
 import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
 
+import { calendarKeys } from '@/features/calendar/api';
 import { api } from '@/lib/api/client';
 import type { Reminder, ReminderFilters, ReminderInput, ReminderPatch } from '@/types/reminder';
 
@@ -24,7 +25,10 @@ export const remindersQuery = (filters: ReminderFilters = {}) =>
 
 function useInvalidate() {
   const queryClient = useQueryClient();
-  return () => void queryClient.invalidateQueries({ queryKey: reminderKeys.all });
+  return () => {
+    void queryClient.invalidateQueries({ queryKey: reminderKeys.all });
+    void queryClient.invalidateQueries({ queryKey: calendarKeys.all }); // the feed shows them
+  };
 }
 
 export function useCreateReminder() {

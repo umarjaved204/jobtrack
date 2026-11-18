@@ -6,6 +6,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 
+import { calendarKeys } from '@/features/calendar/api';
 import { analyticsKeys } from '@/features/dashboard/api';
 import { reminderKeys } from '@/features/reminders/api';
 import { resumeKeys } from '@/features/resumes/api';
@@ -104,6 +105,8 @@ function invalidateViews(queryClient: QueryClient, id?: string) {
   void queryClient.invalidateQueries({ queryKey: analyticsKeys.all });
   // Resume usage counts ("sent with N applications") follow the links.
   void queryClient.invalidateQueries({ queryKey: resumeKeys.all });
+  // The calendar shows apply-by dates and application names (and loses deleted ones' events).
+  void queryClient.invalidateQueries({ queryKey: calendarKeys.all });
   if (id) void queryClient.invalidateQueries({ queryKey: applicationKeys.events(id) });
 }
 
