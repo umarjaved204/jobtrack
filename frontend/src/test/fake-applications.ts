@@ -173,6 +173,8 @@ export function mockApplicationsBackend({
       const statuses = params.getAll('status');
       const sources = params.getAll('source').map((s) => s.toLowerCase());
       const tagIds = params.getAll('tag');
+      const from = params.get('from');
+      const to = params.get('to');
       const page = Number(params.get('page') ?? 1);
       const pageSize = Number(params.get('page_size') ?? 20);
       const sort = params.get('sort') ?? '-created_at';
@@ -182,20 +184,25 @@ export function mockApplicationsBackend({
           (!q || `${a.company} ${a.role_title}`.toLowerCase().includes(q)) &&
           (!statuses.length || statuses.includes(a.status)) &&
           (!sources.length || sources.includes((a.source ?? '').toLowerCase())) &&
-          (!tagIds.length || a.tags.some((t) => tagIds.includes(t.id))),
+          (!tagIds.length || a.tags.some((t) => tagIds.includes(t.id))) &&
+          (!from || (a.applied_on !== null && a.applied_on >= from)) &&
+          (!to || (a.applied_on !== null && a.applied_on <= to)),
       );
+      // Like the API: empty dates sort last in either direction; ties keep insertion order.
       const field = sort.replace(/^-/, '') as keyof Application;
       const direction = sort.startsWith('-') ? -1 : 1;
-      filtered.sort(
-        (a, b) => direction * String(a[field] ?? '').localeCompare(String(b[field] ?? '')),
-      );
+      filtered.sort((a, b) => {
+        const [x, y] = [a[field], b[field]];
+        if (x === null || y === null) return x === y ? 0 : x === null ? 1 : -1;
+        return direction * String(x).localeCompare(String(y));
+      });
       const start = (page - 1) * pageSize;
       return HttpResponse.json({
         items: filtered.slice(start, start + pageSize),
         total: filtered.length,
         page,
         page_size: pageSize,
-        pages: Math.max(1, Math.ceil(filtered.length / pageSize)),
+        pages: Math.ceil(filtered.length / pageSize), // like the API: 0 when nothing matches
       });
     }),
     http.post('/api/v1/applications', async ({ request }) => {

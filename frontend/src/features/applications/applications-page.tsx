@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
-import { Plus, RotateCcw, SquareKanban } from 'lucide-react';
+import { Plus, RotateCcw, SquareKanban, Table2 } from 'lucide-react';
 import { useState } from 'react';
+import { Link } from 'react-router';
 
 import { EmptyState } from '@/components/empty-state';
 import { PageHeader } from '@/components/page-header';
@@ -8,11 +9,20 @@ import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { isApiError } from '@/lib/api/errors';
+import { cn } from '@/lib/utils';
 import type { ApplicationStatus } from '@/types/application';
 
 import { boardQuery } from './api';
 import { ApplicationFormSheet } from './application-form-sheet';
+import { ApplicationsTableView } from './applications-table-view';
 import { KanbanBoard } from './kanban-board';
+import {
+  serializeTableParams,
+  type TableParams,
+  updateTableParams,
+  type View,
+} from './table-params';
+import { useTableParams } from './use-table-params';
 
 function BoardSkeleton() {
   return (
@@ -32,13 +42,38 @@ function BoardSkeleton() {
   );
 }
 
-function ApplicationsPage() {
+/** Board / Table switch. Links, so each view has its own URL (filters are kept). */
+function ViewSwitch({ params }: { params: TableParams }) {
+  const options: { view: View; label: string; icon: typeof Table2 }[] = [
+    { view: 'board', label: 'Board', icon: SquareKanban },
+    { view: 'table', label: 'Table', icon: Table2 },
+  ];
+  return (
+    <nav aria-label="View" className="flex rounded-md border border-rule bg-card p-0.5">
+      {options.map(({ view, label, icon: Icon }) => {
+        const current = params.view === view;
+        return (
+          <Link
+            key={view}
+            to={{ search: `?${serializeTableParams(updateTableParams(params, { view }))}` }}
+            preventScrollReset
+            aria-current={current ? 'page' : undefined}
+            className={cn(
+              'inline-flex h-9 items-center gap-1.5 rounded-sm px-3 text-sm font-semibold',
+              current ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-accent',
+            )}
+          >
+            <Icon aria-hidden="true" className="size-4" />
+            {label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+function BoardView({ onAdd }: { onAdd: (status: ApplicationStatus) => void }) {
   const board = useQuery(boardQuery());
-  const [form, setForm] = useState<{ open: boolean; status: ApplicationStatus }>({
-    open: false,
-    status: 'wishlist',
-  });
-  const openForm = (status: ApplicationStatus) => setForm({ open: true, status });
   const total = board.data?.columns.reduce((n, c) => n + c.applications.length, 0) ?? 0;
 
   let content;
@@ -59,7 +94,7 @@ function ApplicationsPage() {
         icon={SquareKanban}
         title="No applications yet"
         action={
-          <Button onClick={() => openForm('wishlist')}>
+          <Button onClick={() => onAdd('wishlist')}>
             <Plus /> Add your first application
           </Button>
         }
@@ -68,8 +103,19 @@ function ApplicationsPage() {
       </EmptyState>
     );
   } else {
-    content = <KanbanBoard board={board.data} onAdd={openForm} />;
+    content = <KanbanBoard board={board.data} onAdd={onAdd} />;
   }
+
+  return content;
+}
+
+function ApplicationsPage() {
+  const [params] = useTableParams();
+  const [form, setForm] = useState<{ open: boolean; status: ApplicationStatus }>({
+    open: false,
+    status: 'wishlist',
+  });
+  const openForm = (status: ApplicationStatus) => setForm({ open: true, status });
 
   return (
     <>
@@ -78,12 +124,21 @@ function ApplicationsPage() {
         title="Applications"
         description="Every role you’re tracking, from wishlist to offer."
         actions={
-          <Button onClick={() => openForm('wishlist')}>
-            <Plus /> Add application
-          </Button>
+          <>
+            <ViewSwitch params={params} />
+            <Button onClick={() => openForm('wishlist')}>
+              <Plus /> Add application
+            </Button>
+          </>
         }
       />
-      <div className="mt-6">{content}</div>
+      <div className="mt-6">
+        {params.view === 'table' ? (
+          <ApplicationsTableView onAdd={openForm} />
+        ) : (
+          <BoardView onAdd={openForm} />
+        )}
+      </div>
       <ApplicationFormSheet
         open={form.open}
         onOpenChange={(open) => setForm((f) => ({ ...f, open }))}
