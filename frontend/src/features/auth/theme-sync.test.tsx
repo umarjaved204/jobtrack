@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { THEME_COLORS } from '@/lib/theme';
 import { emptyAnalytics, mockAnalyticsBackend } from '@/test/fake-analytics';
+import { mockApplicationsBackend } from '@/test/fake-applications';
 import { mockAuthBackend, server } from '@/test/msw';
 import { findPageHeading, renderApp } from '@/test/render-app';
 
@@ -16,9 +17,10 @@ async function chooseAccent(name: RegExp) {
   await user.click(await screen.findByRole('menuitemradio', { name }));
 }
 
-// These flows end on the dashboard, which loads analytics.
+// These flows end on the dashboard, which loads analytics and the board.
 beforeEach(() => {
   mockAnalyticsBackend(emptyAnalytics());
+  mockApplicationsBackend({ applications: [] });
 });
 
 describe('theme preference while signed in', () => {

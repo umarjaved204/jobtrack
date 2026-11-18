@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { todayDateOnly } from '@/lib/dates';
 import { emptyAnalytics, mockAnalyticsBackend } from '@/test/fake-analytics';
+import { makeApplication, mockApplicationsBackend } from '@/test/fake-applications';
 import { mockAuthBackend, server } from '@/test/msw';
 import { findPageHeading, renderApp } from '@/test/render-app';
 
@@ -13,6 +14,7 @@ import { periodFor } from './range';
 
 beforeEach(() => {
   mockAuthBackend({ signedIn: true });
+  mockApplicationsBackend(); // a few applications: not a brand-new account
 });
 
 async function openDashboard(path = '/dashboard') {
@@ -192,5 +194,71 @@ describe('pipeline and sources', () => {
     expect(await screen.findByText('The pipeline didn’t load')).toBeVisible();
     expect(await screen.findByRole('figure', { name: 'Sources' })).toBeVisible();
     expect(screen.getByRole('figure', { name: 'Applications over time' })).toBeVisible();
+  });
+});
+
+describe('coming up', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 10, 18, 23, 30)); // late on Wed 18 Nov, local time
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('lists overdue deadlines first, then those due soon, by the browser’s date', async () => {
+    mockAnalyticsBackend();
+    mockApplicationsBackend({
+      applications: [
+        makeApplication({ company: 'Monzo', deadline_on: '2026-11-18' }), // today, late evening
+        makeApplication({ company: 'Wise', deadline_on: '2026-11-17', status: 'wishlist' }),
+        makeApplication({ company: 'Figma', deadline_on: '2026-11-25', status: 'interview' }),
+        makeApplication({ company: 'Starling', deadline_on: '2026-11-19', status: 'rejected' }),
+        makeApplication({ company: 'Octopus', deadline_on: '2026-12-02' }), // 14 days: too far
+      ],
+    });
+    await openDashboard();
+
+    const panel = await screen.findByRole('region', { name: 'Coming up' });
+    const overdue = within(panel).getByRole('region', { name: 'Past the deadline (1)' });
+    expect(within(overdue).getByRole('link', { name: 'Wise' })).toBeVisible();
+    expect(within(overdue).getByText('Yesterday')).toBeVisible();
+    const soon = within(panel).getByRole('region', { name: 'Due soon (2)' });
+    expect(
+      within(soon)
+        .getAllByRole('link')
+        .map((l) => l.textContent),
+    ).toEqual(['Monzo', 'Figma']);
+    expect(within(soon).getByText('Today')).toBeVisible();
+    expect(within(soon).getByText('In 7 days')).toBeVisible();
+    expect(within(panel).queryByText('Starling')).not.toBeInTheDocument();
+  });
+
+  it('says when nothing is due', async () => {
+    mockAnalyticsBackend();
+    mockApplicationsBackend({ applications: [makeApplication({ deadline_on: null })] });
+    await openDashboard();
+
+    const panel = await screen.findByRole('region', { name: 'Coming up' });
+    expect(within(panel).getByText(/Nothing due in the next 14 days/)).toBeVisible();
+    expect(
+      within(panel).queryByRole('region', { name: /Past the deadline/ }),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe('a brand-new account', () => {
+  it('invites a first application instead of showing empty charts', async () => {
+    mockAnalyticsBackend(emptyAnalytics());
+    mockApplicationsBackend({ applications: [] });
+    renderApp('/dashboard');
+    await findPageHeading('Dashboard');
+
+    expect(await screen.findByText('Your figures start with your first application')).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Add an application' })).toHaveAttribute(
+      'href',
+      '/applications',
+    );
+    expect(screen.queryByRole('region', { name: /Key figures/ })).not.toBeInTheDocument();
   });
 });

@@ -57,7 +57,7 @@ function ApplicationsChart({ series, today, stale = false }: ApplicationsChartPr
   const empty = rows.every((r) => r.count === 0);
 
   return (
-    <figure aria-labelledby="over-time-heading" className="grid gap-3">
+    <figure aria-labelledby="over-time-heading" className="grid content-start gap-3">
       <figcaption className="grid gap-1">
         <h2 id="over-time-heading" className="font-display text-2xl font-semibold">
           Applications over time

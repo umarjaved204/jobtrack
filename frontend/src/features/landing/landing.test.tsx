@@ -4,12 +4,14 @@ import { http } from 'msw/http';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { emptyAnalytics, mockAnalyticsBackend } from '@/test/fake-analytics';
+import { mockApplicationsBackend } from '@/test/fake-applications';
 import { mockAuthBackend, server, testUser } from '@/test/msw';
 import { findPageHeading, renderApp } from '@/test/render-app';
 
-// These flows end on the dashboard, which loads analytics.
+// These flows end on the dashboard, which loads analytics and the board.
 beforeEach(() => {
   mockAnalyticsBackend(emptyAnalytics());
+  mockApplicationsBackend({ applications: [] });
 });
 
 describe('landing page', () => {
