@@ -96,6 +96,39 @@ Re-presenting a rotated token after a 10 s grace window revokes that login's tok
 - **Detail page** (`/applications/:id`): application, timeline (`/events`) and contacts are
   three queries, so each section loads and fails independently.
 
+## Resume versions, reminders and the calendar
+
+**Resume versions** record what was sent. A version is *in use* once an application links
+to it or a match result was made with it. In use: the text is frozen (edit the label, or
+duplicate it as a new version) and it can't be deleted, only archived. Archived versions
+are hidden from the application form's picker and can't be the default, but applications
+that used one keep showing it, marked "(archived)". One default per user. The
+`match_results` foreign key is `NO ACTION`, so the database refuses to delete a resume that
+has match history (`RESTRICT` would also block deleting an account, since it's checked
+mid-cascade).
+
+**Reminders** are in-app only (no email or push). Each is either *all-day* (`due_on`, a
+date) or *timed* (`due_at`, an instant), never both. An all-day reminder is due on its date
+in whatever zone the user is in, and overdue from the next local day; a timed one is
+overdue once its moment has passed. Deleting an application deletes its reminders and
+calendar events (the confirmation says how many).
+
+**Calendar** (`GET /calendar?from&to`): one list of typed items.
+
+- `event`: interviews, assessments, deadlines (offer replies, documents: not apply-by)
+  and other events. Always timed. Included when they *overlap* the half-open range
+  `[from, to)`: they start before `to` and either end after `from` or start at or after it.
+  So overnight and multi-day events show on each day they touch, and one ending at exactly
+  00:00 doesn't spill into the next day.
+- `apply_by`: `deadline_on` of wishlist applications (the same rule as "Coming up").
+- `reminder`: open reminders (`include_done=true` adds done ones). All-day ones carry
+  `date`, timed ones `starts_at`.
+
+`from` and `to` carry the client's UTC offsets (a Chicago month in March 2027 is
+`2027-03-01T00:00:00-06:00` to `2027-04-01T00:00:00-05:00`). Date-only items are matched to
+the calendar days those offsets name, so they never go through UTC. The range can be at
+most 366 days. The month grid starts weeks on Monday, like the dashboard's ISO weeks.
+
 ## Dashboard metrics
 
 Endpoints: `GET /api/v1/analytics/summary|funnel|sources|timeseries?from&to`

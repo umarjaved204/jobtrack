@@ -53,7 +53,8 @@ users(id, email UNIQUE lowercased, password_hash, full_name, theme, accent, crea
   theme enum: light, dark, system (default system)
   accent: palette colour *name* matching ^[a-z][a-z-]{0,19}$ (default "vermilion"); NOT an enum yet
 refresh_tokens(id, user_id, token_hash UNIQUE, expires_at, revoked_at, created_at)
-resume_versions(id, user_id, label, content_text, is_default, created_at, updated_at)
+resume_versions(id, user_id, label, content_text, is_default, archived_at, created_at, updated_at)
+  one default per user (partial unique idx); CHECK archived_at IS NULL OR NOT is_default
 applications(id, user_id, company, role_title, location, work_mode, job_url,
   salary_min, salary_max, salary_currency, source, status, position,
   applied_on, deadline_on (= "apply by"; only meaningful on the wishlist), resume_version_id NULL, created_at, updated_at)
@@ -66,12 +67,16 @@ application_events(id, application_id, type enum: status_change | note,
 contacts(id, application_id, name, role, email, phone, linkedin_url, notes)
 tags(id, user_id, name, color, UNIQUE(user_id,name)); application_tags(application_id, tag_id)
   tag color: palette colour name, same pattern as accent (default "ink")
-reminders(id, user_id, application_id NULL, title, due_at, done_at)
-  partial idx (user_id, due_at) WHERE done_at IS NULL
+reminders(id, user_id, application_id NULL, title, due_on date NULL, due_at NULL, done_at)
+  exactly one of due_on (all-day) / due_at (timed) (CHECK one_due)
+  partial idx (user_id, due_on, due_at) WHERE done_at IS NULL
 calendar_events(id, user_id, application_id NULL, kind, title, starts_at, ends_at, location_or_link)
-  kind enum: interview, assessment, deadline, other
+  kind enum: interview, assessment, deadline (offer reply, documents; NOT apply-by), other
+  always timed; CHECK ends_at IS NULL OR ends_at >= starts_at
+  reminders and events are ON DELETE CASCADE with their application
 match_results(id, user_id, resume_version_id, application_id NULL, jd_text, score,
   matched_skills jsonb, missing_skills jsonb, suggested_keywords jsonb, model_name, created_at)
+  resume_version_id FK is NO ACTION (not CASCADE): match history survives; used resumes are archived
 ```
 
 ## REST API (`/api/v1`)
@@ -84,9 +89,12 @@ APPS      GET /applications (?q &status[] &source[] &tag[] &from &to &sort &page
           GET /applications/board;  GET/POST /applications/{id}/events
 CONTACTS  GET/POST /applications/{id}/contacts; PATCH/DELETE /contacts/{id}
 TAGS      GET/POST /tags; PATCH/DELETE /tags/{id}
-REMINDERS GET/POST /reminders; PATCH/DELETE /reminders/{id}
-CALENDAR  GET /calendar?from&to (merged feed); POST /calendar-events; PATCH/DELETE /calendar-events/{id}
-RESUMES   GET/POST /resumes; GET/PATCH/DELETE /resumes/{id}
+REMINDERS GET /reminders (?status=open|done|all &application_id); POST /reminders;
+          PATCH /reminders/{id} {title, application_id, due_on | due_at, done}; DELETE /reminders/{id}
+CALENDAR  GET /calendar?from&to[&include_done] (merged feed: events, wishlist apply-by dates, reminders)
+          GET /calendar-events?application_id; POST /calendar-events; PATCH/DELETE /calendar-events/{id}
+RESUMES   GET /resumes (summaries, no text); POST /resumes; GET/PATCH/DELETE /resumes/{id}
+          PATCH {label, content_text, is_default, archived}; DELETE is 409 once used (archive instead)
 MATCH     POST /match; GET /match; GET /match/{id}
 ANALYTICS GET /analytics/summary|timeseries|funnel|sources (?from&to: cohort by applied_on)
 EXPORT    GET /export?format=csv|json
@@ -142,7 +150,7 @@ jobtrack/
 5. Auth UI (hero landing/login) + API client with TanStack Query (done; then a Lighthouse + web-interface-guidelines audit, fixed on `chore/frontend-audit-fixes`)
 6. Kanban + table views, application form and detail page (done; drag-and-drop choice in ADR 0003)
 7. Dashboard with animated stat cards and custom charts (done; metric definitions in docs/architecture.md)
-8. Calendar, reminders, resume versions (+ assessment/interview events and reminders join the dashboard's "Coming up")
+8. Calendar, reminders, resume versions (done; "Coming up" gained events and reminders; definitions in docs/architecture.md)
 9. AI match service, endpoint and UI
 10. Polish: offer celebration, animated funnel, ⌘K palette, empty/loading/error states, a11y, responsive, reduced motion
 11. Tests (unit, integration, 1-2 Playwright flows) and CI
@@ -300,3 +308,37 @@ jobtrack/
   NumberFlow can't run in jsdom: tests use `src/test/number-flow-stub.tsx` (data-animated).
 - Tests that pin "today" fake only Date: `vi.useFakeTimers({ toFake: ['Date'] })`.
 - Small samples (n < 5) are flagged with italic + asterisk, not a fainter colour (AA).
+
+## Conventions (established in Phase 8)
+- Resume versions (`services/resumes.py`): a version used by an application or a match
+  result has frozen text (409) and can only be archived, not deleted. Archived versions are
+  hidden from pickers, can't be the default, and stay linked where they were used (a link
+  is re-checked only when it changes). Default changes lock the user's row (`FOR UPDATE`);
+  `tests/test_resumes.py` races two real connections to prove it.
+- Instants in API schemas use `UtcDatetime` (`app/schemas/common.py`): an offset is
+  required on input, and output is always UTC whatever the DB session's zone.
+- Date-only values (apply-by, all-day reminders) never go through UTC, on either side.
+- The calendar feed takes half-open `[from, to)` instants *with the client's offsets*;
+  date-only items are matched to the local days those offsets name. Timed items by
+  overlap (an event ending at exactly 00:00 doesn't spill into the next day). Details:
+  docs/architecture.md "Calendar".
+- Frontend time zones: `features/reminders/due.ts` and `features/calendar/month.ts` take an
+  optional IANA `zone` (unset = the browser's; date-fns `in` + `@date-fns/tz`). Tests pass
+  `America/Chicago` / `Asia/Karachi` explicitly: Node on Windows ignores `TZ`, and CI is UTC.
+  Never build local times by hand: use `toInstant(date, time, zone)`.
+- Layouts that render different components per width use `useMediaQuery` (not CSS hiding),
+  so the hidden one isn't in the DOM; tests spy on `window.matchMedia` for wide screens.
+- The calendar grid follows the WAI-ARIA APG date grid (roving tabindex, arrows,
+  Home/End, PageUp/PageDown, Enter opens the day); `month.ts` holds the key maths (tested).
+- Links from user text: only `http(s)` URLs become links (`linkHref`), always
+  `target="_blank" rel="noopener noreferrer"` with an "opens in a new tab" hint.
+- Mutations invalidate every view that shows their data: reminders → reminder lists and the
+  calendar; applications → also resumes (usage counts) and the calendar.
+- An action that can change which item a list falls back to (archiving the default resume)
+  pins the item in the URL *before* mutating: per-call `onSuccess` doesn't run if the
+  component unmounts first.
+- Test fakes (`src/test/fake-applications.ts`) cover resumes, reminders, events and the feed,
+  following the server's rules; factories keep the API's invariants (e.g. `makeReminder`
+  sets exactly one of `due_on` / `due_at`).
+- Scripts written on Windows: write files as LF (pre-commit's `mixed-line-ending` rejects
+  CRLF mixes).
