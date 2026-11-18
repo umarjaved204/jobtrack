@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.core.config import get_settings
 from app.models import Application, ApplicationEvent, User
 from app.models.enums import ApplicationStatus, EventType
+from app.services import analytics
 from app.services import applications as applications_service
 from app.services import auth as auth_service
 from scripts import seed
@@ -83,6 +84,23 @@ def test_history_follows_the_app_rules(db: Session, seeded: seed.SeedSummary) ->
             assert application.applied_on is None
         else:
             assert application.applied_on == left_wishlist.created_at.date()
+
+
+def test_gives_the_dashboard_something_to_show(db: Session, seeded: seed.SeedSummary) -> None:
+    user = db.get(User, seeded.user_id)
+    assert user is not None
+    last_90_days = analytics.Period(start=NOW.date() - timedelta(days=90), end=NOW.date())
+
+    summary = analytics.summary(db, user, last_90_days)
+    assert summary.applied >= 20
+    assert 0 < summary.interviewed < summary.applied
+    assert summary.offers >= 1
+    assert summary.wishlist >= 1
+    stages = [stage.count for stage in analytics.funnel(db, user, last_90_days).stages]
+    assert stages == sorted(stages, reverse=True)
+    assert len(analytics.sources(db, user, last_90_days).sources) >= 4
+    weeks = analytics.timeseries(db, user, last_90_days).points
+    assert sum(1 for week in weeks if week.count) >= 8  # spread out, not one spike
 
 
 def test_is_reproducible_and_replaces_the_previous_demo_user(db: Session) -> None:
