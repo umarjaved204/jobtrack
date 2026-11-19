@@ -4,13 +4,16 @@ import type { Match, MatchConfig, MatchInput, MatchPrepared } from '@/types/matc
 
 import { type EmbeddingClient, EmbeddingError } from './embedding/embedding-client';
 import { encodeVectors } from './encode-vectors';
+import type { ChunkVectorCache } from './vector-cache';
 
 /*
  * One match, end to end (docs/architecture.md "Match API"):
- * - client mode: prepare (the server chunks both texts) → load the model in the worker
- *   (downloads on the first run, then from the browser cache) → embed every chunk in one
- *   call → POST /match with the vectors. A 409 means the texts changed since prepare
- *   (the resume was edited in another tab): prepare and embed once more, then give up.
+ * - client mode: prepare (the server chunks both texts) → look the chunks up in this
+ *   browser's vector cache (vector-cache.ts) → load the model in the worker (downloads on
+ *   the first run, then from the browser cache; skipped when every chunk was cached) →
+ *   embed the rest in one call → POST /match with all the vectors. A 409 means the texts
+ *   changed since prepare (the resume was edited in another tab): prepare once more, then
+ *   give up.
  * - server mode: POST /match alone; the server embeds.
  * Framework-free and injectable; `use-match-run.ts` is the React side.
  */
@@ -19,7 +22,7 @@ export type MatchProgress =
   | { phase: 'preparing' }
   /** Bytes; `total` is 0 until the first progress event (or when loading from cache). */
   | { phase: 'loading-model'; loaded: number; total: number }
-  /** Chunks embedded so far, JD and resume together. */
+  /** Chunks ready so far (cached ones count from the start), JD and resume together. */
   | { phase: 'embedding'; done: number; total: number }
   | { phase: 'scoring' };
 
@@ -27,6 +30,8 @@ export type RunMatchDeps = {
   api?: Pick<typeof defaultApi, 'post'>;
   /** The worker client; called only in client mode, so server mode never spawns one. */
   embeddings: () => EmbeddingClient;
+  /** Vectors from earlier matches on this device; none when omitted. */
+  vectors?: ChunkVectorCache | null;
 };
 
 export type RunMatchOptions = {
@@ -39,7 +44,7 @@ const MAX_ATTEMPTS = 2;
 export async function runMatch(
   input: MatchInput,
   config: Pick<MatchConfig, 'embeddings'>,
-  { api = defaultApi, embeddings }: RunMatchDeps,
+  { api = defaultApi, embeddings, vectors = null }: RunMatchDeps,
   { onProgress = () => {}, signal }: RunMatchOptions = {},
 ): Promise<Match> {
   const body = {
@@ -64,19 +69,33 @@ export async function runMatch(
       { signal },
     );
 
-    const client = embeddings();
-    onProgress({ phase: 'loading-model', loaded: 0, total: 0 });
-    await client.load(prepared.model, (loaded, total) =>
-      onProgress({ phase: 'loading-model', loaded, total }),
-    );
-    signal?.throwIfAborted();
-
     const texts = [...prepared.jd_chunks, ...prepared.resume_chunks];
-    onProgress({ phase: 'embedding', done: 0, total: texts.length });
-    const rows = await client.embed(texts, {
-      onProgress: (done, total) => onProgress({ phase: 'embedding', done, total }),
-    });
+    const rows = vectors
+      ? await vectors.lookup(prepared.model, texts)
+      : texts.map((): Float32Array | undefined => undefined);
     signal?.throwIfAborted();
+    const missing = rows.flatMap((row, index) => (row ? [] : [index]));
+    const cachedCount = texts.length - missing.length;
+
+    if (missing.length > 0) {
+      const client = embeddings();
+      onProgress({ phase: 'loading-model', loaded: 0, total: 0 });
+      await client.load(prepared.model, (loaded, total) =>
+        onProgress({ phase: 'loading-model', loaded, total }),
+      );
+      signal?.throwIfAborted();
+
+      const toEmbed = missing.map((index) => texts[index] as string);
+      onProgress({ phase: 'embedding', done: cachedCount, total: texts.length });
+      const fresh = await client.embed(toEmbed, {
+        onProgress: (done) =>
+          onProgress({ phase: 'embedding', done: cachedCount + done, total: texts.length }),
+      });
+      signal?.throwIfAborted();
+      missing.forEach((index, i) => (rows[index] = fresh[i]));
+      // Not awaited: storing never fails the match, and mustn't delay it.
+      if (vectors) void vectors.store(prepared.model, toEmbed, fresh);
+    }
 
     const split = prepared.jd_chunks.length;
     const { dim } = prepared.model;
@@ -88,8 +107,8 @@ export async function runMatch(
           ...body,
           embeddings: {
             digest: prepared.digest,
-            jd: encodeVectors(rows.slice(0, split), dim),
-            resume: encodeVectors(rows.slice(split), dim),
+            jd: encodeVectors(rows.slice(0, split) as Float32Array[], dim),
+            resume: encodeVectors(rows.slice(split) as Float32Array[], dim),
           },
         },
         { signal },

@@ -1,3 +1,6 @@
+// Before anything else: the app's shared vector store looks for IndexedDB on first use.
+import 'fake-indexeddb/auto';
+
 import { QueryClient } from '@tanstack/react-query';
 import { act, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw/http';
@@ -7,6 +10,7 @@ import { type AuthChannel, createSessionManager, session } from '@/lib/api/sessi
 import { authResponse, mockAuthBackend, server, TEST_PASSWORD, testUser } from '@/test/msw';
 import { mockApplicationsBackend } from '@/test/fake-applications';
 import { findPageHeading, renderApp } from '@/test/render-app';
+import { createChunkVectorCache, sharedVectorStore } from '@/features/match/vector-cache';
 
 import { signIn, signOut, signUp } from './api';
 import { installSignOutHandler } from './sign-out-handler';
@@ -75,6 +79,23 @@ describe('signOut', () => {
         .map((q) => q.queryKey),
     ).toEqual([['session']]);
     expect(app.queryClient.getQueryData(['session'])).toBeNull();
+  });
+
+  it('clears the match vector cache', async () => {
+    mockAuthBackend({ signedIn: true });
+    renderApp('/calendar');
+    await findPageHeading('Calendar');
+    const model = { id: 'Xenova/bge-small-en-v1.5', revision: 'a'.repeat(40), dtype: 'q8', dim: 3 } as const; // prettier-ignore
+    const vectors = createChunkVectorCache({ userId: testUser.id, store: sharedVectorStore() });
+    await vectors.store(model, ['React and TypeScript'], [Float32Array.from([1, 0, 0])]);
+    expect((await vectors.lookup(model, ['React and TypeScript']))[0]).toBeDefined();
+
+    await act(() => signOut());
+
+    await findPageHeading('Sign in');
+    await waitFor(async () =>
+      expect(await vectors.lookup(model, ['React and TypeScript'])).toEqual([undefined]),
+    );
   });
 
   it('still signs out locally when the server is unreachable', async () => {

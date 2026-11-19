@@ -53,7 +53,9 @@ before using the match page in dev). The server chunks (with the shipped `tokeni
 only), validates the vectors, extracts skills and scores. The app is cross-origin isolated
 (COOP same-origin + COEP require-corp in vite.config.ts, vercel.json and the nginx image),
 so ONNX Runtime gets min(CPUs, 4) threads: no cross-origin subresources without CORP/CORS,
-and no popup-based OAuth (ADR 0004 Revision 2).
+and no popup-based OAuth (ADR 0004 Revision 2). Chunk vectors are cached in IndexedDB
+(`features/match/vector-cache.ts`: LRU, keyed by user + model + revision + text hash),
+cleared on sign-out; storage errors always mean "not cached", never a failed match.
 `MATCH_EMBEDDINGS=client|server|off` (`server` = fastembed, for dev/self-hosting). The
 server-side model was measured on Render free and was ~3x too slow; hosted APIs fail the
 zero-spend constraint.

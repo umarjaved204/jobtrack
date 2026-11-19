@@ -333,3 +333,32 @@ The production build was also checked for threads: the embedding worker reports
 Every page (landing, sign-in, register, dashboard, board, table, calendar, resumes,
 settings, match, match result) loads isolated, with no blocked request, on both the dev
 server and the production build.
+
+#### Vector cache (added with this revision)
+
+Most matches reuse a resume: one resume, several adverts. The browser keeps the chunk
+vectors it computed (`features/match/vector-cache.ts`), so a repeat match embeds only what
+is new.
+
+- **Key:** user id + model id + revision + SHA-256 of the chunk text. JD chunks are cached
+  too. A new model revision or another user never reads these vectors, and an edited
+  resume still reuses its unchanged lines.
+- **Size:** least recently used first, capped at 4,000 vectors (one vector is 1.5 KB at
+  384 dimensions, so about 6 MB). A hit counts as a use.
+- **Cleared,** for every user, on sign-out, wherever it starts (the button, an expired
+  session, another tab), and later on "Delete all match history".
+- **Never a failed match:** private mode, a full quota, an open that fails or hangs
+  (2 s timeout), or no `crypto.subtle` all mean "not cached".
+- **The model doesn't load at all** when every chunk is cached.
+- **The server is unchanged.** It still receives every vector and checks them; the cache
+  holds only the user's own texts' vectors, on their own device.
+
+**Repeat matches** (production build, the 2-page bench resume, match page click → result):
+
+| Case | Result |
+|---|---|
+| Same advert again, everything cached | 0.24 s (same page and after a reload: no model load) |
+| New advert, resume cached, model loaded | median **0.60 s** (0.55–0.71 s, 3 runs) |
+| The same advert, nothing cached, model loaded | median 1.94 s (1.67–1.97 s, 3 runs) |
+| New advert, resume cached, fresh page | 1.93 s (1 run; includes loading the model from the browser cache) |
+| Nothing cached, fresh page | 2.86 s (1 run, another advert) |

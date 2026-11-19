@@ -1,8 +1,9 @@
+import { IDBFactory } from 'fake-indexeddb';
 import { http, HttpResponse } from 'msw/http';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ApiError } from '@/lib/api/errors';
-import { makeResume, mockApplicationsBackend } from '@/test/fake-applications';
+import { FAKE_MATCH_MODEL, makeResume, mockApplicationsBackend } from '@/test/fake-applications';
 import { FakeEmbeddingClient } from '@/test/fake-embedding-client';
 import { mockAuthBackend, server } from '@/test/msw';
 import type { EmbeddingsMode } from '@/types/match';
@@ -10,6 +11,12 @@ import type { EmbeddingsMode } from '@/types/match';
 import { EmbeddingError } from './embedding/embedding-client';
 import { decodeVectors } from './encode-vectors';
 import { isAbort, matchFailureMessage, type MatchProgress, runMatch } from './run-match';
+import {
+  type ChunkVectorCache,
+  createChunkVectorCache,
+  createIndexedDbStore,
+  type VectorStore,
+} from './vector-cache';
 
 const RESUME = 'Sam Okafor\nFrontend engineer\n- React, TypeScript, Playwright';
 const JD = 'Senior Frontend Engineer, Monzo\nRequirements:\n- React and TypeScript';
@@ -180,5 +187,62 @@ describe('matchFailureMessage', () => {
     );
     expect(matchFailureMessage(new ApiError(409, 'changed'))).toMatch(/resume changed/);
     expect(matchFailureMessage(new Error('boom'))).toBe('Something went wrong. Please try again.');
+  });
+});
+
+describe('runMatch with the vector cache', () => {
+  function cache(store = createIndexedDbStore({ factory: new IDBFactory() })) {
+    return createChunkVectorCache({ userId: 'user-sam', store });
+  }
+  const runWith = (vectors: ChunkVectorCache, jd = JD, onProgress?: (p: MatchProgress) => void) =>
+    runMatch({ ...INPUT, jd_text: jd }, { embeddings: 'client' }, { embeddings: () => client, vectors }, { onProgress }); // prettier-ignore
+
+  it('embeds nothing (and loads no model) when every chunk is cached', async () => {
+    const vectors = cache();
+    await runWith(vectors);
+    await vi.waitFor(async () =>
+      expect((await vectors.lookup(FAKE_MATCH_MODEL, ['Sam Okafor']))[0]).toBeDefined(),
+    );
+    client = new FakeEmbeddingClient();
+    const bodies = captureMatchBodies();
+    const progress: MatchProgress[] = [];
+
+    await runWith(vectors, JD, (p) => progress.push(p));
+    expect(client.loads).toEqual([]);
+    expect(client.embedded).toEqual([]);
+    expect(progress.map((p) => p.phase)).toEqual(['preparing', 'scoring']);
+    await vi.waitFor(() => expect(bodies).toHaveLength(1));
+    const sent = bodies[0]?.['embeddings'] as { jd: string; resume: string };
+    expect(decodeVectors(sent.jd, 384)).toHaveLength(3);
+    expect(decodeVectors(sent.resume, 384)).toHaveLength(3);
+  });
+
+  it('embeds only the new chunks, counting cached ones as done', async () => {
+    const vectors = cache();
+    await runWith(vectors);
+    await vi.waitFor(async () =>
+      expect((await vectors.lookup(FAKE_MATCH_MODEL, ['Sam Okafor']))[0]).toBeDefined(),
+    );
+    client = new FakeEmbeddingClient();
+    const progress: MatchProgress[] = [];
+
+    await runWith(vectors, `${JD}\n- GraphQL`, (p) => progress.push(p));
+    expect(client.embedded).toEqual([['GraphQL']]);
+    const embedding = progress.filter((p) => p.phase === 'embedding');
+    expect(embedding).toEqual([
+      { phase: 'embedding', done: 6, total: 7 },
+      { phase: 'embedding', done: 7, total: 7 },
+    ]);
+  });
+
+  it('still matches, embedding everything, when the cache’s storage fails', async () => {
+    const broken: VectorStore = {
+      getMany: () => Promise.reject(new DOMException('denied', 'SecurityError')),
+      putMany: () => Promise.reject(new DOMException('full', 'QuotaExceededError')),
+      clear: () => Promise.reject(new Error('closed')),
+    };
+    const match = await runWith(cache(broken));
+    expect(match.resume_version_id).toBe('resume-sam');
+    expect(client.embedded[0]).toHaveLength(6);
   });
 });

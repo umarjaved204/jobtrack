@@ -294,7 +294,8 @@ runs ONNX Runtime on up to 4 threads (ADR 0004, Revision 2).
    reached. It chunks both texts with the browser model's tokenizer and returns the
    chunks, the model spec and a **digest**: the sha256 of the model name, the chunking
    version and the chunks.
-2. The browser embeds the chunks in a Web Worker.
+2. The browser looks the chunks up in its vector cache (per user, model and revision;
+   cleared on sign-out; ADR 0004 Revision 2) and embeds only the rest, in a Web Worker.
 3. `POST /match {resume_id, jd_text, application_id?, embeddings: {digest, jd, resume}}`:
    - *Vectors* are base64 of little-endian float32 values, row-major, one row per chunk.
      That's about 4× smaller than JSON numbers; the largest allowed request carries
