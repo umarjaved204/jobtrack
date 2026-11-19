@@ -13,6 +13,8 @@ import {
 } from '@/types/application';
 import type { CalendarEvent, CalendarEventInput, CalendarItem } from '@/types/calendar';
 import type { Reminder, ReminderInput, ReminderPatch } from '@/types/reminder';
+import { decodeVectors } from '@/features/match/encode-vectors';
+import type { EmbeddingsMode, Match, MatchInput } from '@/types/match';
 import type { Resume, ResumeInput, ResumePatch } from '@/types/resume';
 
 import { server } from './msw';
@@ -32,6 +34,12 @@ import { server } from './msw';
  * - calendar events and GET /calendar (backend/app/services/calendar.py): events by
  *   overlap with [from, to); apply-by dates (wishlist only) and all-day reminders by the
  *   local days of the offsets sent; open reminders unless include_done.
+ * - the AI match (backend/app/services/match/service.py): `matchEmbeddings` picks the
+ *   mode; off is 503; client mode needs prepare's digest back (409 if the texts changed)
+ *   and one vector row per chunk (422); server mode refuses prepare and vectors (422);
+ *   archived resumes can't be matched (422); a saved match freezes its resume (match_count).
+ *   Chunks are the texts' non-empty lines (the server also splits long lines and skips JD
+ *   headings and ignored sections), and the score is a word overlap, not the real one.
  * Combine with `mockAuthBackend({ signedIn: true })` so the client has a token.
  */
 
@@ -96,6 +104,50 @@ export function makeResume(overrides: Partial<Resume> = {}): Resume {
   };
 }
 
+export const FAKE_MATCH_MODEL = {
+  id: 'Xenova/bge-small-en-v1.5',
+  revision: 'ea104dacec62c0de699686887e3f920caeb4f3e3',
+  dtype: 'q8',
+  dim: 384,
+} as const;
+
+export function makeMatch(overrides: Partial<Match> = {}): Match {
+  return {
+    id: nextId('match'),
+    score: 72,
+    resume_version_id: 'resume-0',
+    resume_label: 'Frontend v1',
+    application_id: null,
+    company: null,
+    role_title: null,
+    jd_excerpt: 'Senior Frontend Engineer, Monzo',
+    is_current: true,
+    created_at: nowIso(),
+    jd_text: 'Senior Frontend Engineer, Monzo\n\nRequirements:\n- React and TypeScript\n- GraphQL',
+    skill_coverage: 0.67,
+    semantic_score: 0.8,
+    matched_skills: [
+      { skills: ['React'], label: 'React', required: true },
+      { skills: ['TypeScript'], label: 'TypeScript', required: true },
+    ],
+    missing_skills: [{ skills: ['GraphQL'], label: 'GraphQL', required: true }],
+    suggested_keywords: ['GraphQL'],
+    evidence: [
+      {
+        jd_text: 'React and TypeScript',
+        resume_text: 'React, TypeScript, Playwright',
+        similarity: 0.83,
+      },
+    ],
+    sections_detected: true,
+    model_name: `${FAKE_MATCH_MODEL.id}@${FAKE_MATCH_MODEL.revision}`,
+    scoring_version: 1,
+    calibration_version: 1,
+    taxonomy_version: 1,
+    ...overrides,
+  };
+}
+
 /** A stored reminder: like the API's, but holding the application id (the ref is derived). */
 export type StoredReminder = Omit<Reminder, 'application'> & { application_id: string | null };
 
@@ -136,6 +188,8 @@ type State = {
   resumes: Resume[];
   reminders: StoredReminder[];
   calendarEvents: StoredEvent[];
+  matches: Match[];
+  matchEmbeddings: EmbeddingsMode;
   calls: string[];
 };
 
@@ -152,6 +206,8 @@ export function mockApplicationsBackend({
   resumes = [],
   reminders = [],
   calendarEvents = [],
+  matches = [],
+  matchEmbeddings = 'client',
   moveLatencyMs = 0,
   failMovesFor = [],
   boardLatencyMs = 0,
@@ -162,6 +218,8 @@ export function mockApplicationsBackend({
   resumes?: Resume[];
   reminders?: StoredReminder[];
   calendarEvents?: StoredEvent[];
+  matches?: Match[];
+  matchEmbeddings?: EmbeddingsMode;
   /** Keep move requests in flight this long (per card id, or for all). */
   moveLatencyMs?: number | ((id: string) => number);
   /** Card ids whose moves fail with 503 (after their latency). */
@@ -177,6 +235,8 @@ export function mockApplicationsBackend({
     resumes: resumes.map((r) => ({ ...r })),
     reminders: reminders.map((r) => ({ ...r })),
     calendarEvents: calendarEvents.map((e) => ({ ...e })),
+    matches: matches.map((m) => ({ ...m })),
+    matchEmbeddings,
     calls: [],
   };
   for (const a of state.applications) {
@@ -692,7 +752,138 @@ export function mockApplicationsBackend({
       state.resumes = state.resumes.filter((r) => r.id !== resume.id);
       return new HttpResponse(null, { status: 204 });
     }),
+
+    http.get('/api/v1/match/config', ({ request }) => {
+      if (!hasToken(request)) return unauthorized();
+      return HttpResponse.json({
+        embeddings: state.matchEmbeddings,
+        model: state.matchEmbeddings === 'client' ? FAKE_MATCH_MODEL : null,
+        max_jd_chars: 20_000,
+        max_resume_chunks: 600,
+        max_jd_chunks: 300,
+      });
+    }),
+    http.post('/api/v1/match/prepare', async ({ request }) => {
+      if (!hasToken(request)) return unauthorized();
+      state.calls.push('POST /match/prepare');
+      const input = (await request.json()) as MatchInput;
+      const failure = matchInputError(input);
+      if (failure) return failure;
+      if (state.matchEmbeddings === 'server') {
+        return error(422, 'This server computes the embeddings itself');
+      }
+      const resume = state.resumes.find((r) => r.id === input.resume_id);
+      const jdChunks = lines(input.jd_text);
+      const resumeChunks = lines(resume?.content_text ?? '');
+      return HttpResponse.json({
+        model: FAKE_MATCH_MODEL,
+        digest: digest(jdChunks, resumeChunks),
+        jd_chunks: jdChunks,
+        resume_chunks: resumeChunks,
+      });
+    }),
+    http.post('/api/v1/match', async ({ request }) => {
+      if (!hasToken(request)) return unauthorized();
+      state.calls.push('POST /match');
+      const input = (await request.json()) as MatchInput & {
+        embeddings?: { digest: string; jd: string; resume: string } | null;
+      };
+      const failure = matchInputError(input);
+      if (failure) return failure;
+      const resume = state.resumes.find((r) => r.id === input.resume_id) as Resume;
+      const app = input.application_id ? find(input.application_id) : undefined;
+      if (input.application_id && !app) return notFound();
+      const jdChunks = lines(input.jd_text);
+      const resumeChunks = lines(resume.content_text);
+      if (state.matchEmbeddings === 'client') {
+        if (!input.embeddings) return fieldError('embeddings', 'Field required');
+        if (input.embeddings.digest !== digest(jdChunks, resumeChunks)) {
+          return error(409, 'The resume or the job description changed since the match was prepared. Try again.');
+        } // prettier-ignore
+        const dim = FAKE_MATCH_MODEL.dim;
+        if (
+          decodeVectors(input.embeddings.jd, dim).length !== jdChunks.length ||
+          decodeVectors(input.embeddings.resume, dim).length !== resumeChunks.length
+        ) {
+          return fieldError('embeddings', 'Expected one vector per chunk');
+        }
+      } else if (input.embeddings) {
+        return fieldError('embeddings', 'This server computes the embeddings itself');
+      }
+      const resumeWords = new Set(words(resume.content_text));
+      const jdWords = words(input.jd_text);
+      const overlap = jdWords.filter((w) => resumeWords.has(w)).length / (jdWords.length || 1);
+      const match = makeMatch({
+        score: Math.round(100 * overlap),
+        resume_version_id: resume.id,
+        resume_label: resume.label,
+        application_id: app?.id ?? null,
+        company: app?.company ?? null,
+        role_title: app?.role_title ?? null,
+        jd_text: input.jd_text,
+        jd_excerpt: jdChunks[0]?.slice(0, 120) ?? '',
+        evidence: [],
+      });
+      state.matches.unshift(match);
+      resume.match_count += 1; // its text is frozen from now on
+      return HttpResponse.json(match, { status: 201 });
+    }),
+    http.get('/api/v1/match', ({ request }) => {
+      if (!hasToken(request)) return unauthorized();
+      state.calls.push('GET /match');
+      const url = new URL(request.url);
+      const applicationId = url.searchParams.get('application_id');
+      const page = Number(url.searchParams.get('page') ?? 1);
+      const pageSize = Number(url.searchParams.get('page_size') ?? 20);
+      const matching = state.matches
+        .filter((m) => !applicationId || m.application_id === applicationId)
+        .sort((a, b) => b.created_at.localeCompare(a.created_at));
+      const items = matching.slice((page - 1) * pageSize, page * pageSize).map(matchSummary);
+      return HttpResponse.json({
+        items,
+        total: matching.length,
+        page,
+        page_size: pageSize,
+        pages: Math.ceil(matching.length / pageSize),
+      });
+    }),
+    http.get('/api/v1/match/:id', ({ request, params }) => {
+      if (!hasToken(request)) return unauthorized();
+      const match = state.matches.find((m) => m.id === String(params['id']));
+      return match ? HttpResponse.json(match) : notFound('Match');
+    }),
   );
+
+  /** The mode, the JD and the resume, checked like the API (in this order). */
+  function matchInputError(input: MatchInput) {
+    if (state.matchEmbeddings === 'off') return error(503, 'Matching is switched off on this server');
+    if (!input.jd_text?.trim()) return fieldError('jd_text', 'Paste the job description');
+    const resume = state.resumes.find((r) => r.id === input.resume_id);
+    if (!resume) return notFound('Resume version');
+    if (resume.archived_at) {
+      return error(422, 'This resume version is archived. Unarchive it to match against it.');
+    }
+    return null;
+  } // prettier-ignore
 
   return state;
 }
+
+const fieldError = (field: string, msg: string) =>
+  HttpResponse.json(
+    { detail: [{ type: 'value_error', loc: ['body', field], msg }] },
+    { status: 422 },
+  );
+const lines = (text: string) =>
+  text
+    .split('\n')
+    .map((line) => line.replace(/^[\s\-•*]+/, '').trim())
+    .filter(Boolean);
+const digest = (jd: string[], resume: string[]) => JSON.stringify([jd, resume]);
+const words = (text: string) => text.toLowerCase().match(/[a-z]+/g) ?? [];
+
+/** The list leaves out the text and the details, like the API. */
+function matchSummary(match: Match) {
+  const { id, score, resume_version_id, resume_label, application_id, company, role_title, jd_excerpt, is_current, created_at } = match;
+  return { id, score, resume_version_id, resume_label, application_id, company, role_title, jd_excerpt, is_current, created_at };
+} // prettier-ignore
