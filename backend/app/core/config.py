@@ -73,6 +73,10 @@ class Settings(BaseSettings):
     # missing model then fails loudly instead of downloading after every spin-down).
     match_model_dir: Path = Path(".model_cache")
     match_model_offline: bool = False
+    # Per user, for /match/prepare and /match separately (each counted on its own key).
+    # A match is a deliberate action; 30 an hour leaves room for trying several resumes.
+    rate_limit_match_per_user: int = Field(default=30, gt=0)
+    rate_limit_match_window_seconds: int = Field(default=3600, gt=0)
 
     @field_validator("database_url", "migration_database_url", mode="before")
     @classmethod

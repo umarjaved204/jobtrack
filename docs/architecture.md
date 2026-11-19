@@ -272,8 +272,54 @@ through taxonomy gaps: Celery and SQS don't imply "Message queues", and pytest d
 
 **Versions.** Every result stores `model_name`, `scoring_version` (the formula, weights,
 skill-requirement rules, chunking and section weights), `calibration_version` (per model)
-and `taxonomy_version`. Two results are comparable only when all four match. Older results aren't re-scored;
-the UI offers a re-run.
+and `taxonomy_version`. Two results are comparable only when all four match. Older
+results aren't re-scored: the API marks them `is_current: false`, and the UI offers a
+re-run.
+
+### Match API
+
+Code: `app/services/match/service.py`. `MATCH_EMBEDDINGS` picks where the vectors are
+computed. `GET /match/config` tells the page which mode is active.
+
+**Client mode** (production):
+
+1. `POST /match/prepare {resume_id, jd_text}` checks the request: the resume must be the
+   user's own and not archived, the JD at most 20,000 characters, and the rate limit not
+   reached. It chunks both texts with the browser model's tokenizer and returns the
+   chunks, the model spec and a **digest**: the sha256 of the model name, the chunking
+   version and the chunks.
+2. The browser embeds the chunks in a Web Worker.
+3. `POST /match {resume_id, jd_text, application_id?, embeddings: {digest, jd, resume}}`:
+   - *Vectors* are base64 of little-endian float32 values, row-major, one row per chunk.
+     That's about 4× smaller than JSON numbers; the largest allowed request carries
+     about 1.8 MB of vectors.
+   - *Digest:* the server re-chunks the texts. A different digest means the texts or the
+     model changed since step 1, and the answer is 409 ("prepare again").
+   - *Vector checks:* the count, 384 dimensions, finite values and unit length (±0.001).
+     A failed check is a 422 on `embeddings`.
+   - *Cache:* client vectors never enter the shared resume-embedding cache.
+
+**Server mode** (dev, self-hosting): `POST /match` without `embeddings`. The server
+embeds with fastembed, one match per process at a time. A request that can't start
+within 10 s gets a 503 with `Retry-After: 15`. **Off:** `prepare` and `POST /match`
+answer 503.
+
+**Limits:** at most 300 JD chunks and 600 resume chunks. Chunks are lines; the worst case
+we measured, a 50,000-character resume against a 20,000-character JD, has 134 JD chunks and
+336 resume chunks. `prepare` and `POST /match` each allow 30 requests per user per hour
+(`RATE_LIMIT_MATCH_*`).
+
+**Freezing the resume text.** A resume's text is frozen once a match uses it. Saving a
+match re-reads the text `FOR SHARE`; if it no longer equals the scored text, the answer
+is 409. A text edit takes `FOR UPDATE` on the resume before checking for uses. Either
+order of the two transactions ends with one of them refused, never a match pointing at
+text it didn't score.
+
+**Stored result:** the score and its parts, the requirements (`{skills, label, required}`),
+the suggested keywords, the top 5 evidence pairs (JD line, best resume line, raw
+cosine), `sections_detected` and the versions. `GET /match` lists results newest first
+without the JD text, showing an excerpt (the JD's first line, at most 120 characters)
+instead.
 
 ## Health checks
 

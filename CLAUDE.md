@@ -111,7 +111,9 @@ CALENDAR  GET /calendar?from&to[&include_done] (merged feed: events, wishlist ap
           GET /calendar-events?application_id; POST /calendar-events; PATCH/DELETE /calendar-events/{id}
 RESUMES   GET /resumes (summaries, no text); POST /resumes; GET/PATCH/DELETE /resumes/{id}
           PATCH {label, content_text, is_default, archived}; DELETE is 409 once used (archive instead)
-MATCH     POST /match; GET /match; GET /match/{id}
+MATCH     GET /match/config; POST /match/prepare (client mode: chunks + digest);
+          POST /match {resume_id, jd_text, application_id?, embeddings?{digest, jd, resume}};
+          GET /match (?application_id &page &page_size); GET /match/{id}
 ANALYTICS GET /analytics/summary|timeseries|funnel|sources (?from&to: cohort by applied_on)
 EXPORT    GET /export?format=csv|json
 HEALTH    GET /health; GET /health/ready

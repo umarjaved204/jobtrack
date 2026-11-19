@@ -20,7 +20,12 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from app.services.match.chunking import CHUNKING_VERSION, chunk_job_description, chunk_resume
+from app.services.match.chunking import (
+    CHUNKING_VERSION,
+    Chunk,
+    chunk_job_description,
+    chunk_resume,
+)
 from app.services.match.embedder import Embedder, Vectors
 
 EVIDENCE_PAIRS = 5
@@ -50,7 +55,7 @@ class EmbeddedResume:
     vectors: Vectors  # L2-normalised, read-only
 
 
-def _normalise(vectors: Vectors) -> Vectors:
+def normalise(vectors: Vectors) -> Vectors:
     norms = np.linalg.norm(vectors, axis=1, keepdims=True)
     norms[norms == 0] = 1.0  # an all-zero vector stays zero: similarity 0 to everything
     normalised: Vectors = (vectors / norms).astype(np.float32)
@@ -81,7 +86,7 @@ class ResumeEmbeddingCache:
 
         # Embed outside the lock; at worst two threads embed the same resume once each.
         texts = [chunk.text for chunk in chunk_resume(resume_text, embedder)]
-        vectors = _normalise(embedder.embed(texts))
+        vectors = normalise(embedder.embed(texts))
         vectors.setflags(write=False)
         entry = EmbeddedResume(texts, vectors)
 
@@ -105,8 +110,18 @@ def semantic_match(
     if not jd_chunks or not resume.texts:
         return SemanticMatch(0.0, [], len(jd_chunks), len(resume.texts))
 
-    jd_vectors = _normalise(embedder.embed([chunk.text for chunk in jd_chunks]))
-    similarities = jd_vectors @ resume.vectors.T  # (jd chunks, resume chunks)
+    jd_vectors = normalise(embedder.embed([chunk.text for chunk in jd_chunks]))
+    return max_sim(jd_chunks, jd_vectors, resume.texts, resume.vectors)
+
+
+def max_sim(
+    jd_chunks: list[Chunk], jd_vectors: Vectors, resume_texts: list[str], resume_vectors: Vectors
+) -> SemanticMatch:
+    """The similarity and evidence from vectors computed anywhere (here, or in the browser).
+    Vectors must be L2-normalised, one row per chunk, in chunk order."""
+    if not jd_chunks or not resume_texts:
+        return SemanticMatch(0.0, [], len(jd_chunks), len(resume_texts))
+    similarities = jd_vectors @ resume_vectors.T  # (jd chunks, resume chunks)
     best = similarities.argmax(axis=1)
     maxima = similarities[np.arange(len(jd_chunks)), best]
     weights = np.array([chunk.weight for chunk in jd_chunks], dtype=np.float32)
@@ -116,9 +131,9 @@ def semantic_match(
     evidence = [
         Evidence(
             jd_text=jd_chunks[i].text,
-            resume_text=resume.texts[best[i]],
+            resume_text=resume_texts[best[i]],
             similarity=round(float(maxima[i]), 4),
         )
         for i in order
     ]
-    return SemanticMatch(similarity, evidence, len(jd_chunks), len(resume.texts))
+    return SemanticMatch(similarity, evidence, len(jd_chunks), len(resume_texts))

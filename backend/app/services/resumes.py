@@ -140,7 +140,9 @@ def create_resume(db: Session, user: User, data: ResumeCreate) -> ResumeRead:
 def update_resume(db: Session, user: User, resume_id: uuid.UUID, data: ResumeUpdate) -> ResumeRead:
     if data.is_default is not None or data.archived is not None:
         _lock_user(db, user)
-    resume = _owned(db, user, resume_id)
+    # A text change locks the row first: FOR UPDATE waits for a match (or an application
+    # link) being saved to commit, so the use check below sees it (services/match/service.py).
+    resume = _owned(db, user, resume_id, lock=data.content_text is not None)
 
     if data.label is not None:
         resume.label = data.label

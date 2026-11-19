@@ -1,4 +1,5 @@
 import uuid
+from typing import Any
 
 from sqlalchemy import CheckConstraint, Double, ForeignKey, Index, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
@@ -34,9 +35,14 @@ class MatchResult(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     )
     jd_text: Mapped[str] = mapped_column(Text)
     score: Mapped[float] = mapped_column(Double)
-    matched_skills: Mapped[list[str]] = mapped_column(JSONB)
-    missing_skills: Mapped[list[str]] = mapped_column(JSONB)
+    # Requirements as {"skills": [...], "label": "...", "required": bool} (skills.py).
+    matched_skills: Mapped[list[dict[str, Any]]] = mapped_column(JSONB)
+    missing_skills: Mapped[list[dict[str, Any]]] = mapped_column(JSONB)
     suggested_keywords: Mapped[list[str]] = mapped_column(JSONB)
+    # The JD lines that matched best: {"jd_text", "resume_text", "similarity"} (semantic.py).
+    evidence: Mapped[list[dict[str, Any]]] = mapped_column(JSONB)
+    # False when the JD gave no way to tell required from preferred skills.
+    sections_detected: Mapped[bool]
     # The score's parts (services/match/scoring.py): coverage is NULL when the JD named no
     # taxonomy skills; semantic is the calibrated similarity.
     skill_coverage: Mapped[float | None] = mapped_column(Double)
