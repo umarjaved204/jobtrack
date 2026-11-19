@@ -66,6 +66,17 @@ describe('createEmbeddingClient', () => {
     expect(download).toHaveBeenCalledWith(10, 40);
   });
 
+  it('passes a lower thread count to the worker when asked (the benchmark)', () => {
+    const worker = new FakeWorker();
+    const client = createEmbeddingClient({
+      spawn: () => worker as unknown as Worker,
+      support: () => null,
+      threads: 1,
+    });
+    void client.load(MODEL);
+    expect(worker.requests).toEqual([{ type: 'load', model: MODEL, threads: 1 }]);
+  });
+
   it('shares one load between callers', async () => {
     const { client, worker } = setup();
     const first = client.load(MODEL);

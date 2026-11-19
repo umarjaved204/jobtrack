@@ -30,6 +30,7 @@ FROM nginx:alpine AS prod
 COPY --from=build /app/dist /usr/share/nginx/html
 # SPA fallback: unknown paths serve index.html so client-side routes work on refresh.
 # Except model files: a missing one must be a 404 (Transformers.js probes optional files).
-RUN printf 'server {\n  listen 80;\n  root /usr/share/nginx/html;\n  location /models/ { try_files $uri =404; }\n  location / { try_files $uri /index.html; }\n}\n' \
+# COOP/COEP: cross-origin isolation, as in vite.config.ts and vercel.json (ADR 0004).
+RUN printf 'server {\n  listen 80;\n  root /usr/share/nginx/html;\n  add_header Cross-Origin-Opener-Policy same-origin;\n  add_header Cross-Origin-Embedder-Policy require-corp;\n  location /models/ { try_files $uri =404; }\n  location / { try_files $uri /index.html; }\n}\n' \
   > /etc/nginx/conf.d/default.conf
 EXPOSE 80

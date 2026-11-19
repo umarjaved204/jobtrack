@@ -29,6 +29,19 @@ function modelFilesAre404(): Plugin {
   };
 }
 
+/**
+ * Cross-origin isolation (ADR 0004): with these, `crossOriginIsolated` is true, so the
+ * embedding worker gets SharedArrayBuffer and ONNX Runtime can use several threads. Sent
+ * on every response (the app is an SPA); the same pair is in vercel.json and the nginx
+ * image (src/features/match/embedding/cross-origin-isolation.test.ts keeps them in step).
+ * require-corp blocks cross-origin subresources without CORP/CORS headers: today there
+ * are none (fonts are self-hosted). COOP: same-origin rules out popup-based OAuth.
+ */
+const ISOLATION_HEADERS = {
+  'Cross-Origin-Opener-Policy': 'same-origin',
+  'Cross-Origin-Embedder-Policy': 'require-corp',
+};
+
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   // '' prefix = load all vars (these are dev-server settings, never exposed to client code).
@@ -53,16 +66,11 @@ export default defineConfig(({ mode }) => {
       // Docker Desktop on Windows/macOS doesn't forward file-change events into
       // bind mounts reliably; polling makes HMR work inside the container.
       watch: env.VITE_USE_POLLING === 'true' ? { usePolling: true, interval: 300 } : undefined,
-      // Measurement aid (docs/adr/0004): cross-origin isolation lets ONNX Runtime use
-      // several threads. Off by default; production doesn't send these headers yet.
-      headers:
-        env.CROSS_ORIGIN_ISOLATED === 'true'
-          ? {
-              'Cross-Origin-Opener-Policy': 'same-origin',
-              'Cross-Origin-Embedder-Policy': 'credentialless',
-            }
-          : undefined,
+      headers: ISOLATION_HEADERS,
     },
+    // `pnpm preview` serves the production build: same headers (its proxy defaults to
+    // server.proxy, so /api works there too).
+    preview: { headers: ISOLATION_HEADERS },
     // The embedding worker (features/match/embedding) is an ES module that imports
     // Transformers.js; the default "iife" format can't code-split it.
     worker: { format: 'es' },

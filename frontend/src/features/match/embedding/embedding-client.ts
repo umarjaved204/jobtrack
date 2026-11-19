@@ -56,9 +56,12 @@ interface Pending {
 export function createEmbeddingClient({
   spawn = spawnWorker,
   support = checkSupport,
+  threads,
 }: {
   spawn?: () => Worker;
   support?: () => ReturnType<typeof checkSupport>;
+  /** Fewer ONNX Runtime threads than the default (benchmark only; see threads.ts). */
+  threads?: number;
 } = {}): EmbeddingClient {
   let worker: Worker | null = null;
   let loading: {
@@ -152,7 +155,7 @@ export function createEmbeddingClient({
         reject = rej;
       });
       loading = { promise, resolve, reject, onDownload };
-      post({ type: 'load', model });
+      post({ type: 'load', model, ...(threads === undefined ? {} : { threads }) });
       return promise;
     },
 

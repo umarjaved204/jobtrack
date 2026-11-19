@@ -20,8 +20,9 @@
  *   origin, which only has the pinned commit). AutoTokenizer has the same flaw (it checks
  *   tokenizer_config.json at `main`), so we fetch the two tokenizer files from the pinned
  *   path ourselves. AutoModel honours `revision`; [CLS] pooling is `clsVectors`.
- * - Threads: ONNX Runtime uses several only when the page is cross-origin isolated
- *   (SharedArrayBuffer); otherwise one. `LoadInfo.threads` reports which.
+ * - Threads: `wasmThreads` (threads.ts): one per logical CPU up to 4 on a cross-origin
+ *   isolated page (the app sends COOP/COEP), otherwise one. Set before the first session
+ *   is created; `LoadInfo.threads` reports what ONNX Runtime ended up with.
  */
 import {
   AutoModel,
@@ -49,6 +50,7 @@ import {
   type WorkerRequest,
   type WorkerResponse,
 } from './protocol';
+import { wasmThreads } from './threads';
 
 export type Send = (message: WorkerResponse, transfer?: Transferable[]) => void;
 
@@ -107,11 +109,18 @@ async function loadTokenizer(spec: ModelSpec): Promise<PreTrainedTokenizer> {
   return new BertTokenizer(json, config);
 }
 
-async function load(spec: ModelSpec, send: Send): Promise<Loaded> {
+async function load(spec: ModelSpec, send: Send, threads?: number): Promise<Loaded> {
   if (loading && loadingSpec?.id === spec.id && loadingSpec.revision === spec.revision) {
     return loading;
   }
   const started = performance.now();
+  if (onnx.wasm) {
+    onnx.wasm.numThreads = wasmThreads(
+      self.crossOriginIsolated,
+      self.navigator.hardwareConcurrency,
+      threads,
+    );
+  }
   loadingSpec = spec;
   loading = loadModel(spec, send);
   try {
@@ -153,7 +162,7 @@ async function embed(id: number, texts: string[], batchSize: number, send: Send)
 export function handleRequest(request: WorkerRequest, send: Send): void {
   const work =
     request.type === 'load'
-      ? load(request.model, send)
+      ? load(request.model, send, request.threads)
       : embed(request.id, request.texts, request.batchSize, send);
   work.catch((error: unknown) => {
     send({

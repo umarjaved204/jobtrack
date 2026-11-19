@@ -50,7 +50,10 @@ A portfolio project: clean code, tests, docs and a live deployment.
 `Xenova/bge-small-en-v1.5` q8 at a pinned commit, served from our own origin: `pnpm build`
 runs `scripts/fetch-model.mjs` into the git-ignored `public/models`; run `pnpm fetch-model`
 before using the match page in dev). The server chunks (with the shipped `tokenizer.json`
-only), validates the vectors, extracts skills and scores.
+only), validates the vectors, extracts skills and scores. The app is cross-origin isolated
+(COOP same-origin + COEP require-corp in vite.config.ts, vercel.json and the nginx image),
+so ONNX Runtime gets min(CPUs, 4) threads: no cross-origin subresources without CORP/CORS,
+and no popup-based OAuth (ADR 0004 Revision 2).
 `MATCH_EMBEDDINGS=client|server|off` (`server` = fastembed, for dev/self-hosting). The
 server-side model was measured on Render free and was ~3x too slow; hosted APIs fail the
 zero-spend constraint.

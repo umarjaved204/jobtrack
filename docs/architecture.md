@@ -286,7 +286,8 @@ re-run.
 Code: `app/services/match/service.py`. `MATCH_EMBEDDINGS` picks where the vectors are
 computed. `GET /match/config` tells the page which mode is active.
 
-**Client mode** (production):
+**Client mode** (production). The page is cross-origin isolated, so the embedding worker
+runs ONNX Runtime on up to 4 threads (ADR 0004, Revision 2).
 
 1. `POST /match/prepare {resume_id, jd_text}` checks the request: the resume must be the
    user's own and not archived, the JD at most 20,000 characters, and the rate limit not

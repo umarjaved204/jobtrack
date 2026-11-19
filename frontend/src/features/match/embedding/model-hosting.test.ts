@@ -6,7 +6,7 @@ import vercelJson from '../../../../vercel.json?raw';
 import { MODEL_PATH_TEMPLATE } from './protocol';
 
 /*
- * The model is served from our own origin (ADR 0004 Revision 2): the fetch script writes
+ * The model is served from our own origin (ADR 0004 Revision 1): the fetch script writes
  * public/models/<id>/<revision>/, the worker asks for /models/{model}/{revision}/, and
  * Vercel must serve those files as files (never the SPA's index.html).
  */

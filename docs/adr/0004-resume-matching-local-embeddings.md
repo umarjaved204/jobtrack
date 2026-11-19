@@ -187,7 +187,8 @@ method on file.
 - **CSP** (none is set today). One added later must allow:
   - `script-src 'self' 'wasm-unsafe-eval' blob:` (Transformers.js loads ONNX Runtime's
     factory from a blob URL);
-  - `worker-src 'self'`;
+  - `worker-src 'self'` (superseded by Revision 2: `'self' blob:`, for ONNX Runtime's
+    thread workers);
   - `connect-src 'self'`. The browser contacts no third party.
 - **`MATCH_EMBEDDINGS=client|server|off`.** `client` is the default and the production
   setting. `server` keeps the fastembed embedder for dev, self-hosting and as a reference;
@@ -242,3 +243,93 @@ The target is a warm match (model loaded) of 5 s or less on the laptop. If the b
 fails badly, the fallback is the server model with background processing and a progress UI.
 
 Results: *pending*.
+
+### Revision 2 (2026-11-20): several threads through cross-origin isolation
+
+#### Why
+
+The laptop measurement missed the target. On one thread, embedding the 2-page case took
+a median of **5.62 s** (10 runs, 5.39–6.74 s), before `/match/prepare` and the save request
+are added. ONNX Runtime ran on one thread because the page wasn't cross-origin isolated:
+its WebAssembly threads need `SharedArrayBuffer`, which browsers only allow on isolated
+pages.
+
+#### Decision
+
+- **Every response sends** `Cross-Origin-Opener-Policy: same-origin` and
+  `Cross-Origin-Embedder-Policy: require-corp`. That covers the Vite dev server and
+  `vite preview` (`vite.config.ts`), Vercel (`vercel.json`, every path, because the app is
+  an SPA) and the nginx image. A test keeps the three in step
+  (`cross-origin-isolation.test.ts`).
+- **Threads:** one per logical CPU, capped at 4 (`features/match/embedding/threads.ts`).
+  If the page isn't isolated, it uses 1 thread: slower, never an error.
+- `require-corp`, not `credentialless`: `require-corp` is the long-supported value
+  (`credentialless` arrived later and not in every browser; check current support
+  before switching), and we load nothing cross-origin that would need the looser one.
+
+#### Consequences
+
+- **COOP `same-origin` rules out popup-based OAuth.** A popup on another origin loses its
+  link to the opener, so "Sign in with Google" in a popup wouldn't work. Redirect flows are
+  fine. Phase 12 (email verification, password reset) isn't affected.
+- **COEP `require-corp` blocks any cross-origin subresource** that doesn't send
+  `Cross-Origin-Resource-Policy` or allow CORS. Today there are none: fonts are
+  self-hosted, and the model and ONNX Runtime come from our own origin. A future
+  third-party image, embed, script or analytics tag must allow cross-origin embedding,
+  or it will be blocked.
+- **A future CSP** must also allow ONNX Runtime's thread workers. It starts them inside the
+  embedding worker from `blob:` URLs (seen in the production build), so the CSP needs
+  `worker-src 'self' blob:`, not `'self'` alone as Revision 1 assumed.
+- **Storybook isn't isolated.** It serves its own pages and doesn't take the Vite
+  `server.headers`. That's harmless: no story runs the model.
+- **The vectors don't change.** Four threads and one thread gave bit-identical vectors on
+  the bench chunks (largest difference 0), so the calibration stands.
+
+#### How it was measured
+
+Chrome 157, headless, with a fresh profile, driven over the DevTools protocol:
+`frontend/bench/match.html?thread=worker&case=…` (and `&threads=1` to compare) on the
+developer's laptop (12 logical CPUs), dev server in Docker.
+
+- **No throttled number exists for the real path.** DevTools CPU throttling (the
+  protocol's `Emulation.setCPUThrottlingRate`, which the DevTools panel uses) applies only
+  to the page, never to a worker. Throttling the page left worker timings unchanged
+  (median 5.65 s at "4x" against 5.62 s at 1x). Throttling the worker directly is refused:
+  "Operation is only supported for pages, not workers". On the main thread, throttling
+  works: about 6x slower, not exactly 4x, which also makes it a rough phone stand-in. So
+  phone-class performance is unmeasured until a real device is tried.
+- **First-run download** isn't recorded here. Through the Docker dev server it measured
+  minutes, because the dev server serves a 34 MB file slowly from a Windows bind mount.
+  It will be measured with `pnpm build && pnpm preview`, and again after the first deploy.
+
+#### Results (laptop, model loaded)
+
+| Embedding only, worker | Threads | Median | Range | Runs |
+|---|---|---|---|---|
+| 2-page case (35 + 42 chunks) | 1, not isolated (before) | 5.62 s | 5.39–6.74 s | 10 |
+| 2-page case | 1, isolated (`?threads=1`) | 4.00 s | 3.59–5.07 s | 6 |
+| 2-page case | 4 | **1.88 s** | 1.67–2.04 s | 10 |
+| Worst case (134 + 336 chunks) | 4 | **9.46 s** | 9.38–9.96 s | 4 |
+
+The single-thread runs differ between the two sessions (5.62 s against 4.00 s), which
+these measurements don't explain. The fair comparison is within one session: 4 threads
+are **2.1x** faster than 1.
+
+**End to end, through the match page** (click Match → result shown, so including
+`/match/prepare`, embedding and the save request), all against the long JD:
+
+- Dev server, the bench's 2-page resume (3,693 characters): 3.10, 2.87 and 2.46 s.
+- Production build (`vite preview`), the demo's default resume (876 characters), warm:
+  1.76, 1.56, 2.21, 5.08 and 2.31 s. The first match on a fresh page (worker start plus
+  model load from the cache): 3.16 s. `/match/prepare` took 38–51 ms and the save 99–304 ms,
+  except once, when `/match/prepare` took 1.5 s: that's the 5.08 s run. It's a backend
+  spike (the dev backend runs with `--reload` in Docker), worth watching after deploy.
+
+Within the 5 s target, apart from that spike. The bench resume is nearer 1.5 pages than
+2–3; a 3-page resume is still to be measured (work grows with the resume's tokens).
+
+The production build was also checked for threads: the embedding worker reports
+`crossOriginIsolated`, and ONNX Runtime starts 3 thread workers beside it (4 threads).
+Every page (landing, sign-in, register, dashboard, board, table, calendar, resumes,
+settings, match, match result) loads isolated, with no blocked request, on both the dev
+server and the production build.

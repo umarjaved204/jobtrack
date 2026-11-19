@@ -29,7 +29,8 @@ export type EmbeddingFailure =
   | 'failed'; // anything else (the message says what)
 
 export type WorkerRequest =
-  | { type: 'load'; model: ModelSpec }
+  /** `threads` can lower the thread count (the benchmark compares 1 and 4); see threads.ts. */
+  | { type: 'load'; model: ModelSpec; threads?: number }
   | { type: 'embed'; id: number; texts: string[]; batchSize: number };
 
 export interface LoadInfo {

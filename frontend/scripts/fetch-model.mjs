@@ -1,5 +1,5 @@
 // Downloads the browser embedding model into public/models/<id>/<revision>/ so the app
-// serves it from its own origin (docs/adr/0004 Revision 2). Runs before every build
+// serves it from its own origin (docs/adr/0004 Revision 1). Runs before every build
 // (`pnpm build`) and on demand (`pnpm fetch-model`).
 //
 // - Pinned: every file comes from the commit in model-manifest.json and is checked
