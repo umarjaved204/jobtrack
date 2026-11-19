@@ -1,0 +1,25 @@
+Grace Oyelaran
+Data Analyst, Birmingham, UK
+
+Summary
+Data analyst with four years of experience turning messy operational data into reports and dashboards that teams actually use. Strong SQL, practical Python, and a habit of checking the numbers before anyone else has to.
+
+Experience
+
+Data Analyst, Fernway Energy (2022 to present)
+- Own the weekly customer churn and billing dashboards in Power BI, read by the leadership team every Monday.
+- Write SQL against a Snowflake warehouse and maintain dbt models for billing and customer data.
+- Built a churn analysis in Python with Pandas and scikit-learn that identified the three tariffs with the highest cancellation rates.
+- Designed and analysed A/B tests on the renewal email journey, which lifted renewals by 6 percent.
+- Run training sessions for operations staff on reading and filtering dashboards.
+
+Junior Analyst, Corby Logistics Group (2020 to 2022)
+- Produced monthly delivery performance reports in Excel and Tableau for regional managers.
+- Automated the reports with Python scripts, saving two days of manual work each month.
+- Cleaned and reconciled data from the warehouse management system and spreadsheets.
+
+Skills
+SQL, Python, Pandas, NumPy, scikit-learn, Jupyter, Power BI, Tableau, Microsoft Excel, Snowflake, dbt, Statistics, A/B testing, Data visualisation, Data modelling, Stakeholder management
+
+Education
+BSc Mathematics with Statistics, University of Leicester, 2020

@@ -39,7 +39,7 @@ from typing import Any
 
 import numpy as np
 
-from app.services.match.browser_model import BROWSER_MODEL, get_bge_tokenizer
+from app.services.match.browser_model import BROWSER_MODEL, BROWSER_MODEL_NAME, get_bge_tokenizer
 from app.services.match.chunking import chunk_job_description, chunk_resume
 from app.services.match.embedder import TokenCounter, Vectors
 from app.services.match.semantic import ResumeEmbeddingCache, semantic_match
@@ -235,7 +235,7 @@ class PrecomputedEmbedder:
 
     @property
     def model_name(self) -> str:
-        return f"{BROWSER_MODEL.id}@{BROWSER_MODEL.revision}"
+        return BROWSER_MODEL_NAME
 
     @property
     def max_tokens(self) -> int:

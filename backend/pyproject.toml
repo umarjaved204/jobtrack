@@ -73,7 +73,7 @@ testpaths = ["tests"]
 # downloads it). Run them with `uv run pytest -m model`; a later -m on the command line wins.
 addopts = "-ra --strict-markers --cov --cov-report=term-missing:skip-covered -m 'not model'"
 markers = [
-  "model: loads the real fastembed model (downloads ~70 MB on first run); skipped by default",
+  "model: loads a real embedding model (fastembed downloads ~70 MB on first run); skipped by default",
 ]
 filterwarnings = [
   # Every warning fails the run: library deprecations (e.g. SQLAlchemy 2.0 -> 2.1) and

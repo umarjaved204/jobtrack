@@ -200,6 +200,77 @@ browser's calendar day and clock ("today", "now"), never the server's UTC date.
 changes only, never on background refetches, and not at all under reduced motion. Every
 chart has a caption summary and a visually hidden data table.
 
+## Match scoring
+
+How a resume is scored against a job description (JD). The decision and its trade-offs are
+in [ADR 0004](./adr/0004-resume-matching-local-embeddings.md). Code: `app/services/match/`.
+
+**Formula** (`scoring.py`):
+
+    score = 100 × (0.6 × skill coverage + 0.4 × semantic)    if the JD names taxonomy skills
+    score = 100 × semantic                                    if it names none
+
+The score is rounded to a whole number. It estimates overlap. It doesn't predict how an
+employer or an ATS would rank the resume.
+
+- *Skill coverage* (`skills.py`): matched / found, with preferred skills counting half.
+  Skills come from the curated taxonomy (`skills.json`). Required, preferred and ignored
+  parts of the JD come from its headings and markers (`sections.py`).
+- *Raw similarity* (`semantic.py`): both texts are chunked under the model's token limit.
+  Each JD chunk takes its most similar resume chunk (cosine, "max-sim"). The raw value is
+  the weighted mean of those maxima, with preferred lines at half weight.
+- *Semantic*: the raw similarity, calibrated per model (below), from 0 to 1.
+
+**Calibration.** On bge models, raw cosines bunch in a narrow band: 0.59 to 0.75 on our
+pairs, whether the texts are unrelated or a perfect fit. So they're mapped linearly onto
+0 to 1 and clipped. The two anchors are the raw values where a least-squares line of
+*grade / 3* on raw similarity crosses 0 and 1.
+
+- *Labelled set* (`backend/scripts/calibration_data/`): 6 invented resumes × 6 invented JDs
+  (backend, frontend, full-stack, data analyst, content marketing, ward nurse), 36 pairs.
+  Each pair was graded from the texts alone, before anything was measured:
+  0 = a different profession, 1 = a related field but a different role, 2 = an
+  overlapping role, 3 = the role. There are 20, 7, 3 and 6 pairs at each grade. The
+  nursing pair names no taxonomy skills, so it exercises the semantic-only path.
+- *Measured with* `uv run python -m scripts.calibrate_match`. For the browser model it runs
+  the exact q8 file the browser downloads, under native ONNX Runtime, with the same
+  tokenizer and [CLS] pooling. It also measures fastembed's build (`MATCH_EMBEDDINGS=server`).
+  The results are committed (`raw_similarities.json`). `tests/test_match_scoring.py`
+  checks that the constants in `scoring.py` are the fit of that file, and `model`-marked
+  tests check that the file is still current.
+- *Constants* (calibration version 1):
+
+  | Model | Raw → 0 | Raw → 1 |
+  |---|---|---|
+  | `Xenova/bge-small-en-v1.5@ea104dac…` (browser, q8) | 0.6119 | 0.7480 |
+  | `BAAI/bge-small-en-v1.5` (fastembed) | 0.6118 | 0.7505 |
+
+  The two builds differ by at most 0.0061 in raw similarity on these pairs (a test keeps
+  it under 0.01).
+
+**Validation** on the labelled pairs (browser model, calibration 1, taxonomy 1):
+
+| Grade | Pairs | Mean score | Range |
+|---|---|---|---|
+| 3: the role | 6 | 86 | 67–99 |
+| 2: overlapping role | 3 | 46 | 44–48 |
+| 1: related field | 7 | 21 | 6–37 |
+| 0: different profession | 20 | 4 | 0–13 |
+
+*Concordance* is 0.98: of all pairs of pairs with different grades, the share where the
+higher grade scores higher. The tests keep these as regression guards: mean score rises
+with every grade, concordance ≥ 0.95, every grade-3 pair ≥ 60 and every grade-0 pair ≤ 20.
+
+*Limits:* 36 pairs written by one person is a sanity check, not a statistically validated
+scale. The thresholds were set after the first measurement, so they catch regressions;
+they don't prove accuracy. The weakest grade-3 pair (backend, 67) loses on skill coverage:
+"FastAPI, Django or Flask" currently counts all three as required.
+
+**Versions.** Every result stores `model_name`, `scoring_version` (the formula, weights,
+chunking and section weights), `calibration_version` (per model) and `taxonomy_version`.
+Two results are comparable only when all four match. Older results aren't re-scored;
+the UI offers a re-run.
+
 ## Health checks
 
 - `GET /api/v1/health`: liveness, process only (used by Docker healthchecks).

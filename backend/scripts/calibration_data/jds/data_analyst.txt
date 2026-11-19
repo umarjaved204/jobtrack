@@ -1,0 +1,32 @@
+Data Analyst, Customer Insights
+Greenhollow Water, Coventry (hybrid)
+
+About us
+Greenhollow supplies water and wastewater services to 1.8 million households in the Midlands. We are investing heavily in data to improve customer service and cut leaks.
+
+The role
+You will join the Customer Insights team and turn data from billing, contact centres and smart meters into analysis that helps the business make better decisions. You will own dashboards, answer questions from senior leaders and help colleagues use data with confidence.
+
+What you'll do
+- Build and maintain Power BI dashboards on customer complaints, billing and contact centre performance.
+- Write SQL to extract, clean and join data from our cloud data warehouse.
+- Analyse customer behaviour and present findings and recommendations to managers and directors.
+- Design and evaluate tests of new customer communications.
+- Help maintain data models and documentation so that numbers are consistent across reports.
+
+Requirements
+- Experience as a data analyst or in a similar analytical role.
+- Strong SQL skills.
+- Experience building dashboards in Power BI or Tableau.
+- Good knowledge of statistics and experience with A/B testing.
+- Experience with Python or R for analysis.
+- Excellent communication skills, with the ability to explain findings to non-technical colleagues.
+- Advanced Microsoft Excel skills.
+
+Desirable
+- Experience with dbt or Snowflake.
+- Experience in a utility or another regulated industry.
+
+Benefits
+- Salary 38,000 to 46,000 pounds.
+- Final salary-style pension, 27 days of holiday and flexible working.

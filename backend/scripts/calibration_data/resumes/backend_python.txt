@@ -1,0 +1,27 @@
+Daniel Mensah
+Backend Engineer, Leeds, UK
+
+Summary
+Backend engineer with six years of experience building Python APIs and data-heavy services for logistics and retail companies. I like boring, reliable systems: clear data models, good tests and dashboards that tell you what is wrong before customers do.
+
+Experience
+
+Senior Backend Engineer, Northgate Parcel Systems (2022 to present)
+- Built and run the shipment tracking API in Python with FastAPI and SQLAlchemy, serving around 40 million requests a day.
+- Designed the PostgreSQL schema for carrier events, with partitioned tables and indexes that cut the slowest query from 4 seconds to 80 milliseconds.
+- Moved background work from cron scripts to Celery workers on Redis, with retries and idempotent handlers.
+- Introduced OpenTelemetry tracing and Grafana dashboards; on-call pages dropped by half over a year.
+- Containerised services with Docker and deployed them to AWS ECS through GitHub Actions pipelines.
+- Mentored two junior engineers and ran the team's code review guidelines.
+
+Backend Developer, Brightcart Retail (2019 to 2022)
+- Built order and inventory services in Django and Django REST framework for a grocery delivery app.
+- Wrote integrations with payment and warehouse partners over REST APIs and SFTP.
+- Added pytest suites with factory fixtures, raising coverage of the order service from 35 to 85 percent.
+- Wrote data migrations for a move from MySQL to PostgreSQL with no downtime.
+
+Skills
+Python, FastAPI, Django, SQLAlchemy, PostgreSQL, MySQL, Redis, Celery, Docker, AWS (ECS, RDS, S3, SQS), GitHub Actions, pytest, OpenTelemetry, Grafana, REST API design, Linux, Git
+
+Education
+BSc Computer Science, University of Sheffield, 2019

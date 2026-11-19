@@ -1,0 +1,32 @@
+Senior Frontend Engineer (React)
+Openfield Learning, Manchester (hybrid)
+
+About us
+Openfield builds an online learning platform used by 400 schools and colleges. Our learners range from 11-year-olds to adults returning to education, so accessibility and clarity are not optional extras for us.
+
+The role
+You will join the Learner Experience team to build the screens learners use every day: lessons, quizzes, progress and feedback. You will shape our component library and help the wider team raise the bar on accessibility and performance.
+
+What you'll do
+- Build features in React and TypeScript, from data fetching to polished, responsive interfaces.
+- Grow and maintain our design system in Storybook, working closely with product designers in Figma.
+- Make sure everything we build meets WCAG 2.2 AA and works well with keyboards and screen readers.
+- Improve page load and interaction performance on low-end devices and slow school networks.
+- Write component and end-to-end tests that give the team confidence to ship daily.
+
+What you'll need
+- Strong experience with React and TypeScript in production applications.
+- A deep understanding of HTML, CSS and accessibility, including ARIA and screen reader testing.
+- Experience building or maintaining a component library or design system.
+- Experience with testing tools such as Jest or Vitest, React Testing Library and Playwright or Cypress.
+- Knowledge of web performance: bundle size, Core Web Vitals and profiling.
+- Experience with a data-fetching library such as TanStack Query or Redux.
+
+Nice to have
+- Next.js or server-side rendering experience.
+- Experience with animation libraries or motion design.
+- An interest in education.
+
+Benefits
+- Salary 65,000 to 78,000 pounds.
+- Four-day week option, private healthcare and a home-office budget.

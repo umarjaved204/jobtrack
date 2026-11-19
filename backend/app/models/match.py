@@ -14,6 +14,11 @@ class MatchResult(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     __table_args__ = (
         Index("ix_match_results_user_created", "user_id", "created_at"),
         CheckConstraint("score >= 0 AND score <= 100", name="score_range"),
+        CheckConstraint(
+            "skill_coverage IS NULL OR (skill_coverage >= 0 AND skill_coverage <= 1)",
+            name="skill_coverage_range",
+        ),
+        CheckConstraint("semantic_score >= 0 AND semantic_score <= 1", name="semantic_range"),
     )
 
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
@@ -32,4 +37,12 @@ class MatchResult(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     matched_skills: Mapped[list[str]] = mapped_column(JSONB)
     missing_skills: Mapped[list[str]] = mapped_column(JSONB)
     suggested_keywords: Mapped[list[str]] = mapped_column(JSONB)
+    # The score's parts (services/match/scoring.py): coverage is NULL when the JD named no
+    # taxonomy skills; semantic is the calibrated similarity.
+    skill_coverage: Mapped[float | None] = mapped_column(Double)
+    semantic_score: Mapped[float] = mapped_column(Double)
+    # Results are comparable only when all four of these match (docs/architecture.md).
     model_name: Mapped[str] = mapped_column(String(100))
+    scoring_version: Mapped[int]
+    calibration_version: Mapped[int]
+    taxonomy_version: Mapped[int]

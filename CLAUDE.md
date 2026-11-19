@@ -89,7 +89,9 @@ calendar_events(id, user_id, application_id NULL, kind, title, starts_at, ends_a
   always timed; CHECK ends_at IS NULL OR ends_at >= starts_at
   reminders and events are ON DELETE CASCADE with their application
 match_results(id, user_id, resume_version_id, application_id NULL, jd_text, score,
-  matched_skills jsonb, missing_skills jsonb, suggested_keywords jsonb, model_name, created_at)
+  matched_skills jsonb, missing_skills jsonb, suggested_keywords jsonb, skill_coverage NULL,
+  semantic_score, model_name, scoring_version, calibration_version, taxonomy_version, created_at)
+  comparable only when model + all three versions match (docs/architecture.md "Match scoring")
   resume_version_id FK is NO ACTION (not CASCADE): match history survives; used resumes are archived
 ```
 

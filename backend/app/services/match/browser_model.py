@@ -36,6 +36,10 @@ BROWSER_MODEL = BrowserModel(
     # tokenizer_config.json "model_max_length" at that revision; [CLS] and [SEP] included.
     max_tokens=512,
 )
+# Stored with every result made with the browser's vectors, and the key for its
+# calibration (`scoring.py`): the revision is part of the name, so new weights never reuse
+# old constants.
+BROWSER_MODEL_NAME = f"{BROWSER_MODEL.id}@{BROWSER_MODEL.revision}"
 
 TOKENIZER_PATH = Path(__file__).with_name("bge-small-en-v1.5.tokenizer.json")
 # `git hash-object` of tokenizer.json at BROWSER_MODEL.revision (Hugging Face's ETag).
