@@ -1,0 +1,60 @@
+Senior Full-Stack Engineer, Logistics Platform
+Meridian Freight Technologies, London (hybrid, 2 days in the office)
+
+About us
+Meridian builds software that helps mid-sized freight forwarders plan, track and invoice shipments across Europe. Our customers move everything from pharmaceuticals to furniture, and our platform handles around two million shipment events a day. We are a team of 45 engineers, designers and product people, backed by a Series B round, and we care a lot about calm, sustainable engineering.
+
+The role
+We are looking for a senior full-stack engineer to join the Shipment Visibility team. The team owns the tracking timeline that customers and their clients see, the alerting that tells operators when a shipment is at risk, and the APIs that carriers and partners use to push updates. You will work across the stack, from PostgreSQL schemas to React components, and you will help shape how we build software as the team grows.
+
+What you'll do
+- Design, build and run features end to end, from the data model and API to the interface, with a strong focus on reliability and clarity.
+- Build and evolve our React and TypeScript frontend, including a dense, keyboard-friendly operations console used for hours at a time.
+- Write Python services with FastAPI that ingest carrier events, de-duplicate them and keep the shipment timeline consistent.
+- Model data in PostgreSQL, write migrations, and tune queries and indexes as volumes grow.
+- Work with event streams in Kafka and background jobs, making them observable and safe to replay.
+- Improve our testing culture: unit tests, integration tests against real databases, and a small number of end-to-end tests that matter.
+- Take part in an on-call rota (one week in six, with time off in lieu) and help us keep incidents rare and boring.
+- Review code thoughtfully, mentor other engineers and contribute to technical design discussions.
+- Work closely with product managers and designers, joining customer calls to understand how operators really work.
+
+Requirements
+- Significant professional experience building web applications across frontend and backend.
+- Strong React and TypeScript skills, including state management, performance and accessibility.
+- Solid Python experience building production APIs, ideally with FastAPI or Django.
+- Good knowledge of PostgreSQL: schema design, migrations, indexing and query plans.
+- Experience with Docker and CI/CD pipelines, and comfort deploying and debugging services in production.
+- Experience writing automated tests at several levels, and judgement about which tests are worth writing.
+- Clear written communication: you can explain a trade-off in a design document or a pull request.
+- A habit of measuring: you use logs, metrics and traces to understand what the system is doing.
+
+Nice to have
+- Experience with Kafka or another event streaming platform.
+- Kubernetes and Terraform, or other infrastructure as code tools.
+- Experience in logistics, supply chain or another operations-heavy domain.
+- Familiarity with OpenTelemetry, Grafana or Datadog.
+- Experience designing public APIs used by external partners, including versioning and webhooks.
+- Some exposure to data engineering: dbt, Airflow or similar.
+
+Our stack
+React, TypeScript, Vite, TanStack Query, Tailwind CSS, Python, FastAPI, SQLAlchemy, PostgreSQL, Redis, Kafka, Docker, Kubernetes on AWS, Terraform, GitHub Actions, Grafana, Sentry.
+
+How we work
+We work in small, long-lived teams with a product manager and a designer. We plan in six-week cycles with a two-week cool-down for tech debt and experiments. We write short design documents for anything non-trivial and review them asynchronously. We deploy many times a day behind feature flags, and every engineer can ship to production on their first week.
+
+Interview process
+1. A 30-minute call with the hiring manager about your experience and what you are looking for.
+2. A take-home exercise (about three hours, paid) or a pairing session on a real problem, your choice.
+3. A system design conversation with two engineers.
+4. A values conversation with someone from product or design.
+We aim to complete the process within two weeks and give written feedback at every stage.
+
+What we offer
+- Salary of 85,000 to 100,000 GBP depending on experience, plus share options.
+- 28 days of holiday plus bank holidays, and an extra day off for your birthday.
+- A learning budget of 1,500 GBP a year and two learning days per quarter.
+- Private health insurance, enhanced parental leave and a cycle-to-work scheme.
+- A modern office near Farringdon with good coffee and quiet rooms.
+
+Equal opportunities
+We welcome applications from people of all backgrounds. If you need any adjustments during the process, tell us and we will make them.

@@ -17,7 +17,7 @@ text: it is part of the resume-embedding cache key.
 import re
 from dataclasses import dataclass
 
-from app.services.match.embedder import Embedder
+from app.services.match.embedder import TokenCounter
 from app.services.match.sections import SectionKind, heading_kind, split_sections
 
 CHUNKING_VERSION = 1
@@ -46,7 +46,7 @@ def _clean(line: str) -> str:
     return " ".join(_BULLET_PREFIX.sub("", line).split())
 
 
-def split_to_fit(text: str, embedder: Embedder) -> list[str]:
+def split_to_fit(text: str, embedder: TokenCounter) -> list[str]:
     """`text` as one or more pieces that each fit the model, in order, losing nothing."""
     if embedder.count_tokens(text) <= embedder.max_tokens:
         return [text]
@@ -59,7 +59,7 @@ def split_to_fit(text: str, embedder: Embedder) -> list[str]:
     return _split_characters(text, embedder)
 
 
-def _pack(parts: list[str], embedder: Embedder) -> list[str]:
+def _pack(parts: list[str], embedder: TokenCounter) -> list[str]:
     """Greedily join parts (sentences or words) with spaces while the total fits.
 
     Costs are counted per part (tokens minus the special tokens an empty text gets), which
@@ -83,7 +83,7 @@ def _pack(parts: list[str], embedder: Embedder) -> list[str]:
     return [checked for piece in pieces for checked in _verified(piece, embedder)]
 
 
-def _verified(piece: str, embedder: Embedder) -> list[str]:
+def _verified(piece: str, embedder: TokenCounter) -> list[str]:
     if embedder.count_tokens(piece) <= embedder.max_tokens:
         return [piece]
     words = piece.split()
@@ -95,7 +95,7 @@ def _verified(piece: str, embedder: Embedder) -> list[str]:
     )
 
 
-def _split_characters(word: str, embedder: Embedder) -> list[str]:
+def _split_characters(word: str, embedder: TokenCounter) -> list[str]:
     pieces: list[str] = []
     start = 0
     while start < len(word):
@@ -114,7 +114,7 @@ def _split_characters(word: str, embedder: Embedder) -> list[str]:
     return pieces
 
 
-def chunk_resume(text: str, embedder: Embedder) -> list[Chunk]:
+def chunk_resume(text: str, embedder: TokenCounter) -> list[Chunk]:
     chunks: list[Chunk] = []
     for line in text.splitlines():
         cleaned = _clean(line)
@@ -123,7 +123,7 @@ def chunk_resume(text: str, embedder: Embedder) -> list[Chunk]:
     return chunks
 
 
-def chunk_job_description(text: str, embedder: Embedder) -> list[Chunk]:
+def chunk_job_description(text: str, embedder: TokenCounter) -> list[Chunk]:
     sections = split_sections(text)
     chunks: list[Chunk] = []
     offset = 0

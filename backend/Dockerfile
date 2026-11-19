@@ -14,17 +14,43 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# 1) Dependencies only: cached until pyproject.toml / uv.lock change.
+# 1) Dependencies only: cached until pyproject.toml / uv.lock change. The cache mount keeps
+# uv's download cache (~250 MB) out of the image; UV_LINK_MODE=copy makes that safe.
 COPY pyproject.toml uv.lock .python-version ./
-RUN uv sync --frozen --no-dev
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev
 
-# 2) Application code and migrations.
+# Unprivileged runtime user (created early: step 2 gives it the model directory).
+RUN useradd --create-home --uid 10001 appuser
+
+# 2) Optional: the server-side match model (MATCH_EMBEDDINGS=server, docs/adr/0004).
+# Production embeds in the browser and needs no model, so the default image doesn't bake
+# one (~65 MB). With BAKE_MATCH_MODEL=true the model is downloaded at build time (Render's
+# filesystem is ephemeral, so a runtime download would repeat after every spin-down), the
+# build fails unless it loads and embeds offline, and offline mode is switched on: a
+# missing model is then a loud error, not a slow cold start. Without it, the model
+# downloads into /opt/models (owned by appuser) on first use. The baked files are made
+# world-readable: the build runs as root and some huggingface_hub cache files are 0600.
+# MATCH_MODEL must equal MODEL_NAME in app/services/match/local_embedder.py (a test checks).
+ARG BAKE_MATCH_MODEL=false
+ARG MATCH_MODEL=BAAI/bge-small-en-v1.5
+ENV MATCH_MODEL_DIR=/opt/models
+RUN mkdir -p "$MATCH_MODEL_DIR" \
+ && if [ "$BAKE_MATCH_MODEL" = "true" ]; then \
+      python -c "from fastembed import TextEmbedding; TextEmbedding('${MATCH_MODEL}', cache_dir='${MATCH_MODEL_DIR}')" \
+      && HF_HUB_OFFLINE=1 python -c "from fastembed import TextEmbedding; m = TextEmbedding('${MATCH_MODEL}', cache_dir='${MATCH_MODEL_DIR}', local_files_only=True, threads=1); v = next(iter(m.embed(['Built Django REST APIs']))); assert v.shape == (384,), v.shape; print('match model OK')" \
+      && chmod -R a+rX "$MATCH_MODEL_DIR"; \
+    else \
+      chown appuser "$MATCH_MODEL_DIR"; \
+    fi
+# huggingface_hub reads "true"/"false" (and 1/0) for HF_HUB_OFFLINE.
+ENV MATCH_MODEL_OFFLINE=${BAKE_MATCH_MODEL} \
+    HF_HUB_OFFLINE=${BAKE_MATCH_MODEL}
+
+# 3) Application code and migrations.
 COPY alembic.ini ./
 COPY alembic ./alembic
 COPY app ./app
 
-# Run as an unprivileged user.
-RUN useradd --create-home --uid 10001 appuser
 USER appuser
 
 EXPOSE 8000

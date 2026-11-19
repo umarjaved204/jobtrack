@@ -7,3 +7,7 @@
 *.gif binary
 *.ico binary
 *.woff2 binary
+
+# Pinned upstream file, checked byte for byte against its Hugging Face revision
+# (tests/test_match_tokenizer.py): never normalise it.
+backend/app/services/match/*.tokenizer.json -text

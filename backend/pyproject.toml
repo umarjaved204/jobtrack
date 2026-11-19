@@ -8,12 +8,15 @@ dependencies = [
     "dnspython>=2.9.2",
     "email-validator>=2.4.0",
     "fastapi>=0.163.1",
+    # Exact pin: a new version can change embeddings and so scores (ADR 0004).
+    "fastembed==0.9.1",
     "numpy>=2.5.5",
     "psycopg[binary]>=3.3.9",
     "pwdlib[argon2]>=0.4.2",
     "pydantic-settings>=2.16.3",
     "pyjwt>=2.15.1",
     "sqlalchemy>=2.1.8",
+    "tokenizers>=0.23.3",
     "uvicorn[standard]>=0.54.0",
 ]
 
@@ -66,7 +69,12 @@ warn_required_dynamic_aliases = true
 # ---------------------------------------------------------------- pytest
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-ra --strict-markers --cov --cov-report=term-missing:skip-covered"
+# `-m "not model"`: tests that load the real embedding model are skipped by default (CI never
+# downloads it). Run them with `uv run pytest -m model`; a later -m on the command line wins.
+addopts = "-ra --strict-markers --cov --cov-report=term-missing:skip-covered -m 'not model'"
+markers = [
+  "model: loads the real fastembed model (downloads ~70 MB on first run); skipped by default",
+]
 filterwarnings = [
   # Every warning fails the run: library deprecations (e.g. SQLAlchemy 2.0 -> 2.1) and
   # Pydantic serializer warnings surface immediately. Allow-list specific ones if needed.

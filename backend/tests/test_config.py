@@ -31,3 +31,15 @@ def test_hosted_database_urls_get_the_psycopg_driver(url: str) -> None:
     settings = Settings(database_url=url)  # type: ignore[arg-type]  # str is coerced
 
     assert str(settings.database_url) == "postgresql+psycopg://u:p@db.neon.tech/app"
+
+
+def test_match_embeddings_default_to_the_browser(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A fresh clone matches without setup: the browser embeds, the server only tokenizes."""
+    monkeypatch.delenv("MATCH_EMBEDDINGS", raising=False)
+
+    assert Settings(_env_file=None).match_embeddings == "client"
+
+
+def test_match_embeddings_reject_unknown_modes() -> None:
+    with pytest.raises(ValidationError, match="match_embeddings"):
+        Settings(match_embeddings="hosted")  # type: ignore[arg-type]

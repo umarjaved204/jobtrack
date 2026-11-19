@@ -1,0 +1,52 @@
+Sam Okafor
+London | sam.okafor@jobtrack-demo.com | github.com/sam-okafor-demo
+
+Summary
+Full-stack engineer with six years of experience building web products in React, TypeScript and Python. I like owning features end to end: talking to users, shaping the data model, shipping the API and the interface, and watching the metrics afterwards. Most recently I led the frontend of a claims platform used by 400 adjusters every day.
+
+Experience
+
+Senior Frontend Engineer, Halden Insurance (2022 to now)
+- Led a team of four building the claims workbench in React 19, TypeScript and TanStack Query, replacing a ten-year-old desktop tool.
+- Designed the component library on top of Radix primitives with design tokens, Storybook and visual regression tests; adopted by three product teams.
+- Cut the time to first meaningful paint on the claims list from 4.1 s to 1.3 s by splitting routes, streaming data and virtualising long tables.
+- Introduced Playwright end-to-end tests for the five highest-value journeys and ran them on every pull request in GitHub Actions.
+- Worked with the accessibility lead to reach WCAG 2.2 AA across the workbench; wrote the team's keyboard interaction guidelines.
+- Paired with backend engineers on the FastAPI services behind the workbench, adding endpoints for document upload and claim notes.
+- Mentored two junior engineers through their first year; ran a fortnightly frontend guild.
+
+Frontend Engineer, Brightwater Learning (2020 to 2022)
+- Built the course authoring editor in React and TypeScript, with drag-and-drop lesson ordering and autosave.
+- Moved the app from Create React App to Vite, cutting local start-up from 40 s to 3 s and CI builds by half.
+- Added error monitoring with Sentry and a release checklist that reduced production incidents by a third.
+- Built charts for teacher dashboards with D3.js and later Recharts, focusing on clear labelling and colour-blind safe palettes.
+- Wrote REST API clients and integration tests against a Django backend; contributed small Django fixes and migrations.
+
+Software Developer, Northwind Freight (2019 to 2020)
+- Maintained the shipment tracking portal (Angular, later partly migrated to React).
+- Wrote Python scripts to reconcile carrier invoices against shipment records, saving the finance team two days a month.
+- Built a small Flask service that published shipment events to RabbitMQ for downstream reporting.
+- Wrote SQL reports on PostgreSQL for the operations team and tuned the slowest queries with indexes.
+
+Skills
+Languages: TypeScript, JavaScript, Python, SQL, HTML, CSS
+Frontend: React, Next.js, Vite, TanStack Query, Redux, Tailwind CSS, Storybook, Radix, D3.js
+Backend: FastAPI, Django, Flask, REST APIs, PostgreSQL, Redis, RabbitMQ
+Testing: Vitest, Jest, React Testing Library, Playwright, pytest
+Tooling: Git, GitHub Actions, Docker, Sentry, Figma
+Practices: accessibility, design systems, performance optimisation, code review, mentoring, Agile, Scrum
+
+Projects
+JobTrack (2026): a job application tracker with a kanban board, analytics dashboard and calendar. React, TypeScript, FastAPI, PostgreSQL, Docker. Includes a resume-to-job-description matcher that runs a small embedding model on the server.
+Open-source: contributions to a date-picker library (keyboard navigation fixes) and documentation improvements to a charting library.
+
+Education
+BSc Computer Science, University of Leeds (2015 to 2018), First Class Honours.
+Dissertation: Predicting bus arrival times from GPS traces with gradient-boosted trees.
+
+Certifications and training
+- Web accessibility specialist training, 2023
+- AWS Cloud Practitioner, 2021
+
+Interests
+Running, community radio, cooking for too many people.

@@ -1,6 +1,7 @@
 """Application settings, loaded from environment variables (and `.env` in local dev)."""
 
 from functools import lru_cache
+from pathlib import Path
 from typing import Literal, Self
 
 from pydantic import Field, PostgresDsn, SecretStr, field_validator, model_validator
@@ -60,6 +61,18 @@ class Settings(BaseSettings):
     # Register only; fails open on DNS errors/timeouts (app/core/email_domain.py).
     email_domain_check_enabled: bool = True
     email_dns_timeout_seconds: int = Field(default=3, gt=0)
+
+    # ---- AI match (docs/adr/0004). Where the embeddings are computed:
+    #   client: in the user's browser (Transformers.js); the server only tokenizes. Production.
+    #   server: on this server with fastembed (dev, self-hosting, reference numbers).
+    #   off:    matching disabled; the match page explains why.
+    # "client" needs no setup on the server, so a fresh clone works as is.
+    match_embeddings: Literal["client", "server", "off"] = "client"
+    # MATCH_EMBEDDINGS=server only. The model downloads here on first use, unless the image
+    # was built with BAKE_MATCH_MODEL=true, which bakes it in and sets offline mode (a
+    # missing model then fails loudly instead of downloading after every spin-down).
+    match_model_dir: Path = Path(".model_cache")
+    match_model_offline: bool = False
 
     @field_validator("database_url", "migration_database_url", mode="before")
     @classmethod

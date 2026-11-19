@@ -1,7 +1,9 @@
-"""The `Embedder` interface the matcher depends on, and a deterministic fake for tests.
+"""The interfaces the matcher depends on, and a deterministic fake for tests.
 
-The real implementation (fastembed, ADR 0004) lives in `local_embedder.py`; a hosted API
-could be a third. Scoring code only ever sees this interface.
+- `TokenCounter`: all chunking needs. In production that's the model's tokenizer alone
+  (`bge_tokenizer.py`): the browser computes the embeddings (ADR 0004).
+- `Embedder`: a counter that can also embed, for computing vectors on this server
+  (`local_embedder.py`, `MATCH_EMBEDDINGS=server`) and in tests (`FakeEmbedder`).
 """
 
 import hashlib
@@ -15,12 +17,7 @@ import numpy.typing as npt
 Vectors = npt.NDArray[np.float32]
 
 
-class Embedder(Protocol):
-    @property
-    def model_name(self) -> str:
-        """Stored with every result; part of the resume-embedding cache key."""
-        ...
-
+class TokenCounter(Protocol):
     @property
     def max_tokens(self) -> int:
         """The model's input limit, special tokens included. Chunks must fit within it."""
@@ -28,6 +25,13 @@ class Embedder(Protocol):
 
     def count_tokens(self, text: str) -> int:
         """Tokens the model would see for `text`, special tokens included."""
+        ...
+
+
+class Embedder(TokenCounter, Protocol):
+    @property
+    def model_name(self) -> str:
+        """Stored with every result; part of the resume-embedding cache key."""
         ...
 
     def embed(self, texts: Sequence[str]) -> Vectors:

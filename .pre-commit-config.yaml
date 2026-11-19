@@ -8,8 +8,11 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
+      # The pinned tokenizer is checked byte for byte against upstream: leave it alone.
       - id: trailing-whitespace
+        exclude: \.tokenizer\.json$
       - id: end-of-file-fixer
+        exclude: \.tokenizer\.json$
       - id: mixed-line-ending
         args: [--fix=lf]
       - id: check-yaml
