@@ -8,7 +8,9 @@
  * 3. "Save results and vectors", then `uv run python -m scripts.bench_match browser FILE`
  *    validates the vectors as the server will and compares them with fastembed.
  *
- * Query params: `?batch=8` (texts per model call).
+ * Query params: `?batch=8` (texts per model call); `?thread=main` runs the model on the
+ * main thread instead of the worker, so DevTools CPU throttling applies (it doesn't reach
+ * workers). The app always uses the worker.
  */
 import { createEmbeddingClient, DEFAULT_BATCH_SIZE } from '../embedding/embedding-client';
 import type { LoadInfo, ModelSpec } from '../embedding/protocol';
@@ -36,7 +38,9 @@ const raw = $<HTMLPreElement>('raw');
 const runButton = $<HTMLButtonElement>('run');
 const saveButton = $<HTMLButtonElement>('save');
 
-const batchSize = Number(new URLSearchParams(location.search).get('batch')) || DEFAULT_BATCH_SIZE;
+const params = new URLSearchParams(location.search);
+const batchSize = Number(params.get('batch')) || DEFAULT_BATCH_SIZE;
+const thread = params.get('thread') === 'main' ? 'main' : 'worker';
 const seconds = (ms: number) => `${(ms / 1000).toFixed(2)} s`;
 
 function row(measure: string, result: string) {
@@ -56,6 +60,7 @@ $<HTMLParagraphElement>('env').textContent = [
   `${navigator.hardwareConcurrency} logical CPUs`,
   `cross-origin isolated: ${String(self.crossOriginIsolated)}`,
   `batch size ${batchSize}`,
+  `runs on: ${thread} thread`,
   `support: ${checkSupport() ?? 'ok'}`,
 ].join(' · ');
 
@@ -79,7 +84,16 @@ saveButton.addEventListener('click', () => {
 async function run(file: ChunksFile) {
   runButton.disabled = true;
   results.replaceChildren();
-  const client = createEmbeddingClient();
+  // Imported only in main-thread mode, so worker runs don't load Transformers.js here.
+  const spawn =
+    thread === 'main'
+      ? await import('./main-thread-worker').then(
+          ({ MainThreadWorker }) =>
+            () =>
+              new MainThreadWorker() as unknown as Worker,
+        )
+      : undefined;
+  const client = createEmbeddingClient({ spawn });
   const cached = (await caches.keys()).includes(CACHE_NAME);
   let downloaded = 0;
 
@@ -131,6 +145,7 @@ async function run(file: ChunksFile) {
       cross_origin_isolated: self.crossOriginIsolated,
       threads: info.threads,
       batch_size: batchSize,
+      thread,
     },
     load: { wall_ms: loadWallMs, worker_ms: info.loadMs, from_cache: cached, bytes: downloaded },
     cases,
