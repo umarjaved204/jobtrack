@@ -147,7 +147,7 @@ This is intentional; see [ADR 0002](docs/adr/0002-authentication.md).
 - **Cross-tab sessions** use the Web Locks API, which needs a secure context (HTTPS or `localhost`). Opening the dev server from another device via a LAN IP uses the fallback path; see ADR 0002.
 - **Email addresses**: format is checked on client and server, and sign-up rejects domains that DNS confirms can't receive mail (typos like `gmial.com`). That doesn't prove the inbox exists: verification links and password reset are Phase 12.
 
-See [docs/adr/0002-authentication.md](docs/adr/0002-authentication.md), [docs/adr/0003-kanban-drag-and-drop.md](docs/adr/0003-kanban-drag-and-drop.md) and [docs/deployment.md](docs/deployment.md).
+See [docs/adr/0002-authentication.md](docs/adr/0002-authentication.md), [docs/adr/0003-kanban-drag-and-drop.md](docs/adr/0003-kanban-drag-and-drop.md), [docs/adr/0004-resume-matching-local-embeddings.md](docs/adr/0004-resume-matching-local-embeddings.md) and [docs/deployment.md](docs/deployment.md).
 
 ## License
 
