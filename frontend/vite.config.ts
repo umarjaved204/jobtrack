@@ -29,7 +29,22 @@ export default defineConfig(({ mode }) => {
       // Docker Desktop on Windows/macOS doesn't forward file-change events into
       // bind mounts reliably; polling makes HMR work inside the container.
       watch: env.VITE_USE_POLLING === 'true' ? { usePolling: true, interval: 300 } : undefined,
+      // Measurement aid (docs/adr/0004): cross-origin isolation lets ONNX Runtime use
+      // several threads. Off by default; production doesn't send these headers yet.
+      headers:
+        env.CROSS_ORIGIN_ISOLATED === 'true'
+          ? {
+              'Cross-Origin-Opener-Policy': 'same-origin',
+              'Cross-Origin-Embedder-Policy': 'credentialless',
+            }
+          : undefined,
     },
+    // The embedding worker (features/match/embedding) is an ES module that imports
+    // Transformers.js; the default "iife" format can't code-split it.
+    worker: { format: 'es' },
+    // Pre-bundled up front: otherwise the dev server only finds it when the worker starts
+    // and reloads the page mid-download.
+    optimizeDeps: { include: ['@huggingface/transformers'] },
     test: {
       include: ['src/**/*.test.{ts,tsx}'],
       environment: 'jsdom',

@@ -1,2 +1,6 @@
-allowBuilds:
+﻿allowBuilds:
   esbuild: false
+  # Transformers.js's Node-only dependencies: the app only runs it in the browser.
+  onnxruntime-node: false
+  protobufjs: false
+  sharp: false
