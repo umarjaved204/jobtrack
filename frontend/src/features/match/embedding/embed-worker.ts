@@ -3,29 +3,55 @@
  *
  * - The library is imported only here, and this file only loads when the match page
  *   starts a worker, so none of it is in the main bundle.
- * - Model files come from the Hugging Face CDN at a pinned commit and are cached by
- *   Transformers.js in the Cache API ("transformers-cache"), so a returning visit doesn't
- *   download again.
- * - ONNX Runtime's WebAssembly comes from our own origin (bundled by Vite, version locked
- *   by the lockfile), not jsdelivr: one third party fewer, and it works under a strict
- *   `connect-src 'self' huggingface.co` CSP. We use the plain SIMD build (14 MB): the
- *   default "asyncify" build (27 MB) exists for WebGPU, which we don't use.
+ * - Everything comes from our own origin; the browser never contacts a third party:
+ *   - Model files: /models/<id>/<revision>/, put there at build time by
+ *     scripts/fetch-model.mjs (pinned commit, hash-checked). Hugging Face's CDN was too
+ *     slow to rely on (9-87 KB/s measured; ADR 0004 Revision 2). Transformers.js caches
+ *     them in the Cache API ("transformers-cache"), so a returning visit doesn't download.
+ *   - ONNX Runtime's WebAssembly: bundled by Vite (version locked by the lockfile), not
+ *     jsdelivr. The plain SIMD build (14 MB, 2.4 MB brotli); the default "asyncify" build
+ *     (27 MB) exists for WebGPU, which we don't use.
+ *   So a CSP can stay at `connect-src 'self'`.
+ * - No pipeline(): in Transformers.js 4.3.2, pipeline() reads config.json from `main` for
+ *   its file list, ignoring `revision` (so it isn't fully pinned, and fails against our
+ *   origin, which only has the pinned commit). AutoTokenizer has the same flaw (it checks
+ *   tokenizer_config.json at `main`), so we fetch the two tokenizer files from the pinned
+ *   path ourselves. AutoModel honours `revision`; [CLS] pooling is `clsVectors`.
  * - Threads: ONNX Runtime uses several only when the page is cross-origin isolated
  *   (SharedArrayBuffer); otherwise one. `LoadInfo.threads` reports which.
  */
 import {
+  AutoModel,
+  BertTokenizer,
   env,
-  pipeline,
-  type FeatureExtractionPipeline,
+  type PreTrainedModel,
+  type PreTrainedTokenizer,
   type ProgressInfo,
+  type Tensor,
 } from '@huggingface/transformers';
 import ortMjsUrl from 'onnxruntime-web/ort-wasm-simd-threaded.mjs?url';
 import ortWasmUrl from 'onnxruntime-web/ort-wasm-simd-threaded.wasm?url';
 
-import { batchOrder, classifyError, DownloadTracker, pick, placeRows } from './embed-batches';
-import type { ModelSpec, WorkerRequest, WorkerResponse } from './protocol';
+import {
+  batchOrder,
+  classifyError,
+  clsVectors,
+  DownloadTracker,
+  pick,
+  placeRows,
+} from './embed-batches';
+import {
+  MODEL_PATH_TEMPLATE,
+  type ModelSpec,
+  type WorkerRequest,
+  type WorkerResponse,
+} from './protocol';
 
-env.allowLocalModels = false; // never probe our own origin for /models/...
+// "Remote" in Transformers.js terms, but the remote is us. The revision stays in the path
+// so a model change is a new URL (and a new cache entry), never a stale one.
+env.allowLocalModels = false;
+env.remoteHost = `${self.location.origin}/`;
+env.remotePathTemplate = MODEL_PATH_TEMPLATE;
 env.useBrowserCache = true;
 const onnx = env.backends.onnx;
 if (onnx.wasm) {
@@ -35,31 +61,60 @@ if (onnx.wasm) {
   };
 }
 
-let extractor: Promise<FeatureExtractionPipeline> | null = null;
-let loadedModel: ModelSpec | null = null;
+interface Loaded {
+  spec: ModelSpec;
+  tokenizer: PreTrainedTokenizer;
+  model: PreTrainedModel;
+}
+
+let loading: Promise<Loaded> | null = null;
+let loadingSpec: ModelSpec | null = null;
 
 function send(message: WorkerResponse, transfer: Transferable[] = []) {
   self.postMessage(message, { transfer });
 }
 
-async function load(model: ModelSpec): Promise<FeatureExtractionPipeline> {
-  if (extractor && loadedModel?.id === model.id && loadedModel.revision === model.revision) {
-    return extractor;
-  }
-  loadedModel = model;
+async function loadModel(spec: ModelSpec): Promise<Loaded> {
   const tracker = new DownloadTracker();
-  const started = performance.now();
-  extractor = pipeline('feature-extraction', model.id, {
-    revision: model.revision,
-    dtype: model.dtype,
-    device: 'wasm',
+  const options = {
+    revision: spec.revision,
     progress_callback: (event: ProgressInfo) => {
       const totals = tracker.update(event);
       if (totals) send({ type: 'download', ...totals });
     },
-  });
+  };
+  const [tokenizer, model] = await Promise.all([
+    loadTokenizer(spec),
+    AutoModel.from_pretrained(spec.id, { ...options, dtype: spec.dtype, device: 'wasm' }),
+  ]);
+  return { spec, tokenizer, model };
+}
+
+async function loadTokenizer(spec: ModelSpec): Promise<PreTrainedTokenizer> {
+  const base = new URL(
+    MODEL_PATH_TEMPLATE.replace('{model}', spec.id).replace('{revision}', spec.revision),
+    `${self.location.origin}/`,
+  );
+  const [json, config] = await Promise.all(
+    ['tokenizer.json', 'tokenizer_config.json'].map(async (file) => {
+      const response = await fetch(new URL(file, base));
+      if (!response.ok)
+        throw new Error(`Could not locate file: ${file} (status ${response.status})`);
+      return (await response.json()) as unknown;
+    }),
+  );
+  return new BertTokenizer(json, config);
+}
+
+async function load(spec: ModelSpec): Promise<Loaded> {
+  if (loading && loadingSpec?.id === spec.id && loadingSpec.revision === spec.revision) {
+    return loading;
+  }
+  const started = performance.now();
+  loadingSpec = spec;
+  loading = loadModel(spec);
   try {
-    const ready = await extractor;
+    const loaded = await loading;
     send({
       type: 'ready',
       info: {
@@ -68,28 +123,29 @@ async function load(model: ModelSpec): Promise<FeatureExtractionPipeline> {
         crossOriginIsolated: self.crossOriginIsolated,
       },
     });
-    return ready;
+    return loaded;
   } catch (error) {
-    extractor = null; // let a retry start over
-    loadedModel = null;
+    loading = null; // let a retry start over
+    loadingSpec = null;
     throw error;
   }
 }
 
 async function embed(id: number, texts: string[], batchSize: number) {
-  if (!extractor || !loadedModel) throw new Error('Embed requested before load');
-  const run = await extractor;
-  const dim = loadedModel.dim;
-  const out = new Float32Array(texts.length * dim);
+  if (!loading) throw new Error('Embed requested before load');
+  const { spec, tokenizer, model } = await loading;
+  const out = new Float32Array(texts.length * spec.dim);
   let done = 0;
   for (const batch of batchOrder(texts, batchSize)) {
-    // BGE uses the [CLS] vector, normalised (as fastembed does on the server).
-    const output = await run(pick(texts, batch), { pooling: 'cls', normalize: true });
-    placeRows(out, batch, output.data as Float32Array, dim);
+    // No truncation: the server chunks every text to fit (and re-checks on POST /match),
+    // so an over-long input is a bug to surface, not text to drop silently.
+    const inputs = tokenizer(pick(texts, batch), { padding: true, truncation: false });
+    const { last_hidden_state: hidden } = (await model(inputs)) as { last_hidden_state: Tensor };
+    placeRows(out, batch, clsVectors(hidden.data as Float32Array, hidden.dims), spec.dim);
     done += batch.length;
     send({ type: 'embed-progress', id, done, total: texts.length });
   }
-  send({ type: 'embedded', id, vectors: out, dim }, [out.buffer]);
+  send({ type: 'embedded', id, vectors: out, dim: spec.dim }, [out.buffer]);
 }
 
 self.onmessage = (event: MessageEvent<WorkerRequest>) => {

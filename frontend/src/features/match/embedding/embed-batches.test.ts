@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { batchOrder, classifyError, DownloadTracker, placeRows } from './embed-batches';
+import { batchOrder, classifyError, clsVectors, DownloadTracker, placeRows } from './embed-batches';
 import { checkSupport } from './support';
 
 describe('batchOrder', () => {
@@ -13,6 +13,27 @@ describe('batchOrder', () => {
 
   it('treats batch sizes below 1 as 1', () => {
     expect(batchOrder(['a', 'b'], 0)).toEqual([[0], [1]]);
+  });
+});
+
+describe('clsVectors', () => {
+  it('takes each row’s first token and normalises it', () => {
+    // batch 2, sequence 2, dim 2: [[cls, tok], [cls, tok]]
+    const hidden = new Float32Array([3, 4, 9, 9, 0, 2, 9, 9]);
+    expect(Array.from(clsVectors(hidden, [2, 2, 2]))).toEqual([
+      expect.closeTo(0.6),
+      expect.closeTo(0.8),
+      0,
+      1,
+    ]);
+  });
+
+  it('leaves an all-zero vector at zero', () => {
+    expect(Array.from(clsVectors(new Float32Array(2), [1, 1, 2]))).toEqual([0, 0]);
+  });
+
+  it('refuses a shape that doesn’t match the data', () => {
+    expect(() => clsVectors(new Float32Array(4), [1, 3, 2])).toThrow('Unexpected hidden state');
   });
 });
 

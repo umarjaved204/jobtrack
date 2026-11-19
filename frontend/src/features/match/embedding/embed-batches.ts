@@ -30,6 +30,27 @@ export function pick(texts: readonly string[], batch: readonly number[]): string
   });
 }
 
+/**
+ * BGE's sentence embedding: the [CLS] token's hidden state (position 0), L2-normalised,
+ * as the model card specifies and fastembed does on the server. `hidden` is the model's
+ * last_hidden_state, row-major [batch, sequence, dim].
+ */
+export function clsVectors(hidden: Float32Array, dims: readonly number[]): Float32Array {
+  const [batch = 0, sequence = 0, dim = 0] = dims;
+  if (dims.length !== 3 || hidden.length !== batch * sequence * dim) {
+    throw new Error(`Unexpected hidden state shape [${dims.join(', ')}]`);
+  }
+  const out = new Float32Array(batch * dim);
+  for (let row = 0; row < batch; row++) {
+    const cls = hidden.subarray(row * sequence * dim, row * sequence * dim + dim);
+    let norm = 0;
+    for (const value of cls) norm += value * value;
+    norm = Math.sqrt(norm) || 1; // an all-zero vector stays zero
+    for (let i = 0; i < dim; i++) out[row * dim + i] = (cls[i] ?? 0) / norm;
+  }
+  return out;
+}
+
 /** Writes one batch's rows (row-major, `dim` wide) back to their original positions. */
 export function placeRows(
   out: Float32Array,

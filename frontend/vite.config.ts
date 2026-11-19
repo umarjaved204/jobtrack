@@ -1,9 +1,33 @@
 /// <reference types="vitest/config" />
+import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
-import { defineConfig, loadEnv } from 'vite';
+import { type Connect, defineConfig, loadEnv, type Plugin } from 'vite';
+
+/**
+ * A missing file under /models/ is a 404, not the SPA's index.html. Transformers.js probes
+ * optional model files (e.g. generation_config.json) and treats a 404 as "not there"; an
+ * HTML page instead fails as invalid JSON. Same rule as vercel.json and the nginx image.
+ */
+function modelFilesAre404(): Plugin {
+  const publicDir = fileURLToPath(new URL('./public', import.meta.url));
+  const middleware: Connect.NextHandleFunction = (req, res, next) => {
+    const path = decodeURIComponent((req.url ?? '').split('?')[0] ?? '');
+    if (path.startsWith('/models/') && !existsSync(publicDir + path)) {
+      res.statusCode = 404;
+      res.end();
+      return;
+    }
+    next();
+  };
+  return {
+    name: 'jobtrack:model-files-404',
+    configureServer: (server) => void server.middlewares.use(middleware),
+    configurePreviewServer: (server) => void server.middlewares.use(middleware),
+  };
+}
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
@@ -11,7 +35,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
 
   return {
-    plugins: [react(), tailwindcss()],
+    plugins: [react(), tailwindcss(), modelFilesAre404()],
     resolve: {
       // `@/` → src/ (mirrored in tsconfig.app.json "paths")
       alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },

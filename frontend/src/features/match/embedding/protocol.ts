@@ -4,6 +4,13 @@
  * worker has no model constants of its own: a model change is a server change.
  */
 
+/**
+ * Where the worker fetches model files, relative to our origin (Transformers.js fills in
+ * `{model}` and `{revision}`). scripts/fetch-model.mjs writes them to the same place
+ * under public/; a test keeps the two in step.
+ */
+export const MODEL_PATH_TEMPLATE = 'models/{model}/{revision}/';
+
 export interface ModelSpec {
   /** Hugging Face repository, e.g. "Xenova/bge-small-en-v1.5". */
   id: string;

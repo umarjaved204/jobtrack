@@ -29,6 +29,7 @@ RUN pnpm build
 FROM nginx:alpine AS prod
 COPY --from=build /app/dist /usr/share/nginx/html
 # SPA fallback: unknown paths serve index.html so client-side routes work on refresh.
-RUN printf 'server {\n  listen 80;\n  root /usr/share/nginx/html;\n  location / { try_files $uri /index.html; }\n}\n' \
+# Except model files: a missing one must be a 404 (Transformers.js probes optional files).
+RUN printf 'server {\n  listen 80;\n  root /usr/share/nginx/html;\n  location /models/ { try_files $uri =404; }\n  location / { try_files $uri /index.html; }\n}\n' \
   > /etc/nginx/conf.d/default.conf
 EXPOSE 80

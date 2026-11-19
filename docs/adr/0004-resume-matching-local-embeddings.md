@@ -1,6 +1,9 @@
 # ADR 0004: Resume matching with local embeddings
 
-- **Status:** Accepted, subject to the Phase 9 resource measurement (see *Validation*)
+- **Status:** Revised (see *Revisions*): the server-side model failed the measurement, so
+  embeddings are now computed in the user's browser, with the same model family. The rest
+  of the design (chunking, skills, scoring, versioning) stands. The browser path is itself
+  subject to a measurement (*Revision 1, Validation*).
 - **Date:** 2026-11-19
 
 ## Context
@@ -94,3 +97,148 @@ are recorded under *Revisions*.
 - **Privacy statement depends on the embedder:** "text is processed on our server and never
   sent to a third party" is true only while the local embedder is used. Switching to a hosted
   embedder means updating the README and privacy notes in the same change.
+
+## Revisions
+
+### Revision 1 (2026-11-19): embeddings in the browser
+
+#### The server-side measurement failed
+
+`scripts/bench_match.py server`, in the backend image with the model baked in, under
+`docker run --memory=512m --memory-swap=512m --cpus=0.1`:
+
+| Measure | Result |
+|---|---|
+| RSS: before the app / app imported / API serving | 79 / 98 / 111 MB |
+| RSS with the model loaded | 339 MB |
+| Peak RSS over the run (VmHWM) | 409 MB |
+| Model load | 12.2 s |
+| Match, 2-page resume vs long JD (35 JD and 42 resume chunks): cold / warm | 52.2 s / 22.0 s |
+| Worst case, 29.5k-char resume vs 19.1k-char JD (134 / 336 chunks) | 182.9 s |
+| `GET /applications/board`: idle, median / max | 0.40 / 1.5 s |
+| `GET /applications/board` during a match, median / max | 0.50 / 2.1 s (the match took 90.5 s) |
+
+Memory fits, and other requests stay usable, but a typical match misses the ~15 s budget by
+about 3x, and the worst case by more than 10x. 0.1 CPU is the bottleneck, not RAM.
+
+#### Options after the measurement
+
+The project has a hard **zero-spend** constraint: no paid APIs, no paid tiers, no payment
+method on file.
+
+| Option | Verdict |
+|---|---|
+| Render Starter (0.5 CPU) | Rejected: paid. Even at 5x the CPU, a cold match would still take about 10 s. |
+| Keep the server model, process matches in the background with a progress UI | Rejected as the default: it hides the wait instead of removing it (a typical match still takes 20–50 s and a worst case minutes), and it ties up the single 0.1 CPU. It stays the zero-cost fallback if the browser path fails its own measurement. |
+| OpenAI `text-embedding-3-small` | Rejected: no free tier. Its API data terms were otherwise suitable (not used for training by default). |
+| Gemini API free tier; Voyage AI free tokens | Rejected: free-tier inputs may be used to improve the provider's products (Gemini), or are licensed for training unless you opt out, and the opt-out needs a payment method (Voyage). Resume text must not become training data. |
+| Hugging Face Spaces (a free inference endpoint) | Rejected: Hugging Face's docs say Spaces that run compute (Gradio or Docker) need a paid plan; only static Spaces are free. |
+| **Embed in the browser** (Transformers.js) | **Chosen.** Costs nothing to run, keeps text off third parties, and moves the CPU work to the user's device, which is far faster than 0.1 CPU. |
+
+#### Decision
+
+- **The browser computes the embeddings** with Transformers.js, in a Web Worker (never on
+  the main thread), using `Xenova/bge-small-en-v1.5`: the ONNX export of the same model,
+  quantized (`q8`, 34 MB). The library and model load only on the match page, never in the
+  main bundle.
+- **The server does everything else**, statelessly:
+  1. `POST /match/prepare {resume_id, jd_text}` validates (ownership, not archived, JD
+     length, rate limits), chunks both texts and returns the chunks plus the model id,
+     revision and scoring version.
+  2. The browser embeds the chunks and sends `POST /match` with the vectors.
+  3. The server re-chunks deterministically and checks the vectors: chunk counts match,
+     the model id and revision are the expected ones, 384 dimensions, all values finite,
+     unit length within a tolerance. Then it runs max-sim, skills, calibrated scoring and
+     storage as before.
+- **Exact chunk limits without the model:** the server ships only the model's
+  `tokenizer.json` (0.7 MB, no weights), pinned to the same revision. A test checks its git
+  blob id against that revision. A model-marked test checks it tokenizes exactly like
+  fastembed's bge build, so the server embedder can use the same chunks.
+- **Pinned weights:** the model is loaded at a commit hash, never `main`, so the weights
+  can't change under us and stored scores stay comparable. `@huggingface/transformers` is
+  pinned exactly. ONNX Runtime's version is locked to the one Transformers.js declares
+  (a test checks).
+- **Where files come from:**
+  - **Model files:** from our own origin, at `/models/<id>/<revision>/`. The build runs
+    `frontend/scripts/fetch-model.mjs`, which downloads the pinned files from Hugging
+    Face, checks each against the hash in `scripts/model-manifest.json` (git blob id, or
+    sha256 for the LFS weights), and puts them under `public/`. The files are never
+    committed. A backend test checks the manifest names the same model, revision and
+    tokenizer as the server.
+    - **Why not the Hugging Face CDN directly** (the first plan): from the developer's
+      network it redirected to a US edge and delivered **9–87 KB/s**, while Cloudflare
+      and jsdelivr gave 2–3 MB/s on the same connection. At those rates the first match
+      would wait 7–60 minutes for 34 MB. That's unacceptable, and it's outside our
+      control.
+    - **Vercel Hobby fits:** static files up to 100 MB, and 100 GB a month of transfer,
+      which is about 2,900 first downloads. Hobby can't bill, so over the limit the site
+      is paused, not charged; the zero-spend constraint holds.
+    - **Caching:** `vercel.json` serves `/models/*` with
+      `Cache-Control: immutable, max-age=1y`. Any change is a new revision in the path,
+      so cached files are never stale. `/models/` is excluded from the SPA rewrite, so a
+      missing file is a 404, not `index.html`.
+    - **The fetch is resumable and parallel:** 8 byte ranges at once, each continued
+      after an interruption, because the slow CDN is also what builds fetch from.
+  - **ONNX Runtime WebAssembly:** from our own origin, bundled by Vite (14 MB, 2.4 MB with
+    brotli). We use the plain SIMD build, not the default WebGPU-capable "asyncify" build
+    (27 MB), and not jsdelivr, which is Transformers.js's default.
+  - **Caching:** Transformers.js caches both in the Cache API (`transformers-cache`), so
+    returning visits don't download again.
+- **CSP** (none is set today). One added later must allow:
+  - `script-src 'self' 'wasm-unsafe-eval' blob:` (Transformers.js loads ONNX Runtime's
+    factory from a blob URL);
+  - `worker-src 'self'`;
+  - `connect-src 'self'`. The browser contacts no third party.
+- **`MATCH_EMBEDDINGS=client|server|off`.** `client` is the default and the production
+  setting. `server` keeps the fastembed embedder for dev, self-hosting and as a reference;
+  the model is baked into the image only with `BAKE_MATCH_MODEL=true`. `off` disables
+  matching, and the page explains why.
+
+#### Trusting client vectors
+
+The server can't verify that the vectors really are the embeddings of the chunks it
+returned: checking would mean running the model, which is what we can't afford. It checks
+everything cheap (counts, model, shape, finiteness, unit length) and otherwise trusts them.
+
+That's acceptable here because a user can only change **their own** score for **their
+own** resume against a JD they pasted. Nothing is shared, ranked or shown to anyone else,
+so there's no one to deceive but themselves. The skills part of the score (60 %) is always
+computed on the server from the text. The rate limits still apply. If scores ever became
+visible to others, such as recruiters, this would have to be revisited.
+
+#### Trade-offs
+
+- **The first match downloads ~34 MB** (model) plus the WebAssembly runtime, once per
+  browser. The page says so before downloading and shows progress.
+- **Speed depends on the device.** A low-end phone may be slow, and an old browser may
+  not run it at all (no WebAssembly SIMD, too little memory). The page checks support before
+  downloading and explains failures.
+- **Two builds of the model.** The browser runs the Xenova `q8` export; the server
+  reference runs fastembed's `Qdrant/bge-small-en-v1.5-onnx-Q`. Their vectors differ
+  slightly, so calibration constants are stored per model id, and the browser build (the
+  one users run) is the one calibrated. The drift between them is measured on the labelled
+  pairs.
+- **Hugging Face is a build-time dependency only.** If it's down or slow, a build fails
+  or waits (the fetch resumes); users are unaffected. The model's bandwidth comes out of
+  Vercel's free allowance.
+- **Privacy improves:** text is embedded on the user's device; skills and scoring run on
+  our server; nothing goes to a third party, and the browser loads everything, the model
+  included, from our own origin.
+
+#### Validation
+
+Measured with `frontend/bench/match.html`, which uses the server's real chunks
+(`bench_match.py export`), on the developer's laptop in Chrome and with DevTools 4x CPU
+throttling as a phone proxy. It records:
+- first-run download plus model load;
+- the load from cache;
+- embedding time for the 2-page resume vs the long JD, and for the worst case.
+
+The model is served by the dev server from `public/models` (run `pnpm fetch-model`
+first), so the first-run number measures loading from our origin; Vercel's speed from a
+given network is confirmed after the first deploy.
+
+The target is a warm match (model loaded) of 5 s or less on the laptop. If the browser path
+fails badly, the fallback is the server model with background processing and a progress UI.
+
+Results: *pending*.

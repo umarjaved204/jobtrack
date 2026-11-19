@@ -1,6 +1,7 @@
 """The shipped tokenizer of the browser model (no weights, so these run everywhere)."""
 
 import hashlib
+import json
 from pathlib import Path
 
 import pytest
@@ -15,6 +16,9 @@ from app.services.match.browser_model import (
 from app.services.match.chunking import chunk_job_description, chunk_resume
 
 BENCH_DATA = Path(__file__).resolve().parents[1] / "scripts" / "bench_data"
+FRONTEND_MANIFEST = (
+    Path(__file__).resolve().parents[2] / "frontend" / "scripts" / "model-manifest.json"
+)
 
 
 def git_blob_id(data: bytes) -> str:
@@ -61,3 +65,15 @@ def test_an_over_long_line_is_split_to_fit() -> None:
     chunks = chunk_resume(line, tokenizer)
     assert len(chunks) > 1
     assert all(tokenizer.count_tokens(chunk.text) <= 512 for chunk in chunks)
+
+
+def test_frontend_serves_the_same_model() -> None:
+    """The browser downloads what frontend/scripts/model-manifest.json pins; the server
+    chunks with the tokenizer in this package. Same repository, same commit, same file."""
+    manifest = json.loads(FRONTEND_MANIFEST.read_text(encoding="utf-8"))
+    files = {file["path"]: file for file in manifest["files"]}
+
+    assert (manifest["id"], manifest["revision"]) == (BROWSER_MODEL.id, BROWSER_MODEL.revision)
+    assert files["tokenizer.json"]["gitBlob"] == TOKENIZER_GIT_BLOB
+    assert "onnx/model_quantized.onnx" in files  # what dtype "q8" loads
+    assert BROWSER_MODEL.dtype == "q8"

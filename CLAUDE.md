@@ -3,6 +3,12 @@
 Job application tracker with a premium UI, analytics and an AI resume-vs-job-description match score.
 A portfolio project: clean code, tests, docs and a live deployment.
 
+## Hard constraints
+- **Zero spend.** No paid APIs, no paid tiers, no payment method on file with any provider.
+  Every service must work on a free plan. A "free tier" that trains on or keeps user inputs
+  (resumes, job descriptions) doesn't qualify. When a choice would need money, stop and
+  present free alternatives instead.
+
 ## How we work
 - Small, verifiable phases. Stop at the end of each phase and wait for "next".
 - Explain key decisions briefly and flag trade-offs.
@@ -39,7 +45,15 @@ A portfolio project: clean code, tests, docs and a live deployment.
 - Docker + docker-compose (frontend, backend, db), pre-commit hooks, GitHub Actions CI (lint, typecheck, test, build)
 - Deploy: Vercel (frontend), Render (backend), Neon (Postgres). Vercel rewrites `/api/*` to the backend so the app is same-origin.
 
-**AI (Phase 9)**: embeddings-based resume/JD matching + keyword and skill-gap extraction. Choose between `sentence-transformers`, `fastembed` (ONNX) and a hosted embeddings API at that phase (PyTorch won't fit Render free tier). Present options and wait for the user's choice.
+**AI (Phase 9)**: embeddings-based resume/JD matching + keyword and skill-gap extraction
+(ADR 0004). Embeddings run in the user's browser (Transformers.js in a Web Worker,
+`Xenova/bge-small-en-v1.5` q8 at a pinned commit, served from our own origin: `pnpm build`
+runs `scripts/fetch-model.mjs` into the git-ignored `public/models`; run `pnpm fetch-model`
+before using the match page in dev). The server chunks (with the shipped `tokenizer.json`
+only), validates the vectors, extracts skills and scores.
+`MATCH_EMBEDDINGS=client|server|off` (`server` = fastembed, for dev/self-hosting). The
+server-side model was measured on Render free and was ~3x too slow; hosted APIs fail the
+zero-spend constraint.
 
 ## Key decisions
 - Auth: access token in memory. Refresh token in an httpOnly cookie, rotated on each use, hashes stored in `refresh_tokens`.
