@@ -1,10 +1,11 @@
 """Suggested keywords: what the JD stresses that the resume doesn't say.
 
-Missing taxonomy skills come first (required, then preferred, in JD order). The rest are
-frequent JD terms: words that appear at least twice in the parts of the JD that count (not
-"About us" or "Benefits"), aren't stopwords or job-ad boilerplate, aren't part of a skill
-the taxonomy already found, and don't appear in the resume. Plurals are folded crudely
-("pipelines" = "pipeline"); there is deliberately no stemmer or NLP dependency.
+Missing taxonomy skills come first (required, then preferred, in JD order; for a list of
+alternatives, the first option). The rest are frequent JD terms: words that appear at least
+twice in the parts of the JD that count (not "About us" or "Benefits"), aren't stopwords or
+job-ad boilerplate, aren't part of a skill the taxonomy already found, and don't appear in
+the resume. Plurals are folded crudely ("pipelines" = "pipeline"); there is deliberately no
+stemmer or NLP dependency.
 """
 
 import re
@@ -102,8 +103,9 @@ def suggest_keywords(
     resume_text: str,
     taxonomy: Taxonomy | None = None,
 ) -> list[str]:
-    missing = [s.skill for s in comparison.missing if s.required]
-    missing += [s.skill for s in comparison.missing if not s.required]
+    # A missing group of alternatives suggests its first option, the one the JD led with.
+    missing = [r.skills[0] for r in comparison.missing if r.required]
+    missing += [r.skills[0] for r in comparison.missing if not r.required]
     suggestions: list[str] = []
     seen: set[str] = set()
     for word in [*missing, *frequent_terms(jd_text, resume_text, taxonomy)]:

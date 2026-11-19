@@ -213,9 +213,12 @@ in [ADR 0004](./adr/0004-resume-matching-local-embeddings.md). Code: `app/servic
 The score is rounded to a whole number. It estimates overlap. It doesn't predict how an
 employer or an ATS would rank the resume.
 
-- *Skill coverage* (`skills.py`): matched / found, with preferred skills counting half.
-  Skills come from the curated taxonomy (`skills.json`). Required, preferred and ignored
-  parts of the JD come from its headings and markers (`sections.py`).
+- *Skill coverage* (`skills.py`): requirements met / requirements found, with preferred
+  ones counting half. Skills come from the curated taxonomy (`skills.json`). A list of
+  alternatives on one line ("FastAPI, Django or Flask", "Power BI or Tableau", "React/Vue",
+  "Express, NestJS or similar") is one requirement that any option meets. Lists joined
+  only by commas or "and" are separate requirements. Required, preferred and ignored parts
+  of the JD come from its headings and markers (`sections.py`).
 - *Raw similarity* (`semantic.py`): both texts are chunked under the model's token limit.
   Each JD chunk takes its most similar resume chunk (cosine, "max-sim"). The raw value is
   the weighted mean of those maxima, with preferred lines at half weight.
@@ -252,9 +255,9 @@ pairs, whether the texts are unrelated or a perfect fit. So they're mapped linea
 
 | Grade | Pairs | Mean score | Range |
 |---|---|---|---|
-| 3: the role | 6 | 86 | 67–99 |
-| 2: overlapping role | 3 | 46 | 44–48 |
-| 1: related field | 7 | 21 | 6–37 |
+| 3: the role | 6 | 88 | 67–99 |
+| 2: overlapping role | 3 | 47 | 40–50 |
+| 1: related field | 7 | 22 | 6–39 |
 | 0: different profession | 20 | 4 | 0–13 |
 
 *Concordance* is 0.98: of all pairs of pairs with different grades, the share where the
@@ -263,12 +266,13 @@ with every grade, concordance ≥ 0.95, every grade-3 pair ≥ 60 and every grad
 
 *Limits:* 36 pairs written by one person is a sanity check, not a statistically validated
 scale. The thresholds were set after the first measurement, so they catch regressions;
-they don't prove accuracy. The weakest grade-3 pair (backend, 67) loses on skill coverage:
-"FastAPI, Django or Flask" currently counts all three as required.
+they don't prove accuracy. The weakest grade-3 pair (backend, 67) loses on skill coverage
+through taxonomy gaps: Celery and SQS don't imply "Message queues", and pytest doesn't imply
+"Test automation".
 
 **Versions.** Every result stores `model_name`, `scoring_version` (the formula, weights,
-chunking and section weights), `calibration_version` (per model) and `taxonomy_version`.
-Two results are comparable only when all four match. Older results aren't re-scored;
+skill-requirement rules, chunking and section weights), `calibration_version` (per model)
+and `taxonomy_version`. Two results are comparable only when all four match. Older results aren't re-scored;
 the UI offers a re-run.
 
 ## Health checks

@@ -16,8 +16,9 @@ The score is an estimate of overlap, not a prediction of how any employer or ATS
 resume; the UI says so. It is a whole number: more digits would be false precision.
 
 Versions (stored with every result; results with different versions are never compared):
-- `SCORING_VERSION`: the formula and weights, chunking and section weights. Bump it when
-  any of those change, along with `CHUNKING_VERSION`.
+- `SCORING_VERSION`: the formula and weights, how skills become requirements (`skills.py`),
+  chunking and section weights. Bump it when any of those change (chunking also bumps
+  `CHUNKING_VERSION`). Still 1: no result was stored before the requirement rules landed.
 - `Calibration.version`: per model. Bump it when its anchors are re-fitted.
 - The taxonomy carries its own version (`skills.json`).
 """
