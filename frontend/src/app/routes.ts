@@ -100,6 +100,12 @@ export function createRoutes({ queryClient }: { queryClient: QueryClient }): Rou
                   }),
                 },
                 {
+                  path: 'match/:matchId',
+                  lazy: async () => ({
+                    Component: (await import('@/features/match/match-detail-page')).MatchDetailPage,
+                  }),
+                },
+                {
                   path: 'settings',
                   lazy: async () => ({
                     Component: (await import('@/features/settings/settings-page')).SettingsPage,

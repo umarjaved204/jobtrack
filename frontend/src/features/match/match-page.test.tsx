@@ -78,7 +78,7 @@ describe('match page: running a match', () => {
     expect(backend.calls).not.toContain('POST /match/prepare');
 
     await user.click(within(dialog).getByRole('button', { name: 'Download and match' }));
-    const card = await screen.findByRole('region', { name: 'Match score' });
+    const card = await screen.findByRole('article', { name: 'Match score' });
     expect(card).toHaveTextContent(`${backend.matches[0]?.score} out of 100`);
     expect(backend.matches[0]?.resume_version_id).toBe('resume-v2'); // the default first
     expect(runtime.client?.loads).toHaveLength(1);
@@ -101,7 +101,7 @@ describe('match page: running a match', () => {
     runtime.cached = true;
     const user = await openPage();
     await fillAndRun(user);
-    expect(await screen.findByRole('region', { name: 'Match score' })).toBeVisible();
+    expect(await screen.findByRole('article', { name: 'Match score' })).toBeVisible();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
@@ -114,7 +114,7 @@ describe('match page: running a match', () => {
     await user.click(await screen.findByRole('option', { name: /Monzo/ }));
     await fillAndRun(user);
 
-    await screen.findByRole('region', { name: 'Match score' });
+    await screen.findByRole('article', { name: 'Match score' });
     expect(backend.matches[0]).toMatchObject({
       resume_version_id: 'resume-v1',
       application_id: 'app-monzo',
@@ -142,7 +142,7 @@ describe('match page: running a match', () => {
     setup({ mode: 'server' });
     const user = await openPage();
     await fillAndRun(user);
-    expect(await screen.findByRole('region', { name: 'Match score' })).toBeVisible();
+    expect(await screen.findByRole('article', { name: 'Match score' })).toBeVisible();
     expect(runtime.client?.loads).toEqual([]);
     expect(screen.queryByText(/runs on your device/)).not.toBeInTheDocument();
   });

@@ -264,6 +264,11 @@ pairs, whether the texts are unrelated or a perfect fit. So they're mapped linea
 higher grade scores higher. The tests keep these as regression guards: mean score rises
 with every grade, concordance ≥ 0.95, every grade-3 pair ≥ 60 and every grade-0 pair ≤ 20.
 
+*Bands in the UI* (`frontend/src/features/match/score-band.ts`): **Strong overlap** from
+65 (every grade-3 pair scored at least 67), **Partial overlap** from 35 (grade 2 scored
+40–50), **Little overlap** below 35. Grade 1 reached 39, so a related-field match can
+just make "Partial". Change the bands with the labelled results, not by feel.
+
 *Limits:* 36 pairs written by one person is a sanity check, not a statistically validated
 scale. The thresholds were set after the first measurement, so they catch regressions;
 they don't prove accuracy. The weakest grade-3 pair (backend, 67) loses on skill coverage

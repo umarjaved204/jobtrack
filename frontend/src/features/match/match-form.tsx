@@ -38,15 +38,20 @@ type MatchFormProps = {
   /** The last run's failure: a 422 on a field lands on that field. */
   error: unknown;
   onRun: (values: MatchFormValues) => void;
+  /** Starting values ("Run again"). A resume that's no longer active falls back to the default. */
+  initial?: MatchFormValues | null;
 };
 
-function MatchForm({ resumes, applications, running, error, onRun }: MatchFormProps) {
+function MatchForm({ resumes, applications, running, error, onRun, initial }: MatchFormProps) {
+  const fallbackResume = (resumes.find((r) => r.is_default) ?? resumes[0])?.id ?? '';
   const form = useForm<MatchFormValues>({
     resolver: zodResolver(matchFormSchema),
     defaultValues: {
-      resume_id: (resumes.find((r) => r.is_default) ?? resumes[0])?.id ?? '',
-      application_id: NO_APPLICATION,
-      jd_text: '',
+      resume_id: resumes.some((r) => r.id === initial?.resume_id)
+        ? (initial?.resume_id ?? fallbackResume)
+        : fallbackResume,
+      application_id: initial?.application_id ?? NO_APPLICATION,
+      jd_text: initial?.jd_text ?? '',
     },
   });
   const { errors } = form.formState;

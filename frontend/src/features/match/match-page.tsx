@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { FileText, MonitorX, PowerOff } from 'lucide-react';
 import { useRef, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useLocation } from 'react-router';
 
 import { EmptyState } from '@/components/empty-state';
 import { PageHeader } from '@/components/page-header';
@@ -17,9 +17,10 @@ import { matchConfigQuery } from './api';
 import { isModelCached } from './embedding/model-cache';
 import { checkSupport, UNSUPPORTED_REASONS } from './embedding/support';
 import { MatchForm } from './match-form';
+import { MatchHistory } from './match-history';
 import { MatchProgressPanel } from './match-progress';
-import { type MatchFormValues, toMatchInput } from './match-schema';
-import { MatchScoreCard } from './match-score-card';
+import { MatchResult } from './match-result';
+import { type MatchFormValues, rerunValues, toMatchInput } from './match-schema';
 import { ModelConsentDialog } from './model-consent-dialog';
 import { useMatchRun } from './use-match-run';
 
@@ -78,6 +79,8 @@ function MatchWorkspace({ config }: { config: MatchConfig }) {
   const run = useMatchRun();
   const [pending, setPending] = useState<MatchFormValues | null>(null);
   const consented = useRef(false);
+  const { state: navigationState } = useLocation();
+  const [initial] = useState(() => rerunValues(navigationState));
 
   if (unsupported) {
     return (
@@ -130,7 +133,7 @@ function MatchWorkspace({ config }: { config: MatchConfig }) {
   const { state } = run;
 
   return (
-    <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_18rem]">
+    <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_22rem]">
       <div className="grid content-start gap-6">
         <MatchForm
           resumes={active}
@@ -138,26 +141,30 @@ function MatchWorkspace({ config }: { config: MatchConfig }) {
           running={state.status === 'running'}
           error={state.status === 'error' ? state.error : null}
           onRun={(values) => void onRun(values)}
+          initial={initial}
         />
         {state.status === 'running' && (
           <MatchProgressPanel progress={state.progress} onCancel={run.cancel} />
         )}
         {state.status === 'error' && <Alert title="The match didn’t finish">{state.message}</Alert>}
-        {state.status === 'done' && <MatchScoreCard match={state.match} />}
+        {state.status === 'done' && <MatchResult match={state.match} className="mt-4" />}
       </div>
-      <aside className="grid content-start gap-4 border-t pt-6 text-sm text-muted-foreground lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
-        <h2 className="kicker text-foreground">How the match works</h2>
-        <p>
-          The score combines the skills the advert asks for with how closely your resume’s lines
-          match its wording. It’s an estimate of overlap, not how an employer or an applicant
-          tracking system will rank you.
-        </p>
-        {config.embeddings === 'client' && (
+      <aside className="grid content-start gap-10 border-t pt-6 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
+        <MatchHistory />
+        <div className="grid gap-4 text-sm text-muted-foreground">
+          <h2 className="kicker text-foreground">How the match works</h2>
           <p>
-            The comparison runs on your device. The texts stay between your browser and JobTrack.
+            The score combines the skills the advert asks for with how closely your resume’s lines
+            match its wording. It’s an estimate of overlap, not how an employer or an applicant
+            tracking system will rank you.
           </p>
-        )}
-        <p>English adverts and resumes only.</p>
+          {config.embeddings === 'client' && (
+            <p>
+              The comparison runs on your device. The texts stay between your browser and JobTrack.
+            </p>
+          )}
+          <p>English adverts and resumes only.</p>
+        </div>
       </aside>
 
       <ModelConsentDialog
