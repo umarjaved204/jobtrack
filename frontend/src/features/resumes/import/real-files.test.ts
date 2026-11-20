@@ -1,33 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
+import { loadBrowserMammoth, loadLegacyPdfjs } from '@/test/document-parsers';
 import { fileFrom, makeDocx, makePdf, pdfLines } from '@/test/documents';
 
-import { extractDocxText, type MammothModule } from './extract-docx';
-import { extractPdfText, type PdfjsModule } from './extract-pdf';
+import { extractDocxText } from './extract-docx';
+import { extractPdfText } from './extract-pdf';
 import { type Extractors, importResumeFile } from './import-file';
 
-/*
- * The real parsers on synthetic files (src/test/documents.ts). pdf.js runs its legacy
- * build here (the one meant for Node) with the worker on the main thread: the browser
- * loads the same code through a real Worker (extract-pdf.ts). Mammoth runs its browser
- * bundle, the code the app ships: its Node build reads paths and Buffers, not the
- * ArrayBuffer a File gives.
- */
-const MAMMOTH_BROWSER = 'mammoth/mammoth.browser.js';
-
-async function loadBrowserMammoth(): Promise<MammothModule> {
-  const bundle = (await import(/* @vite-ignore */ MAMMOTH_BROWSER)) as { default: MammothModule };
-  return bundle.default;
-}
-async function loadLegacyPdfjs(): Promise<PdfjsModule> {
-  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
-  // pdf.js uses a worker already loaded on this thread when it finds one here.
-  Object.assign(globalThis, {
-    pdfjsWorker: await import('pdfjs-dist/legacy/build/pdf.worker.mjs'),
-  });
-  return pdfjs as unknown as PdfjsModule;
-}
-
+/* The real parsers on synthetic files (src/test/documents.ts, src/test/document-parsers.ts). */
 const realParsers: Extractors = {
   pdf: (data, options) => extractPdfText(data, { ...options, loadPdfjs: loadLegacyPdfjs }),
   docx: (data) => extractDocxText(data, { load: loadBrowserMammoth }),
