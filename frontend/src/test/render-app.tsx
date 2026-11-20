@@ -9,12 +9,14 @@ import { installSignOutHandler } from '@/features/auth/sign-out-handler';
 import { session } from '@/lib/api/session';
 import { createQueryClient } from '@/lib/query-client';
 
+import { trackQueryClient } from './query-clients';
+
 /**
  * Mounts the real app (routes, guards, providers, sign-out handler) in a memory router
  * with a fresh QueryClient. The network is MSW (src/test/msw.ts).
  */
 export function renderApp(path: string) {
-  const queryClient = createQueryClient();
+  const queryClient = trackQueryClient(createQueryClient());
   const router = createMemoryRouter(createRoutes({ queryClient }), { initialEntries: [path] });
   installSignOutHandler({
     session,

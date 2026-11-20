@@ -225,6 +225,7 @@ describe('match page: problems', () => {
   it('says when matching is switched off', async () => {
     setup({ mode: 'off' });
     renderApp('/match');
+    await findPageHeading('Match a job description'); // the page fades in
     expect(await screen.findByRole('heading', { name: 'Matching is switched off' })).toBeVisible();
     expect(screen.queryByLabelText('Job description')).not.toBeInTheDocument();
   });
@@ -232,6 +233,7 @@ describe('match page: problems', () => {
   it('explains when the browser can’t run the model', async () => {
     runtime.unsupported = 'no-simd';
     renderApp('/match');
+    await findPageHeading('Match a job description');
     expect(
       await screen.findByRole('heading', { name: 'This browser can’t run the match' }),
     ).toBeVisible();
@@ -241,6 +243,7 @@ describe('match page: problems', () => {
   it('asks for a resume first when there are none to match', async () => {
     setup({ resumes: [makeResume({ archived_at: '2026-10-01T00:00:00Z' })] });
     renderApp('/match');
+    await findPageHeading('Match a job description');
     expect(
       await screen.findByRole('heading', { name: 'Add a resume to match against' }),
     ).toBeVisible();
