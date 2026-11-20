@@ -251,29 +251,36 @@ pairs, whether the texts are unrelated or a perfect fit. So they're mapped linea
   The two builds differ by at most 0.0061 in raw similarity on these pairs (a test keeps
   it under 0.01).
 
-**Validation** on the labelled pairs (browser model, calibration 1, taxonomy 1):
+**Validation** on the labelled pairs (browser model, calibration 1, taxonomy 2):
 
 | Grade | Pairs | Mean score | Range |
 |---|---|---|---|
-| 3: the role | 6 | 88 | 67–99 |
-| 2: overlapping role | 3 | 47 | 40–50 |
-| 1: related field | 7 | 22 | 6–39 |
+| 3: the role | 6 | 90 | 78–99 |
+| 2: overlapping role | 3 | 49 | 43–53 |
+| 1: related field | 7 | 24 | 11–42 |
 | 0: different profession | 20 | 4 | 0–13 |
 
-*Concordance* is 0.98: of all pairs of pairs with different grades, the share where the
+*Concordance* is 0.996 (0.984 with taxonomy 1): of all pairs of pairs with different grades, the share where the
 higher grade scores higher. The tests keep these as regression guards: mean score rises
 with every grade, concordance ≥ 0.95, every grade-3 pair ≥ 60 and every grade-0 pair ≤ 20.
 
 *Bands in the UI* (`frontend/src/features/match/score-band.ts`): **Strong overlap** from
-65 (every grade-3 pair scored at least 67), **Partial overlap** from 35 (grade 2 scored
-40–50), **Little overlap** below 35. Grade 1 reached 39, so a related-field match can
-just make "Partial". Change the bands with the labelled results, not by feel.
+65 (every grade-3 pair scored at least 78), **Partial overlap** from 35 (grade 2 scored
+43–53), **Little overlap** below 35. One grade-1 pair (junior full-stack resume, backend
+JD) scores 42, so a related-field match can make "Partial". Change the bands with the
+labelled results, not by feel.
 
 *Limits:* 36 pairs written by one person is a sanity check, not a statistically validated
 scale. The thresholds were set after the first measurement, so they catch regressions;
-they don't prove accuracy. The weakest grade-3 pair (backend, 67) loses on skill coverage
-through taxonomy gaps: Celery and SQS don't imply "Message queues", and pytest doesn't imply
-"Test automation".
+they don't prove accuracy.
+
+*Taxonomy 2* added implications from tools to the practice they belong to: Celery,
+RabbitMQ, Kafka and SQS imply "Message queues"; pytest, Jest, Vitest, Mocha, JUnit,
+Cypress, Playwright and Selenium imply "Test automation"; Celery and pytest imply Python.
+Rules are only added when they are true in general and point from specific to general
+(a test keeps implications one-directional), never to lift one labelled pair. Against
+taxonomy 1, ten pairs' scores moved (by −1 to +11; the backend grade-3 pair went from
+67 to 78) and none changed band, on either model.
 
 **Versions.** Every result stores `model_name`, `scoring_version` (the formula, weights,
 skill-requirement rules, chunking and section weights), `calibration_version` (per model)

@@ -115,6 +115,41 @@ def test_names_adds_implied_skills() -> None:
     assert "Kubernetes" in names
 
 
+@pytest.mark.parametrize(
+    ("tool", "general"),
+    [
+        ("Celery", "Message queues"),
+        ("Celery", "Python"),
+        ("RabbitMQ", "Message queues"),
+        ("Kafka", "Message queues"),
+        ("SQS", "Message queues"),
+        ("pytest", "Test automation"),
+        ("pytest", "Python"),
+        ("Jest", "Test automation"),
+        ("Vitest", "Test automation"),
+        ("JUnit", "Test automation"),
+        ("Cypress", "Test automation"),
+        ("Selenium", "Test automation"),
+    ],
+)
+def test_a_tool_implies_the_practice_it_is_part_of(tool: str, general: str) -> None:
+    assert general in load_taxonomy().names(f"Used {tool} daily.")
+
+
+def test_implications_only_point_from_specific_to_general() -> None:
+    """No skill is implied back by anything it implies: "pytest" means "Test automation",
+    never the other way round (asking for either must not demand the other)."""
+    taxonomy = load_taxonomy()
+    for name, skill in taxonomy.skills.items():
+        for target in skill.implies:
+            assert name not in taxonomy.with_implied({target}), f"{name} <-> {target}"
+
+
+def test_the_practice_does_not_imply_a_tool() -> None:
+    names = load_taxonomy().names("Message queues and test automation")
+    assert names == {"Message queues", "Test automation"}
+
+
 def test_hits_carry_offsets() -> None:
     text = "We use Kafka."
     (hit,) = load_taxonomy().find(text)

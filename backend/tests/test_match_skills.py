@@ -50,6 +50,7 @@ def test_required_and_preferred_requirements_in_jd_order() -> None:
         req("Kubernetes", required=False),
         req("Go", required=False),
         req("Apache Kafka", required=False),
+        req("Message queues", required=False),  # implied by Kafka, with its status
     ]
 
 
@@ -139,7 +140,8 @@ def test_any_option_meets_a_group_and_a_missing_group_suggests_its_first() -> No
 
 def test_compare_uses_implied_resume_skills() -> None:
     comparison = compare_skills(JD, RESUME)
-    # Django implies Python and meets "Django or FastAPI"; GitHub Actions implies CI/CD.
+    # Django implies Python and meets "Django or FastAPI"; GitHub Actions implies CI/CD;
+    # Kafka implies Message queues.
     assert [r.label for r in comparison.matched] == [
         "Python",
         "Django or FastAPI",
@@ -147,6 +149,7 @@ def test_compare_uses_implied_resume_skills() -> None:
         "Docker",
         "CI/CD",
         "Apache Kafka",
+        "Message queues",
     ]
     assert [r.label for r in comparison.missing] == ["Redis", "Kubernetes", "Go"]
 
@@ -154,8 +157,8 @@ def test_compare_uses_implied_resume_skills() -> None:
 def test_coverage_counts_preferred_requirements_at_half() -> None:
     comparison = compare_skills(JD, RESUME)
     assert (comparison.required_matched, comparison.required_total) == (5, 6)
-    assert (comparison.preferred_matched, comparison.preferred_total) == (1, 3)
-    assert comparison.coverage == pytest.approx((5 + 0.5) / (6 + 1.5))
+    assert (comparison.preferred_matched, comparison.preferred_total) == (2, 4)
+    assert comparison.coverage == pytest.approx((5 + 2 * 0.5) / (6 + 4 * 0.5))
 
 
 def test_jd_without_skills_has_no_coverage() -> None:
@@ -170,7 +173,8 @@ def test_unstructured_jd_counts_everything_as_required() -> None:
     comparison = compare_skills("We need Python, Rust and Kafka.", RESUME)
     assert not comparison.sections_detected
     assert all(r.required for r in (*comparison.matched, *comparison.missing))
-    assert comparison.coverage == pytest.approx(2 / 3)
+    # Python, Rust, Kafka and the Message queues Kafka implies: all but Rust are met.
+    assert comparison.coverage == pytest.approx(3 / 4)
 
 
 def test_records_the_taxonomy_version() -> None:
