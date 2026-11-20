@@ -56,6 +56,12 @@ class RateLimitedError(AppError):
     status_code: ClassVar[int] = 429
 
 
+class ServiceUnavailableError(AppError):
+    """Switched off by configuration, or busy (then with a Retry-After header)."""
+
+    status_code: ClassVar[int] = 503
+
+
 def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(AppError)
     async def _handle_app_error(_: Request, exc: AppError) -> JSONResponse:

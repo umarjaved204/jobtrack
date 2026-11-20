@@ -3,6 +3,12 @@
 Job application tracker with a premium UI, analytics and an AI resume-vs-job-description match score.
 A portfolio project: clean code, tests, docs and a live deployment.
 
+## Hard constraints
+- **Zero spend.** No paid APIs, no paid tiers, no payment method on file with any provider.
+  Every service must work on a free plan. A "free tier" that trains on or keeps user inputs
+  (resumes, job descriptions) doesn't qualify. When a choice would need money, stop and
+  present free alternatives instead.
+
 ## How we work
 - Small, verifiable phases. Stop at the end of each phase and wait for "next".
 - Explain key decisions briefly and flag trade-offs.
@@ -39,7 +45,20 @@ A portfolio project: clean code, tests, docs and a live deployment.
 - Docker + docker-compose (frontend, backend, db), pre-commit hooks, GitHub Actions CI (lint, typecheck, test, build)
 - Deploy: Vercel (frontend), Render (backend), Neon (Postgres). Vercel rewrites `/api/*` to the backend so the app is same-origin.
 
-**AI (Phase 9)**: embeddings-based resume/JD matching + keyword and skill-gap extraction. Choose between `sentence-transformers`, `fastembed` (ONNX) and a hosted embeddings API at that phase (PyTorch won't fit Render free tier). Present options and wait for the user's choice.
+**AI (Phase 9)**: embeddings-based resume/JD matching + keyword and skill-gap extraction
+(ADR 0004). Embeddings run in the user's browser (Transformers.js in a Web Worker,
+`Xenova/bge-small-en-v1.5` q8 at a pinned commit, served from our own origin: `pnpm build`
+runs `scripts/fetch-model.mjs` into the git-ignored `public/models`; run `pnpm fetch-model`
+before using the match page in dev). The server chunks (with the shipped `tokenizer.json`
+only), validates the vectors, extracts skills and scores. The app is cross-origin isolated
+(COOP same-origin + COEP require-corp in vite.config.ts, vercel.json and the nginx image),
+so ONNX Runtime gets min(CPUs, 4) threads: no cross-origin subresources without CORP/CORS,
+and no popup-based OAuth (ADR 0004 Revision 2). Chunk vectors are cached in IndexedDB
+(`features/match/vector-cache.ts`: LRU, keyed by user + model + revision + text hash),
+cleared on sign-out; storage errors always mean "not cached", never a failed match.
+`MATCH_EMBEDDINGS=client|server|off` (`server` = fastembed, for dev/self-hosting). The
+server-side model was measured on Render free and was ~3x too slow; hosted APIs fail the
+zero-spend constraint.
 
 ## Key decisions
 - Auth: access token in memory. Refresh token in an httpOnly cookie, rotated on each use, hashes stored in `refresh_tokens`.
@@ -75,7 +94,9 @@ calendar_events(id, user_id, application_id NULL, kind, title, starts_at, ends_a
   always timed; CHECK ends_at IS NULL OR ends_at >= starts_at
   reminders and events are ON DELETE CASCADE with their application
 match_results(id, user_id, resume_version_id, application_id NULL, jd_text, score,
-  matched_skills jsonb, missing_skills jsonb, suggested_keywords jsonb, model_name, created_at)
+  matched_skills jsonb, missing_skills jsonb, suggested_keywords jsonb, skill_coverage NULL,
+  semantic_score, model_name, scoring_version, calibration_version, taxonomy_version, created_at)
+  comparable only when model + all three versions match (docs/architecture.md "Match scoring")
   resume_version_id FK is NO ACTION (not CASCADE): match history survives; used resumes are archived
 ```
 
@@ -95,7 +116,9 @@ CALENDAR  GET /calendar?from&to[&include_done] (merged feed: events, wishlist ap
           GET /calendar-events?application_id; POST /calendar-events; PATCH/DELETE /calendar-events/{id}
 RESUMES   GET /resumes (summaries, no text); POST /resumes; GET/PATCH/DELETE /resumes/{id}
           PATCH {label, content_text, is_default, archived}; DELETE is 409 once used (archive instead)
-MATCH     POST /match; GET /match; GET /match/{id}
+MATCH     GET /match/config; POST /match/prepare (client mode: chunks + digest);
+          POST /match {resume_id, jd_text, application_id?, embeddings?{digest, jd, resume}};
+          GET /match (?application_id &page &page_size); GET /match/{id}
 ANALYTICS GET /analytics/summary|timeseries|funnel|sources (?from&to: cohort by applied_on)
 EXPORT    GET /export?format=csv|json
 HEALTH    GET /health; GET /health/ready
@@ -151,8 +174,17 @@ jobtrack/
 6. Kanban + table views, application form and detail page (done; drag-and-drop choice in ADR 0003)
 7. Dashboard with animated stat cards and custom charts (done; metric definitions in docs/architecture.md)
 8. Calendar, reminders, resume versions (done; "Coming up" gained events and reminders; definitions in docs/architecture.md)
-9. AI match service, endpoint and UI
-10. Polish: offer celebration, animated funnel, ⌘K palette, empty/loading/error states, a11y, responsive, reduced motion
+9. AI match service, endpoint and UI (done; ADR 0004 and its revisions; scoring in docs/architecture.md "Match scoring")
+9b. Resume file import, branch `feat/resume-file-import` after the Phase 9 merge, before Phase 10:
+    PDF (pdf.js) and .docx (mammoth) read in the browser, loaded only when a file is picked; the
+    file is never uploaded, the extracted text fills the textarea for review, then saves as today.
+    First check both libraries' licences and maintenance. Latest pdf.js with `isEvalSupported: false`
+    (confirm current guidance on CVE-2024-4367); pdf.js worker served same-origin (COOP/COEP);
+    5 MB file cap; same normalisation and 50k limit as pasted text. Scanned PDFs: say so and ask
+    to paste (no OCR). No legacy .doc. Two-column layouts may extract out of order (hence review).
+10. Polish: offer celebration, animated funnel, ⌘K palette, empty/loading/error states, a11y, responsive, reduced motion;
+    match progress says "Loading the match model" (not "Downloading") when it comes from the cache;
+    fix the id/name autofill warnings on Radix Select controls
 11. Tests (unit, integration, 1-2 Playwright flows) and CI
 12. Email verification + password reset (scope in ADR 0002 "Planned"; provider chosen then)
 13. Deploy, demo seed script, README with screenshots, architecture diagram, GIF, "what I learned"
@@ -342,3 +374,40 @@ jobtrack/
   sets exactly one of `due_on` / `due_at`).
 - Scripts written on Windows: write files as LF (pre-commit's `mixed-line-ending` rejects
   CRLF mixes).
+
+## Conventions (established in Phase 9)
+- Match code: `app/services/match/` (taxonomy `skills.json`, `sections.py`, `chunking.py`,
+  `semantic.py` behind the `Embedder` interface, `scoring.py`, `keywords.py`, `service.py`).
+  Client mode: `POST /match/prepare` returns chunks + a digest; the browser embeds them; the
+  server re-chunks, and a different digest is a 409. Client vectors are only checked cheaply
+  (shape, finite, unit length): a user can only affect their own score (ADR 0004).
+- Versions: every result stores the model and `scoring_version`, `calibration_version`,
+  `taxonomy_version`. Change the formula/chunking/section weights → bump scoring; the model or
+  calibration → re-run `uv run python -m scripts.calibrate_match`, update `CALIBRATIONS`, bump
+  calibration (tests check the constants are the fit of `raw_similarities.json`); `skills.json`
+  → bump its `version`. Old results are never re-scored: they show "Older version" + re-run.
+- Taxonomy rules: an implication only from specific to general and true in general (a test
+  keeps them one-directional), never to lift one labelled pair. Implications apply to JDs too
+  (a JD asking for Django also asks for Python). After any taxonomy or scoring change,
+  re-score the 36 labelled pairs, report band changes, and update the validation table in
+  docs/architecture.md; bands (`score-band.ts`) change only with the labelled results.
+- Resume freezing is counted, not stored (`_uses()`): deleting matches (`DELETE /match`)
+  unfreezes a version unless an application still links it.
+- Frontend: the model runs in a Web Worker (`features/match/embedding/`); `run-match.ts`
+  orchestrates prepare → cache lookup → embed → save. Ask before the first model download
+  (`ModelConsentDialog`). jsdom tests mock `embedding-client`, `support` and `model-cache`
+  (see `match-page.test.tsx`) and use `FakeEmbeddingClient`; tests touching the vector cache
+  import `fake-indexeddb/auto` first.
+- Links into the match form: `matchLinkFor(applicationId)` (`/match?application=<id>`); "Run
+  again" uses navigation state and wins. A linked application missing from the picker's
+  recent list is fetched and added.
+- Accessible names built from inline spans: put the separating space outside `sr-only`
+  spans (`{score}{' '}<span className="sr-only">out of 100</span>`); a leading space inside
+  one is trimmed ("81out of 100"). Assert link names in tests.
+- Measuring: `frontend/bench/match.html` (`bench_match.py export` writes its chunks; params in
+  `match-bench.ts`). CPU throttling never reaches workers, so throttled numbers are
+  main-thread only. Report medians with ranges and say which build and server were used.
+  Stop the frontend container (`docker compose stop frontend`) while timing: its polling dev
+  server takes ~30% CPU idle and skews results. A fresh Vite server's first page load can
+  reload mid-run (dependency optimisation): discard that run.
+- Vitest runs at `maxWorkers: '50%'` (the default parallelism caused cold-compile timeouts).

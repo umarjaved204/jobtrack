@@ -8,6 +8,7 @@ import { session } from '@/lib/api/session';
 import { resetThemeForTests } from '@/lib/theme';
 
 import { server } from './msw';
+import { clearQueryClients, settleQueryClients } from './query-clients';
 
 // Animations jump straight to their end state: jsdom has no real frame loop, and tests
 // assert outcomes (visible, focused), not motion.
@@ -26,9 +27,13 @@ configure({ asyncUtilTimeout: 10_000 });
 beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));
 afterAll(() => server.close());
 
-afterEach(() => {
+afterEach(async () => {
+  // Let requests the test left in flight finish while the app is still mounted (see
+  // query-clients.ts), so nothing reaches React after the environment is torn down.
+  await settleQueryClients();
   // RTL only auto-cleans when test globals are enabled; we import from 'vitest' explicitly.
   cleanup();
+  await clearQueryClients();
   server.resetHandlers();
   // Module singletons must not leak between tests: the in-memory token, the theme cache.
   session.reset();

@@ -19,6 +19,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { applicationEventsQuery } from '@/features/calendar/api';
 import { remindersQuery } from '@/features/reminders/api';
+import { LatestMatchSection } from '@/features/match/latest-match-section';
 import { RemindersSection } from '@/features/reminders/reminders-section';
 import { resumesQuery } from '@/features/resumes/api';
 import { isApiError } from '@/lib/api/errors';
@@ -274,6 +275,7 @@ function ApplicationView({ application, back }: { application: Application; back
         <Timeline applicationId={application.id} />
         <aside className="grid content-start gap-10" aria-label="About this application">
           <Details application={application} />
+          <LatestMatchSection applicationId={application.id} />
           <RemindersSection applicationId={application.id} company={application.company} />
           <ContactsSection applicationId={application.id} />
         </aside>

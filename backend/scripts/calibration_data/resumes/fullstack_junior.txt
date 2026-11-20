@@ -1,0 +1,29 @@
+Tomasz Kowalczyk
+Full-Stack Developer, Bristol, UK
+
+About me
+Full-stack developer with two and a half years of experience shipping features end to end in small product teams, from database tables to React screens. Comfortable in TypeScript on both sides, with some Python for scripts and data jobs.
+
+Experience
+
+Full-Stack Developer, Harbourline Bookings (2023 to present)
+- Build features for a booking platform for independent gyms, with a React and TypeScript frontend and a Node.js and Express API.
+- Designed PostgreSQL tables and Prisma migrations for memberships, class schedules and waitlists.
+- Built the class timetable screen with drag-and-drop rescheduling and optimistic updates.
+- Wrote Jest unit tests and a handful of Playwright tests for checkout.
+- Set up Docker Compose for local development and a GitHub Actions pipeline that runs tests on every pull request.
+- Wrote Python scripts to import legacy customer data from spreadsheets.
+
+Software Engineering Intern, Cloudberry Analytics (summer 2022)
+- Added REST endpoints to a Flask service and fixed bugs in its React admin panel.
+- Wrote SQL reports for the customer success team.
+
+Projects
+- Recipe planner: a Next.js app with a PostgreSQL database, deployed on Vercel.
+- Discord bot in Python that posts climbing-wall opening hours.
+
+Skills
+TypeScript, JavaScript, React, Next.js, Node.js, Express, Python, Flask, PostgreSQL, Prisma, SQL, Docker, GitHub Actions, Jest, Playwright, REST APIs, HTML, CSS, Git
+
+Education
+BSc Software Engineering, University of the West of England, 2022

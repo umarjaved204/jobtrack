@@ -1,0 +1,26 @@
+Priya Raman
+Frontend Engineer, Manchester, UK
+
+Profile
+Frontend engineer with five years of experience building accessible, fast web applications in React and TypeScript. I care about design systems, keyboard users and the small details that make an interface feel calm.
+
+Experience
+
+Frontend Engineer, Lumen Health (2021 to present)
+- Lead developer on the patient booking app, built with React, TypeScript and TanStack Query, used by 300,000 patients a month.
+- Built and documented a design system of 60 components in Storybook, adopted by four product teams.
+- Led an accessibility programme that brought the booking flow to WCAG 2.1 AA, including screen reader testing with NVDA and VoiceOver.
+- Cut the main bundle by 45 percent with route-level code splitting in Vite, improving Largest Contentful Paint from 3.8 to 1.9 seconds.
+- Wrote component tests with Vitest and React Testing Library, and Playwright tests for the booking journey.
+- Worked daily with designers in Figma to turn prototypes into production components.
+
+Junior Frontend Developer, Pixel & Pine Studio (2019 to 2021)
+- Built marketing sites and e-commerce storefronts in React, Next.js and Sass for agency clients.
+- Implemented responsive layouts from Figma designs and fixed cross-browser bugs.
+- Added end-to-end tests with Cypress to the agency's starter kit.
+
+Skills
+React, TypeScript, JavaScript, Next.js, Vite, TanStack Query, Redux, HTML, CSS, Sass, Tailwind CSS, Storybook, Accessibility (WCAG), Vitest, Jest, React Testing Library, Playwright, Cypress, Figma, Web performance, Git
+
+Education
+BA Interaction Design, Manchester Metropolitan University, 2019

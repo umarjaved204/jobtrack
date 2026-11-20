@@ -200,6 +200,141 @@ browser's calendar day and clock ("today", "now"), never the server's UTC date.
 changes only, never on background refetches, and not at all under reduced motion. Every
 chart has a caption summary and a visually hidden data table.
 
+## Match scoring
+
+How a resume is scored against a job description (JD). The decision and its trade-offs are
+in [ADR 0004](./adr/0004-resume-matching-local-embeddings.md). Code: `app/services/match/`.
+
+**Formula** (`scoring.py`):
+
+    score = 100 × (0.6 × skill coverage + 0.4 × semantic)    if the JD names taxonomy skills
+    score = 100 × semantic                                    if it names none
+
+The score is rounded to a whole number. It estimates overlap. It doesn't predict how an
+employer or an ATS would rank the resume.
+
+- *Skill coverage* (`skills.py`): requirements met / requirements found, with preferred
+  ones counting half. Skills come from the curated taxonomy (`skills.json`). A list of
+  alternatives on one line ("FastAPI, Django or Flask", "Power BI or Tableau", "React/Vue",
+  "Express, NestJS or similar") is one requirement that any option meets. Lists joined
+  only by commas or "and" are separate requirements. Required, preferred and ignored parts
+  of the JD come from its headings and markers (`sections.py`).
+- *Raw similarity* (`semantic.py`): both texts are chunked under the model's token limit.
+  Each JD chunk takes its most similar resume chunk (cosine, "max-sim"). The raw value is
+  the weighted mean of those maxima, with preferred lines at half weight.
+- *Semantic*: the raw similarity, calibrated per model (below), from 0 to 1.
+
+**Calibration.** On bge models, raw cosines bunch in a narrow band: 0.59 to 0.75 on our
+pairs, whether the texts are unrelated or a perfect fit. So they're mapped linearly onto
+0 to 1 and clipped. The two anchors are the raw values where a least-squares line of
+*grade / 3* on raw similarity crosses 0 and 1.
+
+- *Labelled set* (`backend/scripts/calibration_data/`): 6 invented resumes × 6 invented JDs
+  (backend, frontend, full-stack, data analyst, content marketing, ward nurse), 36 pairs.
+  Each pair was graded from the texts alone, before anything was measured:
+  0 = a different profession, 1 = a related field but a different role, 2 = an
+  overlapping role, 3 = the role. There are 20, 7, 3 and 6 pairs at each grade. The
+  nursing pair names no taxonomy skills, so it exercises the semantic-only path.
+- *Measured with* `uv run python -m scripts.calibrate_match`. For the browser model it runs
+  the exact q8 file the browser downloads, under native ONNX Runtime, with the same
+  tokenizer and [CLS] pooling. It also measures fastembed's build (`MATCH_EMBEDDINGS=server`).
+  The results are committed (`raw_similarities.json`). `tests/test_match_scoring.py`
+  checks that the constants in `scoring.py` are the fit of that file, and `model`-marked
+  tests check that the file is still current.
+- *Constants* (calibration version 1):
+
+  | Model | Raw → 0 | Raw → 1 |
+  |---|---|---|
+  | `Xenova/bge-small-en-v1.5@ea104dac…` (browser, q8) | 0.6119 | 0.7480 |
+  | `BAAI/bge-small-en-v1.5` (fastembed) | 0.6118 | 0.7505 |
+
+  The two builds differ by at most 0.0061 in raw similarity on these pairs (a test keeps
+  it under 0.01).
+
+**Validation** on the labelled pairs (browser model, calibration 1, taxonomy 2):
+
+| Grade | Pairs | Mean score | Range |
+|---|---|---|---|
+| 3: the role | 6 | 90 | 78–99 |
+| 2: overlapping role | 3 | 49 | 43–53 |
+| 1: related field | 7 | 24 | 11–42 |
+| 0: different profession | 20 | 4 | 0–13 |
+
+*Concordance* is 0.996 (0.984 with taxonomy 1): of all pairs of pairs with different grades, the share where the
+higher grade scores higher. The tests keep these as regression guards: mean score rises
+with every grade, concordance ≥ 0.95, every grade-3 pair ≥ 60 and every grade-0 pair ≤ 20.
+
+*Bands in the UI* (`frontend/src/features/match/score-band.ts`): **Strong overlap** from
+65 (every grade-3 pair scored at least 78), **Partial overlap** from 35 (grade 2 scored
+43–53), **Little overlap** below 35. One grade-1 pair (junior full-stack resume, backend
+JD) scores 42, so a related-field match can make "Partial". Change the bands with the
+labelled results, not by feel.
+
+*Limits:* 36 pairs written by one person is a sanity check, not a statistically validated
+scale. The thresholds were set after the first measurement, so they catch regressions;
+they don't prove accuracy.
+
+*Taxonomy 2* added implications from tools to the practice they belong to: Celery,
+RabbitMQ, Kafka and SQS imply "Message queues"; pytest, Jest, Vitest, Mocha, JUnit,
+Cypress, Playwright and Selenium imply "Test automation"; Celery and pytest imply Python.
+Rules are only added when they are true in general and point from specific to general
+(a test keeps implications one-directional), never to lift one labelled pair. Against
+taxonomy 1, ten pairs' scores moved (by −1 to +11; the backend grade-3 pair went from
+67 to 78) and none changed band, on either model.
+
+**Versions.** Every result stores `model_name`, `scoring_version` (the formula, weights,
+skill-requirement rules, chunking and section weights), `calibration_version` (per model)
+and `taxonomy_version`. Two results are comparable only when all four match. Older
+results aren't re-scored: the API marks them `is_current: false`, and the UI offers a
+re-run.
+
+### Match API
+
+Code: `app/services/match/service.py`. `MATCH_EMBEDDINGS` picks where the vectors are
+computed. `GET /match/config` tells the page which mode is active.
+
+**Client mode** (production). The page is cross-origin isolated, so the embedding worker
+runs ONNX Runtime on up to 4 threads (ADR 0004, Revision 2).
+
+1. `POST /match/prepare {resume_id, jd_text}` checks the request: the resume must be the
+   user's own and not archived, the JD at most 20,000 characters, and the rate limit not
+   reached. It chunks both texts with the browser model's tokenizer and returns the
+   chunks, the model spec and a **digest**: the sha256 of the model name, the chunking
+   version and the chunks.
+2. The browser looks the chunks up in its vector cache (per user, model and revision;
+   cleared on sign-out; ADR 0004 Revision 2) and embeds only the rest, in a Web Worker.
+3. `POST /match {resume_id, jd_text, application_id?, embeddings: {digest, jd, resume}}`:
+   - *Vectors* are base64 of little-endian float32 values, row-major, one row per chunk.
+     That's about 4× smaller than JSON numbers; the largest allowed request carries
+     about 1.8 MB of vectors.
+   - *Digest:* the server re-chunks the texts. A different digest means the texts or the
+     model changed since step 1, and the answer is 409 ("prepare again").
+   - *Vector checks:* the count, 384 dimensions, finite values and unit length (±0.001).
+     A failed check is a 422 on `embeddings`.
+   - *Cache:* client vectors never enter the shared resume-embedding cache.
+
+**Server mode** (dev, self-hosting): `POST /match` without `embeddings`. The server
+embeds with fastembed, one match per process at a time. A request that can't start
+within 10 s gets a 503 with `Retry-After: 15`. **Off:** `prepare` and `POST /match`
+answer 503.
+
+**Limits:** at most 300 JD chunks and 600 resume chunks. Chunks are lines; the worst case
+we measured, a 50,000-character resume against a 20,000-character JD, has 134 JD chunks and
+336 resume chunks. `prepare` and `POST /match` each allow 30 requests per user per hour
+(`RATE_LIMIT_MATCH_*`).
+
+**Freezing the resume text.** A resume's text is frozen once a match uses it. Saving a
+match re-reads the text `FOR SHARE`; if it no longer equals the scored text, the answer
+is 409. A text edit takes `FOR UPDATE` on the resume before checking for uses. Either
+order of the two transactions ends with one of them refused, never a match pointing at
+text it didn't score.
+
+**Stored result:** the score and its parts, the requirements (`{skills, label, required}`),
+the suggested keywords, the top 5 evidence pairs (JD line, best resume line, raw
+cosine), `sections_detected` and the versions. `GET /match` lists results newest first
+without the JD text, showing an excerpt (the JD's first line, at most 120 characters)
+instead.
+
 ## Health checks
 
 - `GET /api/v1/health`: liveness, process only (used by Docker healthchecks).

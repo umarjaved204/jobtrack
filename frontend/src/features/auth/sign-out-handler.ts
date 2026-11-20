@@ -1,5 +1,6 @@
 import type { QueryClient } from '@tanstack/react-query';
 
+import { clearVectorCache } from '@/features/match/vector-cache';
 import type { SessionManager } from '@/lib/api/session';
 
 type Deps = {
@@ -13,12 +14,14 @@ type Deps = {
 /**
  * One place that reacts to sign-out, whether it started here (Sign out, failed refresh)
  * or in another tab (BroadcastChannel): drop every cached query, which may hold the
- * previous user's data, then go to /login. After an expiry we keep `next` so the user
+ * previous user's data, and the match vector cache (vectors of their resumes and
+ * adverts; never throws), then go to /login. After an expiry we keep `next` so the user
  * lands back where they were.
  */
 export function installSignOutHandler({ session, queryClient, navigate, currentPath }: Deps) {
   return session.onSignedOut((reason) => {
     queryClient.clear();
+    void clearVectorCache();
     const query =
       reason === 'expired' ? `?reason=expired&next=${encodeURIComponent(currentPath())}` : '';
     navigate(`/login${query}`, { replace: true });

@@ -262,11 +262,18 @@ def _add_match(db: Session, resume_id: str) -> None:
             user_id=resume.user_id,
             resume_version_id=resume.id,
             jd_text="Senior Python engineer: FastAPI, PostgreSQL, AWS",
-            score=72.5,
-            matched_skills=["python", "fastapi", "postgresql"],
-            missing_skills=["aws"],
-            suggested_keywords=["aws"],
+            score=72,
+            matched_skills=[{"skills": ["Python"], "label": "Python", "required": True}],
+            missing_skills=[{"skills": ["AWS"], "label": "AWS", "required": True}],
+            suggested_keywords=["AWS"],
+            evidence=[],
+            sections_detected=False,
+            skill_coverage=0.75,
+            semantic_score=0.68,
             model_name="test-model",
+            scoring_version=1,
+            calibration_version=1,
+            taxonomy_version=1,
         )
     )
     db.commit()

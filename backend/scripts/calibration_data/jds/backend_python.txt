@@ -1,0 +1,33 @@
+Backend Engineer (Python), Payments Platform
+Tillwise, Edinburgh or remote (UK)
+
+About us
+Tillwise provides card payments and invoicing for 20,000 small businesses across the UK. We are a team of 60, profitable, and we would rather ship small changes every day than big ones every quarter.
+
+The role
+You will join the Payments Core team, which owns the APIs that create, capture and refund payments, and the ledger that keeps every penny accounted for. You will design services, own them in production, and help keep our platform fast and dependable as volumes double each year.
+
+What you'll do
+- Build and maintain Python services with FastAPI that handle payment, refund and payout requests.
+- Design PostgreSQL schemas and write migrations for a ledger that must never lose or double-count money.
+- Build background workers for settlement and reconciliation jobs, with retries and idempotency.
+- Instrument services with metrics and traces, and improve dashboards and alerts.
+- Take part in an on-call rota and lead incident reviews when things go wrong.
+- Review code and help shape API design across teams.
+
+Requirements
+- Several years of professional experience building backend services in Python.
+- Experience with FastAPI, Django or Flask, and an ORM such as SQLAlchemy.
+- Strong PostgreSQL skills: schema design, indexing, transactions and query plans.
+- Experience with Docker and deploying services to a cloud provider, ideally AWS.
+- A solid habit of writing automated tests with pytest.
+- Experience with message queues or background job systems such as Celery, SQS or RabbitMQ.
+
+Nice to have
+- Experience in payments, fintech or another domain where correctness really matters.
+- Terraform or other infrastructure as code.
+- Experience with Kubernetes.
+
+What we offer
+- Salary 70,000 to 85,000 pounds, plus share options.
+- 30 days of holiday, a learning budget and a yearly team trip.

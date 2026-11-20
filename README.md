@@ -13,8 +13,8 @@
 - **Detail pages**: notes, contacts, tags, follow-up reminders, and which resume version you sent
 - **Dashboard**: stat cards, applications over time, conversion funnel, source breakdown
 - **Calendar**: interviews and deadlines in one place
-- **AI match**: paste a job description to get a match score, missing skills and keywords to add
-- **Settings**: light/dark theme, accent color, CSV/JSON export
+- **AI match**: paste a job description to get a match score, missing skills and keywords to add, against one of your resume versions. The embedding model runs in your browser, the score is calibrated on labelled pairs, and each application shows its latest match
+- **Settings**: light/dark theme, accent color, CSV/JSON export, delete match history
 
 ## Tech stack
 
@@ -126,7 +126,8 @@ This is intentional; see [ADR 0002](docs/adr/0002-authentication.md).
 | 6  | Kanban board (keyboard + touch drag, “Move to…” menu), table with URL-synced filters, application form, detail page with timeline and contacts; contacts API; dev seed script | ✅ |
 | 7  | Dashboard: analytics API (cohort by applied date, stages from the timeline), animated stat strip, applications over time, pipeline funnel, sources, apply-by dates coming up; date range in the URL | ✅ |
 | 8  | Resume versions (archived once used, text frozen), follow-up reminders (all-day or timed, zone-aware), calendar with an accessible month grid and a merged feed; interviews, assessments, deadlines and reminders join the dashboard’s “Coming up” | ✅ |
-| 9  | AI match service, endpoint and UI | ⏳ |
+| 9  | AI match: skills taxonomy and section-aware requirements, embeddings in the browser (Web Worker, multi-threaded through cross-origin isolation, vectors cached in IndexedDB), calibrated and versioned scores, match history, latest match on each application, delete history | ✅ |
+| 9b | Resume file import (`feat/resume-file-import`): PDF and Word (.docx) read in the browser, never uploaded; extracted text reviewed before saving | ⏳ |
 | 10 | Polish: signature animations (incl. spring-physics Kanban drag), ⌘K palette, a11y, responsive | ⏳ |
 | 11 | Test suite expansion + full CI, incl. Playwright for the Kanban drag paths jsdom can't run (below) | ⏳ |
 | 12 | Email verification + password reset (non-blocking verify banner; reset never reveals if an account exists) | ⏳ |
@@ -139,7 +140,8 @@ This is intentional; see [ADR 0002](docs/adr/0002-authentication.md).
 - **Source filter options** come from the board data (every application), since there's no endpoint listing sources. A small `GET /applications/sources` would avoid fetching the board in table view.
 - **Reminders are in-app only**: they show on the application, the calendar and the dashboard. Nothing is emailed or pushed.
 - **Time zones**: times are entered and shown in the browser’s zone and stored in UTC; there’s no per-user zone setting. All-day reminders and apply-by dates are plain dates and never shift between zones.
-- **Resumes** are pasted plain text (up to 50,000 characters). PDF/DOCX upload with text extraction is optional later work.
+- **Resumes** are pasted plain text (up to 50,000 characters). PDF and .docx import is planned as 9b (above); scanned PDFs (no text layer) and legacy .doc files won't be supported.
+- **AI match** is English-only and estimates overlap; it doesn't predict how an employer or an ATS ranks a resume. Its calibration rests on 36 labelled pairs written by one person. Phone-class performance is unmeasured until a real device is tried (CPU throttling doesn't reach Web Workers). See ADR 0004.
 - **Data export** (Settings, Phase 10) must include resume versions, reminders and calendar events, not only applications.
 - **Reminder lists aren’t paginated**: a personal account’s reminders stay small, and the views use open reminders or one application’s.
 - **Dashboard bundle**: Recharts makes the lazy `/dashboard` chunk ~116 KB gzip (the main bundle is unaffected). If first paint matters later, the chart can become its own lazy chunk so the figures show first.
@@ -147,7 +149,7 @@ This is intentional; see [ADR 0002](docs/adr/0002-authentication.md).
 - **Cross-tab sessions** use the Web Locks API, which needs a secure context (HTTPS or `localhost`). Opening the dev server from another device via a LAN IP uses the fallback path; see ADR 0002.
 - **Email addresses**: format is checked on client and server, and sign-up rejects domains that DNS confirms can't receive mail (typos like `gmial.com`). That doesn't prove the inbox exists: verification links and password reset are Phase 12.
 
-See [docs/adr/0002-authentication.md](docs/adr/0002-authentication.md), [docs/adr/0003-kanban-drag-and-drop.md](docs/adr/0003-kanban-drag-and-drop.md) and [docs/deployment.md](docs/deployment.md).
+See [docs/adr/0002-authentication.md](docs/adr/0002-authentication.md), [docs/adr/0003-kanban-drag-and-drop.md](docs/adr/0003-kanban-drag-and-drop.md), [docs/adr/0004-resume-matching-local-embeddings.md](docs/adr/0004-resume-matching-local-embeddings.md) and [docs/deployment.md](docs/deployment.md).
 
 ## License
 

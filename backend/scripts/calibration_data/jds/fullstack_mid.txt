@@ -1,0 +1,33 @@
+Full-Stack Engineer (TypeScript)
+Pitchside, Bristol (hybrid, 3 days in the office)
+
+About us
+Pitchside helps grassroots sports clubs manage memberships, fixtures and payments. Over 3,000 clubs use our app, run by volunteers who need things to just work.
+
+The role
+We are hiring a full-stack engineer to join one of our three product squads. You will build features end to end, from database tables and APIs to the screens volunteers use on their phones on a rainy Saturday morning.
+
+Responsibilities
+- Build product features across our React frontend and Node.js backend, both in TypeScript.
+- Design PostgreSQL tables and write migrations, keeping queries fast as clubs grow.
+- Build and document REST APIs used by our web and mobile apps.
+- Write unit and end-to-end tests, and keep our CI pipeline green and quick.
+- Join planning sessions with product managers and designers and talk to club volunteers about their problems.
+
+Requirements
+- Around two to four years of experience as a full-stack or web developer.
+- Solid TypeScript and React skills.
+- Experience building APIs with Node.js, using Express, NestJS or similar.
+- Good working knowledge of SQL and PostgreSQL.
+- Experience with Git, code review and CI/CD, for example GitHub Actions.
+- Experience writing tests with Jest, Vitest or Playwright.
+
+Nice to have
+- Experience with Prisma or another ORM.
+- Docker and some cloud deployment experience.
+- Python for scripts and data jobs.
+- React Native or other mobile experience.
+
+What we offer
+- Salary 50,000 to 62,000 pounds.
+- 28 days of holiday plus bank holidays, and two volunteering days a year.

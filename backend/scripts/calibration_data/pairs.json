@@ -1,0 +1,52 @@
+{
+  "about": "Hand-graded resume/JD pairs for match calibration (docs/architecture.md 'Match scoring'). All people and companies are invented. Grades were assigned from the texts alone, before any similarity was computed, and must not be changed to make a calibration pass.",
+  "grades": {
+    "0": "a different profession",
+    "1": "a related field, a different role: shares some tools or context, not the core job",
+    "2": "an overlapping role: much of the core job, with clear gaps",
+    "3": "the role this resume is for"
+  },
+  "pairs": [
+    { "resume": "backend_python", "jd": "backend_python", "grade": 3 },
+    { "resume": "backend_python", "jd": "frontend_react", "grade": 1 },
+    { "resume": "backend_python", "jd": "fullstack_mid", "grade": 2 },
+    { "resume": "backend_python", "jd": "data_analyst", "grade": 1 },
+    { "resume": "backend_python", "jd": "marketing_manager", "grade": 0 },
+    { "resume": "backend_python", "jd": "ward_nurse", "grade": 0 },
+
+    { "resume": "frontend_react", "jd": "backend_python", "grade": 1 },
+    { "resume": "frontend_react", "jd": "frontend_react", "grade": 3 },
+    { "resume": "frontend_react", "jd": "fullstack_mid", "grade": 2 },
+    { "resume": "frontend_react", "jd": "data_analyst", "grade": 0 },
+    { "resume": "frontend_react", "jd": "marketing_manager", "grade": 0 },
+    { "resume": "frontend_react", "jd": "ward_nurse", "grade": 0 },
+
+    { "resume": "fullstack_junior", "jd": "backend_python", "grade": 1 },
+    { "resume": "fullstack_junior", "jd": "frontend_react", "grade": 2 },
+    { "resume": "fullstack_junior", "jd": "fullstack_mid", "grade": 3 },
+    { "resume": "fullstack_junior", "jd": "data_analyst", "grade": 1 },
+    { "resume": "fullstack_junior", "jd": "marketing_manager", "grade": 0 },
+    { "resume": "fullstack_junior", "jd": "ward_nurse", "grade": 0 },
+
+    { "resume": "data_analyst", "jd": "backend_python", "grade": 1 },
+    { "resume": "data_analyst", "jd": "frontend_react", "grade": 0 },
+    { "resume": "data_analyst", "jd": "fullstack_mid", "grade": 1 },
+    { "resume": "data_analyst", "jd": "data_analyst", "grade": 3 },
+    { "resume": "data_analyst", "jd": "marketing_manager", "grade": 0 },
+    { "resume": "data_analyst", "jd": "ward_nurse", "grade": 0 },
+
+    { "resume": "marketing_manager", "jd": "backend_python", "grade": 0 },
+    { "resume": "marketing_manager", "jd": "frontend_react", "grade": 0 },
+    { "resume": "marketing_manager", "jd": "fullstack_mid", "grade": 0 },
+    { "resume": "marketing_manager", "jd": "data_analyst", "grade": 0 },
+    { "resume": "marketing_manager", "jd": "marketing_manager", "grade": 3 },
+    { "resume": "marketing_manager", "jd": "ward_nurse", "grade": 0 },
+
+    { "resume": "registered_nurse", "jd": "backend_python", "grade": 0 },
+    { "resume": "registered_nurse", "jd": "frontend_react", "grade": 0 },
+    { "resume": "registered_nurse", "jd": "fullstack_mid", "grade": 0 },
+    { "resume": "registered_nurse", "jd": "data_analyst", "grade": 0 },
+    { "resume": "registered_nurse", "jd": "marketing_manager", "grade": 0 },
+    { "resume": "registered_nurse", "jd": "ward_nurse", "grade": 3 }
+  ]
+}

@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>Match embedding benchmark</title>
+    <!--
+      Dev-only (docs/adr/0004 "Validation"): `pnpm dev`, then open /bench/match.html.
+      Not part of the production build (vite builds index.html only).
+    -->
+    <style>
+      body {
+        font:
+          15px/1.5 system-ui,
+          sans-serif;
+        margin: 2rem auto;
+        max-width: 60rem;
+        padding: 0 1rem;
+        background: #f3ede2;
+        color: #16130f;
+      }
+      table {
+        border-collapse: collapse;
+        margin: 1rem 0;
+      }
+      th,
+      td {
+        border-bottom: 1px solid #0003;
+        padding: 0.25rem 0.75rem;
+        text-align: left;
+        font-variant-numeric: tabular-nums;
+      }
+      button {
+        font: inherit;
+        margin-right: 0.5rem;
+      }
+      pre {
+        background: #0001;
+        padding: 0.75rem;
+        overflow: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Match embedding benchmark</h1>
+    <p id="env"></p>
+    <p>
+      <button id="run" type="button" disabled>Run</button>
+      <button id="clear" type="button">Clear model cache</button>
+      <button id="save" type="button" disabled>Save results and vectors</button>
+    </p>
+    <p id="status" role="status">Loading chunks…</p>
+    <progress id="progress" max="1" value="0"></progress>
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Measure</th>
+          <th scope="col">Result</th>
+        </tr>
+      </thead>
+      <tbody id="results"></tbody>
+    </table>
+    <pre id="raw"></pre>
+    <script type="module" src="/src/features/match/bench/match-bench.ts"></script>
+  </body>
+</html>
