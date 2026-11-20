@@ -11,7 +11,8 @@
  * Query params:
  * - `?thread=worker` (default; the app's path) or `?thread=main`. Anything else refuses to
  *   run, so a typo can't silently measure the other path.
- * - `?case=two_page_vs_long_jd` or `?case=worst_case`: one case only (default: both).
+ * - `?case=two_page_vs_long_jd`, `three_page_vs_long_jd` or `worst_case`: one case only
+ *   (default: all).
  * - `?batch=8`: texts per model call.
  * - `?threads=1`: fewer ONNX Runtime threads than the default (to compare; see threads.ts).
  * CPU throttling (DevTools or the protocol's Emulation.setCPUThrottlingRate) reaches only the

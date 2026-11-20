@@ -1,0 +1,81 @@
+Sam Okafor
+London | sam.okafor@jobtrack-demo.com | github.com/sam-okafor-demo | +44 7700 900123
+
+Summary
+Full-stack engineer with seven years of experience building web products in React, TypeScript and Python, from early prototypes to platforms used by hundreds of people every day. I like owning features end to end: talking to users, shaping the data model, shipping the API and the interface, and watching the metrics afterwards. Most recently I led the frontend of a claims platform used by 400 adjusters, and before that I built authoring tools for teachers and logistics software for freight forwarders. I care about accessibility, fast pages, readable code and teams where people can ask questions without feeling slow.
+
+Experience
+
+Senior Frontend Engineer, Halden Insurance (2022 to now)
+Halden is a mid-sized insurer with 1,200 staff. I joined to replace the desktop claims tool with a web workbench and now lead the frontend of the claims platform.
+- Led a team of four building the claims workbench in React 19, TypeScript and TanStack Query, replacing a ten-year-old desktop tool. Planned the migration in six slices so adjusters could switch one claim type at a time; the old tool was switched off in 14 months with no unplanned downtime.
+- Designed the component library on top of Radix primitives with design tokens, Storybook and visual regression tests; adopted by three product teams. Wrote the contribution guide and ran the review rota, which kept the library to one way of doing each thing.
+- Cut the time to first meaningful paint on the claims list from 4.1 s to 1.3 s by splitting routes, streaming data and virtualising long tables. Added performance budgets to CI so regressions fail the build instead of reaching users.
+- Introduced Playwright end-to-end tests for the five highest-value journeys and ran them on every pull request in GitHub Actions. Flaky tests are quarantined automatically and fixed within a week; the suite has stayed under eight minutes.
+- Worked with the accessibility lead to reach WCAG 2.2 AA across the workbench; wrote the team's keyboard interaction guidelines and ran screen reader testing sessions with two adjusters who use NVDA every day.
+- Paired with backend engineers on the FastAPI services behind the workbench, adding endpoints for document upload and claim notes, with Pydantic models, SQLAlchemy queries and pytest suites against a real PostgreSQL database in Docker.
+- Built the document viewer for claim evidence (PDFs, photos, emails) with lazy loading and annotations stored as JSON; it handles files up to 200 pages without freezing the page.
+- Set up feature flags and gradual rollouts with the platform team, so new screens reached 5% of adjusters first and were rolled back twice without a deploy.
+- Mentored two junior engineers through their first year; ran a fortnightly frontend guild with talks, code reading sessions and a shared backlog of tooling improvements.
+- Took part in the on-call rota for the claims platform; wrote runbooks for the five most common alerts and led two incident reviews.
+
+Frontend Engineer, Brightwater Learning (2020 to 2022)
+Brightwater makes course authoring software for secondary schools, used by around 9,000 teachers.
+- Built the course authoring editor in React and TypeScript, with drag-and-drop lesson ordering and autosave. Designed the conflict handling for two teachers editing the same course, using version numbers and a merge view rather than locking.
+- Moved the app from Create React App to Vite, cutting local start-up from 40 s to 3 s and CI builds by half.
+- Added error monitoring with Sentry and a release checklist that reduced production incidents by a third.
+- Built charts for teacher dashboards with D3.js and later Recharts, focusing on clear labelling and colour-blind safe palettes. Ran five interviews with teachers to choose which three numbers each dashboard should lead with.
+- Wrote REST API clients and integration tests against a Django backend; contributed small Django fixes and migrations, and a management command that rebuilt search indexes in Elasticsearch overnight.
+- Introduced TypeScript strict mode across 600 files over three months by migrating one folder at a time behind a lint rule.
+- Worked with the design team on a new onboarding flow; the share of teachers who published their first course within a week rose from 31% to 46%.
+
+Software Developer, Northwind Freight (2019 to 2020)
+Northwind is a freight forwarder moving around 2,000 shipments a week between the UK and West Africa.
+- Maintained the shipment tracking portal (Angular, later partly migrated to React).
+- Wrote Python scripts to reconcile carrier invoices against shipment records, saving the finance team two days a month.
+- Built a small Flask service that published shipment events to RabbitMQ for downstream reporting, with retries and a dead-letter queue for messages that failed three times.
+- Wrote SQL reports on PostgreSQL for the operations team and tuned the slowest queries with indexes; the weekly margin report went from 9 minutes to 20 seconds.
+- Automated the nightly import of carrier rate sheets from Excel files with pandas, with validation emails when a sheet changed shape.
+
+Graduate Developer, Leeds City Council digital team (2018 to 2019)
+- Built accessible forms for council tax and parking permit applications in a government design system, tested with the council's user research team.
+- Wrote Node.js and Express services that connected the forms to the case management system through its SOAP API.
+- Helped move the team's deployments from manual FTP uploads to a pipeline with automated tests and staged releases.
+
+Skills
+Languages: TypeScript, JavaScript, Python, SQL, HTML, CSS
+Frontend: React, Next.js, Vite, TanStack Query, Redux, React Hook Form, Zod, Tailwind CSS, Storybook, Radix, D3.js, Recharts
+Backend: FastAPI, Django, Flask, Node.js, Express, REST APIs, GraphQL (consumer), PostgreSQL, Redis, RabbitMQ, Elasticsearch
+Testing: Vitest, Jest, React Testing Library, Playwright, pytest, visual regression testing
+Tooling: Git, GitHub Actions, Docker, Sentry, Figma, Linux, AWS (S3, CloudFront, Lambda)
+Practices: accessibility, design systems, performance optimisation, code review, mentoring, incident response, Agile, Scrum, Kanban
+
+Projects
+JobTrack (2026): a job application tracker with a kanban board, analytics dashboard and calendar. React, TypeScript, FastAPI, PostgreSQL, Docker. Includes a resume-to-job-description matcher that runs a small embedding model in the browser, with skills extraction and a calibrated score on the server.
+Bus times for Leeds (2018 to 2020): a small web app that predicted bus arrival times from public GPS feeds, based on my dissertation; around 300 weekly users at its peak. Python, scikit-learn, Flask, PostgreSQL.
+Community radio scheduler (2021): a volunteer rota and show scheduling tool for a local radio station, replacing a shared spreadsheet. Next.js, PostgreSQL, deployed on a free hosting tier.
+Open-source: contributions to a date-picker library (keyboard navigation fixes and tests) and documentation improvements to a charting library, including an accessibility guide for its tooltips.
+
+Talks and writing
+- "Keyboard first: building a claims workbench people can use all day", London Front-end meetup, 2024.
+- "Migrating to strict TypeScript one folder at a time", company engineering blog, 2021.
+- Guest lecture on accessible web forms for second-year students, University of Leeds, 2023.
+
+Education
+BSc Computer Science, University of Leeds (2015 to 2018), First Class Honours.
+Dissertation: Predicting bus arrival times from GPS traces with gradient-boosted trees.
+Relevant modules: databases, human-computer interaction, distributed systems, machine learning.
+
+Certifications and training
+- Web accessibility specialist training, 2023
+- AWS Cloud Practitioner, 2021
+- Mental health first aider, 2022
+
+Volunteering
+- Code reviewer for a coding bootcamp's final projects, twice a year since 2021.
+- Technical volunteer for a community radio station: website, scheduling tool and studio laptops.
+
+Interests
+Running (two half marathons), community radio, cooking for too many people, and reading about the history of maps.
+
+References available on request.

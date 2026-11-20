@@ -242,7 +242,8 @@ given network is confirmed after the first deploy.
 The target is a warm match (model loaded) of 5 s or less on the laptop. If the browser path
 fails badly, the fallback is the server model with background processing and a progress UI.
 
-Results: *pending*.
+Results: in Revision 2. The single-threaded measurement missed the target, which led to
+it; with several threads, warm matches are within 5 s on the laptop.
 
 ### Revision 2 (2026-11-20): several threads through cross-origin isolation
 
@@ -298,9 +299,11 @@ developer's laptop (12 logical CPUs), dev server in Docker.
   "Operation is only supported for pages, not workers". On the main thread, throttling
   works: about 6x slower, not exactly 4x, which also makes it a rough phone stand-in. So
   phone-class performance is unmeasured until a real device is tried.
-- **First-run download** isn't recorded here. Through the Docker dev server it measured
-  minutes, because the dev server serves a 34 MB file slowly from a Windows bind mount.
-  It will be measured with `pnpm build && pnpm preview`, and again after the first deploy.
+- **First-run download:** **12.1 s** for download plus model load with
+  `pnpm build && pnpm preview` over localhost (fresh profile). Through the Docker dev server
+  it took minutes, because the dev server serves a 34 MB file slowly from a Windows bind
+  mount. Real networks are slower than localhost: it is measured again after the first
+  deploy.
 
 #### Results (laptop, model loaded)
 
@@ -326,7 +329,32 @@ are **2.1x** faster than 1.
   spike (the dev backend runs with `--reload` in Docker), worth watching after deploy.
 
 Within the 5 s target, apart from that spike. The bench resume is nearer 1.5 pages than
-2–3; a 3-page resume is still to be measured (work grows with the resume's tokens).
+2–3, so a 3-page resume was measured too (below).
+
+**3-page resume** (`bench_data/resume_three_page.txt`, Sam's resume at full length: 1,271
+words, 35 JD + 67 resume chunks against the long JD; bench case `three_page_vs_long_jd`):
+
+| Measure | Conditions | Median | Range | Runs |
+|---|---|---|---|---|
+| Embedding only (bench page) | Docker Desktop off, local dev server | 1.70 s | 1.63–1.79 s | 10 |
+| Embedding only, 2-page case, same session | as above | 1.04 s | 1.03–1.11 s | 8 |
+| **End to end**, fresh page, nothing cached | production build (`vite preview`), backend + db in Docker | **3.84 s** | 3.22–4.65 s | 6 |
+| End to end, the same | as above, plus the polling frontend dev container running | 5.61 s | 4.74–8.18 s | 5 |
+
+"End to end" is click Match → result shown, on a freshly loaded page with an empty vector
+cache: worker start, model load from the browser cache (0.5–0.9 s), embedding every chunk
+(2.6–3.7 s), `/match/prepare` (33–61 ms) and the save (71–128 ms). That's stricter than
+the target's warm match, where the model is already loaded.
+
+- **Within the 5 s target** for a 3-page resume in normal conditions. Work grows with
+  the resume's tokens: 67 resume chunks against 42 cost about 1.6x the embedding time.
+- **A busy machine pushes it over.** With Docker Desktop running, the same embedding took
+  2.4–3.9 s on the bench page instead of 1.7 s, and the frontend dev container (polling
+  for file changes, about 30% CPU when idle) added roughly 2 s more end to end. A user's
+  laptop running other work is closer to that than to a quiet benchmark, and phones are
+  still unmeasured.
+- **Repeat matches are the common case and much cheaper:** with the resume's vectors
+  cached, only the advert is embedded (see "Vector cache" below).
 
 The production build was also checked for threads: the embedding worker reports
 `crossOriginIsolated`, and ONNX Runtime starts 3 thread workers beside it (4 threads).
@@ -346,7 +374,8 @@ is new.
 - **Size:** least recently used first, capped at 4,000 vectors (one vector is 1.5 KB at
   384 dimensions, so about 6 MB). A hit counts as a use.
 - **Cleared,** for every user, on sign-out, wherever it starts (the button, an expired
-  session, another tab), and later on "Delete all match history".
+  session, another tab), and with "Delete match history" in Settings (after the server
+  has deleted the results).
 - **Never a failed match:** private mode, a full quota, an open that fails or hangs
   (2 s timeout), or no `crypto.subtle` all mean "not cached".
 - **The model doesn't load at all** when every chunk is cached.

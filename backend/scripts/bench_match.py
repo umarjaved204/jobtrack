@@ -57,11 +57,13 @@ UNIT_TOLERANCE = 1e-3
 def bench_texts() -> dict[str, tuple[str, str, str]]:
     """name -> (label, jd, resume). The worst case repeats the real documents."""
     resume = (DATA / "resume_two_page.txt").read_text(encoding="utf-8").strip()
+    three_page = (DATA / "resume_three_page.txt").read_text(encoding="utf-8").strip()
     jd = (DATA / "jd_long.txt").read_text(encoding="utf-8").strip()
     big_resume = ("\n\n".join([resume] * 8))[:MAX_RESUME_CHARS]
     big_jd = ("\n\n".join([jd] * 4))[:MAX_JD_CHARS]
     return {
         "two_page_vs_long_jd": ("2-page resume vs long JD", jd, resume),
+        "three_page_vs_long_jd": ("3-page resume vs long JD", jd, three_page),
         "worst_case": (
             f"{len(big_resume):,}-char resume vs {len(big_jd):,}-char JD",
             big_jd,

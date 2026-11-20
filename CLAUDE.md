@@ -174,8 +174,17 @@ jobtrack/
 6. Kanban + table views, application form and detail page (done; drag-and-drop choice in ADR 0003)
 7. Dashboard with animated stat cards and custom charts (done; metric definitions in docs/architecture.md)
 8. Calendar, reminders, resume versions (done; "Coming up" gained events and reminders; definitions in docs/architecture.md)
-9. AI match service, endpoint and UI
-10. Polish: offer celebration, animated funnel, ⌘K palette, empty/loading/error states, a11y, responsive, reduced motion
+9. AI match service, endpoint and UI (done; ADR 0004 and its revisions; scoring in docs/architecture.md "Match scoring")
+9b. Resume file import, branch `feat/resume-file-import` after the Phase 9 merge, before Phase 10:
+    PDF (pdf.js) and .docx (mammoth) read in the browser, loaded only when a file is picked; the
+    file is never uploaded, the extracted text fills the textarea for review, then saves as today.
+    First check both libraries' licences and maintenance. Latest pdf.js with `isEvalSupported: false`
+    (confirm current guidance on CVE-2024-4367); pdf.js worker served same-origin (COOP/COEP);
+    5 MB file cap; same normalisation and 50k limit as pasted text. Scanned PDFs: say so and ask
+    to paste (no OCR). No legacy .doc. Two-column layouts may extract out of order (hence review).
+10. Polish: offer celebration, animated funnel, ⌘K palette, empty/loading/error states, a11y, responsive, reduced motion;
+    match progress says "Loading the match model" (not "Downloading") when it comes from the cache;
+    fix the id/name autofill warnings on Radix Select controls
 11. Tests (unit, integration, 1-2 Playwright flows) and CI
 12. Email verification + password reset (scope in ADR 0002 "Planned"; provider chosen then)
 13. Deploy, demo seed script, README with screenshots, architecture diagram, GIF, "what I learned"
@@ -365,3 +374,40 @@ jobtrack/
   sets exactly one of `due_on` / `due_at`).
 - Scripts written on Windows: write files as LF (pre-commit's `mixed-line-ending` rejects
   CRLF mixes).
+
+## Conventions (established in Phase 9)
+- Match code: `app/services/match/` (taxonomy `skills.json`, `sections.py`, `chunking.py`,
+  `semantic.py` behind the `Embedder` interface, `scoring.py`, `keywords.py`, `service.py`).
+  Client mode: `POST /match/prepare` returns chunks + a digest; the browser embeds them; the
+  server re-chunks, and a different digest is a 409. Client vectors are only checked cheaply
+  (shape, finite, unit length): a user can only affect their own score (ADR 0004).
+- Versions: every result stores the model and `scoring_version`, `calibration_version`,
+  `taxonomy_version`. Change the formula/chunking/section weights → bump scoring; the model or
+  calibration → re-run `uv run python -m scripts.calibrate_match`, update `CALIBRATIONS`, bump
+  calibration (tests check the constants are the fit of `raw_similarities.json`); `skills.json`
+  → bump its `version`. Old results are never re-scored: they show "Older version" + re-run.
+- Taxonomy rules: an implication only from specific to general and true in general (a test
+  keeps them one-directional), never to lift one labelled pair. Implications apply to JDs too
+  (a JD asking for Django also asks for Python). After any taxonomy or scoring change,
+  re-score the 36 labelled pairs, report band changes, and update the validation table in
+  docs/architecture.md; bands (`score-band.ts`) change only with the labelled results.
+- Resume freezing is counted, not stored (`_uses()`): deleting matches (`DELETE /match`)
+  unfreezes a version unless an application still links it.
+- Frontend: the model runs in a Web Worker (`features/match/embedding/`); `run-match.ts`
+  orchestrates prepare → cache lookup → embed → save. Ask before the first model download
+  (`ModelConsentDialog`). jsdom tests mock `embedding-client`, `support` and `model-cache`
+  (see `match-page.test.tsx`) and use `FakeEmbeddingClient`; tests touching the vector cache
+  import `fake-indexeddb/auto` first.
+- Links into the match form: `matchLinkFor(applicationId)` (`/match?application=<id>`); "Run
+  again" uses navigation state and wins. A linked application missing from the picker's
+  recent list is fetched and added.
+- Accessible names built from inline spans: put the separating space outside `sr-only`
+  spans (`{score}{' '}<span className="sr-only">out of 100</span>`); a leading space inside
+  one is trimmed ("81out of 100"). Assert link names in tests.
+- Measuring: `frontend/bench/match.html` (`bench_match.py export` writes its chunks; params in
+  `match-bench.ts`). CPU throttling never reaches workers, so throttled numbers are
+  main-thread only. Report medians with ranges and say which build and server were used.
+  Stop the frontend container (`docker compose stop frontend`) while timing: its polling dev
+  server takes ~30% CPU idle and skews results. A fresh Vite server's first page load can
+  reload mid-run (dependency optimisation): discard that run.
+- Vitest runs at `maxWorkers: '50%'` (the default parallelism caused cold-compile timeouts).
