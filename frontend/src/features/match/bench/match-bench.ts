@@ -8,9 +8,16 @@
  * 3. "Save results and vectors", then `uv run python -m scripts.bench_match browser FILE`
  *    validates the vectors as the server will and compares them with fastembed.
  *
- * Query params: `?batch=8` (texts per model call); `?thread=main` runs the model on the
- * main thread instead of the worker, so DevTools CPU throttling applies (it doesn't reach
- * workers). The app always uses the worker.
+ * Query params:
+ * - `?thread=worker` (default; the app's path) or `?thread=main`. Anything else refuses to
+ *   run, so a typo can't silently measure the other path.
+ * - `?case=two_page_vs_long_jd` or `?case=worst_case`: one case only (default: both).
+ * - `?batch=8`: texts per model call.
+ * - `?threads=1`: fewer ONNX Runtime threads than the default (to compare; see threads.ts).
+ * CPU throttling (DevTools or the protocol's Emulation.setCPUThrottlingRate) reaches only the
+ * page, never a worker: Chrome 157 answers "Operation is only supported for pages, not
+ * workers", and worker timings don't change at 4x (measured 2026-11-20). Throttled numbers
+ * are therefore main-thread only, and the main-thread page freezes while it runs.
  */
 import { createEmbeddingClient, DEFAULT_BATCH_SIZE } from '../embedding/embedding-client';
 import type { LoadInfo, ModelSpec } from '../embedding/protocol';
@@ -40,7 +47,12 @@ const saveButton = $<HTMLButtonElement>('save');
 
 const params = new URLSearchParams(location.search);
 const batchSize = Number(params.get('batch')) || DEFAULT_BATCH_SIZE;
-const thread = params.get('thread') === 'main' ? 'main' : 'worker';
+const THREADS = ['worker', 'main'] as const;
+const threadParam = params.get('thread') ?? 'worker';
+// A typo must not silently measure the other path.
+const thread = THREADS.find((t) => t === threadParam) ?? null;
+const caseParam = params.get('case');
+const threadsParam = params.has('threads') ? Number(params.get('threads')) : undefined;
 const seconds = (ms: number) => `${(ms / 1000).toFixed(2)} s`;
 
 function row(measure: string, result: string) {
@@ -60,7 +72,9 @@ $<HTMLParagraphElement>('env').textContent = [
   `${navigator.hardwareConcurrency} logical CPUs`,
   `cross-origin isolated: ${String(self.crossOriginIsolated)}`,
   `batch size ${batchSize}`,
-  `runs on: ${thread} thread`,
+  `runs on: ${thread ?? `unknown "${threadParam}"`} thread`,
+  `case: ${caseParam ?? 'all'}`,
+  `threads requested: ${threadsParam ?? 'default'}`,
   `support: ${checkSupport() ?? 'ok'}`,
 ].join(' · ');
 
@@ -93,7 +107,7 @@ async function run(file: ChunksFile) {
               new MainThreadWorker() as unknown as Worker,
         )
       : undefined;
-  const client = createEmbeddingClient({ spawn });
+  const client = createEmbeddingClient({ spawn, threads: threadsParam });
   const cached = (await caches.keys()).includes(CACHE_NAME);
   let downloaded = 0;
 
@@ -165,8 +179,19 @@ async function run(file: ChunksFile) {
 fetch('/bench/data/chunks.json')
   .then(async (response) => {
     if (!response.ok) throw new Error(`chunks.json: HTTP ${response.status}`);
-    const file = (await response.json()) as ChunksFile;
-    status.textContent = `Ready: ${file.cases.length} cases, model ${file.model.id}@${file.model.revision.slice(0, 7)}.`;
+    const all = (await response.json()) as ChunksFile;
+    const names = all.cases.map((c) => c.name).join(', ');
+    if (!thread) {
+      status.textContent = `Unknown ?thread=${threadParam}: use worker (the app's path) or main.`;
+      return;
+    }
+    const cases = caseParam ? all.cases.filter((c) => c.name === caseParam) : all.cases;
+    if (cases.length === 0) {
+      status.textContent = `Unknown ?case=${caseParam}: use one of ${names}.`;
+      return;
+    }
+    const file: ChunksFile = { ...all, cases };
+    status.textContent = `Ready: ${cases.map((c) => c.name).join(', ')}; model ${file.model.id}@${file.model.revision.slice(0, 7)}.`;
     runButton.disabled = false;
     runButton.addEventListener('click', () => {
       run(file).catch((error: unknown) => {
