@@ -1,16 +1,17 @@
 import { useQuery } from '@tanstack/react-query';
 import { FileText, MonitorX, PowerOff } from 'lucide-react';
 import { useRef, useState } from 'react';
-import { Link, useLocation } from 'react-router';
+import { Link, useLocation, useSearchParams } from 'react-router';
 
 import { EmptyState } from '@/components/empty-state';
 import { PageHeader } from '@/components/page-header';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { applicationsListQuery } from '@/features/applications/api';
+import { applicationQuery, applicationsListQuery } from '@/features/applications/api';
 import { LoadError } from '@/features/dashboard/load-error';
 import { resumesQuery } from '@/features/resumes/api';
+import type { Application } from '@/types/application';
 import type { MatchConfig } from '@/types/match';
 
 import { matchConfigQuery } from './api';
@@ -20,7 +21,13 @@ import { MatchForm } from './match-form';
 import { MatchHistory } from './match-history';
 import { MatchProgressPanel } from './match-progress';
 import { MatchResult } from './match-result';
-import { type MatchFormValues, rerunValues, toMatchInput } from './match-schema';
+import {
+  linkedValues,
+  type MatchFormValues,
+  NO_APPLICATION,
+  rerunValues,
+  toMatchInput,
+} from './match-schema';
 import { ModelConsentDialog } from './model-consent-dialog';
 import { useMatchRun } from './use-match-run';
 
@@ -80,7 +87,14 @@ function MatchWorkspace({ config }: { config: MatchConfig }) {
   const [pending, setPending] = useState<MatchFormValues | null>(null);
   const consented = useRef(false);
   const { state: navigationState } = useLocation();
-  const [initial] = useState(() => rerunValues(navigationState));
+  const [searchParams] = useSearchParams();
+  // "Run again" (navigation state) wins over a link from an application's page.
+  const [initial] = useState(() => rerunValues(navigationState) ?? linkedValues(searchParams));
+  // The picker lists the most recently updated applications: the linked one may be older,
+  // so it's fetched (usually cached already: the link comes from its page) and added.
+  const linkedId =
+    initial && initial.application_id !== NO_APPLICATION ? initial.application_id : null;
+  const linked = useQuery({ ...applicationQuery(linkedId ?? ''), enabled: linkedId !== null });
 
   if (unsupported) {
     return (
@@ -90,7 +104,10 @@ function MatchWorkspace({ config }: { config: MatchConfig }) {
       </EmptyState>
     );
   }
-  if (resumes.isPending) return <Skeleton className="h-96" />;
+  // The form reads its starting values once, so it waits for the linked application.
+  if (resumes.isPending || (linkedId !== null && linked.isPending)) {
+    return <Skeleton className="h-96" />;
+  }
   if (resumes.isError) {
     return (
       <LoadError
@@ -131,17 +148,22 @@ function MatchWorkspace({ config }: { config: MatchConfig }) {
     start(values);
   };
   const { state } = run;
+  // A link to an application that's gone (or not yours) starts unlinked instead.
+  const formInitial =
+    initial && linkedId !== null && linked.isError
+      ? { ...initial, application_id: NO_APPLICATION }
+      : initial;
 
   return (
     <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_22rem]">
       <div className="grid content-start gap-6">
         <MatchForm
           resumes={active}
-          applications={applications.data?.items}
+          applications={withLinked(applications.data?.items, linked.data)}
           running={state.status === 'running'}
           error={state.status === 'error' ? state.error : null}
           onRun={(values) => void onRun(values)}
-          initial={initial}
+          initial={formInitial}
         />
         {state.status === 'running' && (
           <MatchProgressPanel progress={state.progress} onCancel={run.cancel} />
@@ -178,6 +200,11 @@ function MatchWorkspace({ config }: { config: MatchConfig }) {
       />
     </div>
   );
+}
+
+function withLinked(recent: Application[] | undefined, linked: Application | undefined) {
+  if (!recent || !linked || recent.some((app) => app.id === linked.id)) return recent;
+  return [linked, ...recent];
 }
 
 export { MatchPage };

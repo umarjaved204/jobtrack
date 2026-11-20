@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { MAX_JD_CHARS, matchFormSchema, NO_APPLICATION, toMatchInput } from './match-schema';
+import {
+  linkedValues,
+  MAX_JD_CHARS,
+  matchFormSchema,
+  matchLinkFor,
+  NO_APPLICATION,
+  toMatchInput,
+} from './match-schema';
 
 const valid = { resume_id: 'resume-1', application_id: NO_APPLICATION, jd_text: 'React engineer' };
 const errorsFor = (values: object) =>
@@ -30,5 +37,28 @@ describe('toMatchInput', () => {
       application_id: null,
     });
     expect(toMatchInput({ ...valid, application_id: 'app-1' }).application_id).toBe('app-1');
+  });
+});
+
+describe('matchLinkFor / linkedValues', () => {
+  it('round-trips an application id through the URL', () => {
+    const link = matchLinkFor('app-monzo');
+    expect(link).toBe('/match?application=app-monzo');
+    expect(linkedValues(new URL(link, 'https://jobtrack.local').searchParams)).toEqual({
+      resume_id: '',
+      application_id: 'app-monzo',
+      jd_text: '',
+    });
+  });
+
+  it('ignores a missing, empty or "not linked" value', () => {
+    for (const search of [
+      '',
+      '?application=',
+      '?application=%20',
+      `?application=${NO_APPLICATION}`,
+    ]) {
+      expect(linkedValues(new URLSearchParams(search))).toBeNull();
+    }
   });
 });

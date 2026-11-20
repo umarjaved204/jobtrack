@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { addDays } from 'date-fns/addDays';
 
 import { toDateOnly } from '@/lib/dates';
-import { makeResume, mockApplicationsBackend } from '@/test/fake-applications';
+import { makeMatch, makeResume, mockApplicationsBackend } from '@/test/fake-applications';
 import { mockAuthBackend, server } from '@/test/msw';
 import { findPageHeading, renderApp } from '@/test/render-app';
 import type { Contact } from '@/types/application';
@@ -307,5 +307,35 @@ describe('contacts', () => {
     await waitFor(() => expect(screen.queryByText('Priya Shah')).not.toBeInTheDocument());
     expect(screen.getByText(/No contacts yet/)).toBeVisible();
     expect(backend.contacts).toEqual([]);
+  });
+});
+
+describe('application detail page: match', () => {
+  beforeEach(() => setup());
+
+  it('offers a match pre-linked to the application when there is none yet', async () => {
+    await openMonzo();
+    const section = screen.getByRole('region', { name: 'Match' });
+    expect(await within(section).findByText(/No match yet/)).toBeVisible();
+    expect(within(section).getByRole('link', { name: 'Match a job description' })).toHaveAttribute(
+      'href',
+      `/match?application=${monzoId}`,
+    );
+  });
+
+  it('shows the latest of the application’s matches and links to it', async () => {
+    const linked = { application_id: monzoId, company: 'Monzo', role_title: 'Frontend Engineer' };
+    backend.matches.push(
+      makeMatch({ ...linked, id: 'match-new', score: 81, resume_label: 'Frontend v2', created_at: '2026-11-18T10:00:00Z' }), // prettier-ignore
+      makeMatch({ ...linked, id: 'match-old', score: 44, created_at: '2026-11-02T10:00:00Z' }),
+      makeMatch({ id: 'match-other', score: 12, created_at: '2026-11-19T10:00:00Z' }), // not linked
+    );
+    await openMonzo();
+
+    const section = screen.getByRole('region', { name: 'Match' });
+    const latest = await within(section).findByRole('link', { name: /^81 out of 100/ });
+    expect(latest).toHaveAttribute('href', '/match/match-new');
+    expect(latest).toHaveAccessibleName('81 out of 100 Strong overlap Frontend v2, 18 Nov 2026');
+    expect(section).toHaveTextContent('Latest of 2 matches for this job.');
   });
 });

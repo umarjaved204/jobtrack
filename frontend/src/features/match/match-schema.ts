@@ -67,3 +67,19 @@ export function rerunValues(state: unknown): MatchFormValues | null {
   const { resume_id, application_id, jd_text } = parsed.data.rerun;
   return { resume_id, application_id: application_id ?? NO_APPLICATION, jd_text };
 }
+
+/*
+ * "Match a job description" on an application's page links to `/match?application=<id>`:
+ * in the URL, so a refresh or a bookmark keeps it. The resume falls back to the default.
+ */
+export const APPLICATION_PARAM = 'application';
+
+export const matchLinkFor = (applicationId: string) =>
+  `/match?${new URLSearchParams({ [APPLICATION_PARAM]: applicationId })}`;
+
+/** The form's starting values for a pre-selected application, or null. */
+export function linkedValues(search: URLSearchParams): MatchFormValues | null {
+  const id = search.get(APPLICATION_PARAM)?.trim();
+  if (!id || id === NO_APPLICATION) return null;
+  return { resume_id: '', application_id: id, jd_text: '' };
+}

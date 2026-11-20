@@ -53,9 +53,9 @@ function setup({
   });
 }
 
-async function openPage() {
+async function openPage(path = '/match') {
   const user = userEvent.setup();
-  renderApp('/match');
+  renderApp(path);
   await findPageHeading('Match a job description');
   await screen.findByLabelText('Job description'); // the form, once config and resumes load
   return user;
@@ -119,6 +119,44 @@ describe('match page: running a match', () => {
       resume_version_id: 'resume-v1',
       application_id: 'app-monzo',
     });
+  });
+
+  it('pre-selects the application from an application page’s link', async () => {
+    runtime.cached = true;
+    const user = await openPage('/match?application=app-monzo');
+    expect(screen.getByRole('combobox', { name: 'Application' })).toHaveTextContent('Monzo');
+    await fillAndRun(user);
+
+    await screen.findByRole('article', { name: 'Match score' });
+    expect(backend.matches[0]).toMatchObject({
+      resume_version_id: 'resume-v2', // the default
+      application_id: 'app-monzo',
+    });
+  });
+
+  it('adds a linked application older than the picker’s recent list', async () => {
+    const old = makeApplication({ id: 'app-wise', company: 'Wise', role_title: 'Web Engineer' });
+    backend.applications.push(old);
+    // The recent list (most recently updated first) doesn't reach it.
+    server.use(
+      http.get(
+        '/api/v1/applications',
+        () =>
+        HttpResponse.json({ items: [backend.applications[0]], total: 2, page: 1, page_size: 100, pages: 1 }), // prettier-ignore
+      ),
+    );
+    const user = await openPage('/match?application=app-wise');
+
+    const picker = screen.getByRole('combobox', { name: 'Application' });
+    expect(picker).toHaveTextContent('Wise');
+    await user.click(picker);
+    expect(await screen.findByRole('option', { name: /Wise/ })).toBeVisible();
+    expect(screen.getByRole('option', { name: /Monzo/ })).toBeVisible();
+  });
+
+  it('starts unlinked when the linked application doesn’t exist', async () => {
+    await openPage('/match?application=app-gone');
+    expect(screen.getByRole('combobox', { name: 'Application' })).toHaveTextContent('Not linked');
   });
 
   it('shows progress, and Cancel stops the run without saving', async () => {
