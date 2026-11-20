@@ -84,6 +84,9 @@ export default defineConfig(({ mode }) => {
       // Integration tests mount the real app; a cold run compiles lazy route chunks on
       // demand, which under parallel load can exceed the 5 s default for one test.
       testTimeout: 15_000,
+      // Half the CPUs: at the default (one worker per CPU) those cold compiles starve each
+      // other and time out now and then. 50% barely changes the total (≈2 min locally).
+      maxWorkers: '50%',
       // Vitest stubs CSS imports by default; the token tests read the real stylesheets.
       css: { include: [/src\/styles\/.+\.css/] },
     },
