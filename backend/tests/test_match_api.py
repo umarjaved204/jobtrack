@@ -156,6 +156,7 @@ def test_config_describes_client_mode(client: TestClient, ayesha: Headers) -> No
 def test_match_needs_a_session(client: TestClient) -> None:
     assert client.get(f"{MATCH}/config").status_code == 401
     assert client.get(MATCH).status_code == 401
+    assert client.delete(MATCH).status_code == 401
 
 
 # ---------------------------------------------------------------- client mode
@@ -421,6 +422,58 @@ def test_older_versions_are_not_current(client: TestClient, db: Session, ayesha:
     assert client.get(MATCH, headers=ayesha).json()["items"][0]["is_current"] is False
 
 
+# ---------------------------------------------------------------- delete history
+
+
+def test_deleting_the_history_removes_only_your_matches(
+    client: TestClient, ayesha: Headers, bilal: Headers
+) -> None:
+    resume_id = create_resume(client, ayesha)
+    first = run_match(client, ayesha, resume_id).json()["id"]
+    run_match(client, ayesha, resume_id, application_id=create_application(client, ayesha))
+    theirs = run_match(client, bilal, create_resume(client, bilal)).json()["id"]
+
+    deleted = client.delete(MATCH, headers=ayesha)
+
+    assert (deleted.status_code, deleted.content) == (204, b"")
+    assert client.get(MATCH, headers=ayesha).json()["total"] == 0
+    assert client.get(f"{MATCH}/{first}", headers=ayesha).status_code == 404
+    assert client.get(f"{MATCH}/{theirs}", headers=bilal).status_code == 200
+    assert client.delete(MATCH, headers=ayesha).status_code == 204  # nothing left: still fine
+
+
+def test_deleting_the_history_unfreezes_resumes_only_matches_froze(
+    client: TestClient, ayesha: Headers
+) -> None:
+    matched_only = create_resume(client, ayesha)
+    also_sent = create_resume(client, ayesha)
+    run_match(client, ayesha, matched_only)
+    run_match(client, ayesha, also_sent)
+    sent = client.post(
+        APPS,
+        headers=ayesha,
+        json={
+            "company": "Careem",
+            "role_title": "Backend Engineer",
+            "resume_version_id": also_sent,
+        },
+    )
+    assert sent.status_code == 201, sent.text
+
+    assert client.delete(MATCH, headers=ayesha).status_code == 204
+
+    still_sent = client.get(f"{RESUMES}/{also_sent}", headers=ayesha).json()
+    assert (still_sent["match_count"], still_sent["application_count"]) == (0, 1)
+    edit = client.patch(f"{RESUMES}/{also_sent}", headers=ayesha, json={"content_text": "New"})
+    assert edit.status_code == 409  # the application still links it
+    assert client.delete(f"{RESUMES}/{also_sent}", headers=ayesha).status_code == 409
+
+    assert client.get(f"{RESUMES}/{matched_only}", headers=ayesha).json()["match_count"] == 0
+    edit = client.patch(f"{RESUMES}/{matched_only}", headers=ayesha, json={"content_text": "New"})
+    assert (edit.status_code, edit.json()["content_text"]) == (200, "New")
+    assert client.delete(f"{RESUMES}/{matched_only}", headers=ayesha).status_code == 204
+
+
 # ---------------------------------------------------------------- other modes
 
 
@@ -433,6 +486,7 @@ def test_off_mode_refuses_matches(
     assert prepare(client, ayesha, resume_id).status_code == 503
     create = client.post(MATCH, headers=ayesha, json={"resume_id": resume_id, "jd_text": JD})
     assert create.status_code == 503
+    assert client.delete(MATCH, headers=ayesha).status_code == 204  # history can always go
 
 
 @pytest.fixture

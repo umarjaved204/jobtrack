@@ -1,8 +1,11 @@
-import { queryOptions } from '@tanstack/react-query';
+import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
 
+import { resumeKeys } from '@/features/resumes/api';
 import { api } from '@/lib/api/client';
 import type { Page } from '@/types/application';
 import type { Match, MatchConfig, MatchSummary } from '@/types/match';
+
+import { clearVectorCache } from './vector-cache';
 
 /*
  * Server state for the AI match. Running a match is not a plain mutation (it spans the
@@ -47,3 +50,22 @@ export const matchQuery = (id: string) =>
     // A saved result never changes (only whether it's current, with a deploy).
     staleTime: 5 * 60_000,
   });
+
+/**
+ * Deletes the whole match history, then this browser's chunk vectors (which never
+ * throws). Resume versions only matches froze become editable, so resumes refetch too.
+ */
+export function useDeleteMatchHistory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      await api.delete('/match');
+      await clearVectorCache();
+    },
+    onSuccess: () => {
+      queryClient.removeQueries({ queryKey: [...matchKeys.all, 'detail'] });
+      void queryClient.invalidateQueries({ queryKey: matchKeys.lists() });
+      void queryClient.invalidateQueries({ queryKey: resumeKeys.all });
+    },
+  });
+}

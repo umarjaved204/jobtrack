@@ -37,7 +37,8 @@ import { server } from './msw';
  * - the AI match (backend/app/services/match/service.py): `matchEmbeddings` picks the
  *   mode; off is 503; client mode needs prepare's digest back (409 if the texts changed)
  *   and one vector row per chunk (422); server mode refuses prepare and vectors (422);
- *   archived resumes can't be matched (422); a saved match freezes its resume (match_count).
+ *   archived resumes can't be matched (422); a saved match freezes its resume (match_count),
+ *   and `DELETE /match` (works in every mode) unfreezes it unless an application links it.
  *   Chunks are the texts' non-empty lines (the server also splits long lines and skips JD
  *   headings and ignored sections), and the score is a word overlap, not the real one.
  * Combine with `mockAuthBackend({ signedIn: true })` so the client has a token.
@@ -846,6 +847,16 @@ export function mockApplicationsBackend({
         page_size: pageSize,
         pages: Math.ceil(matching.length / pageSize),
       });
+    }),
+    http.delete('/api/v1/match', ({ request }) => {
+      if (!hasToken(request)) return unauthorized();
+      state.calls.push('DELETE /match');
+      for (const match of state.matches) {
+        const resume = state.resumes.find((r) => r.id === match.resume_version_id);
+        if (resume) resume.match_count -= 1; // frozen now only if an application links it
+      }
+      state.matches = [];
+      return new HttpResponse(null, { status: 204 });
     }),
     http.get('/api/v1/match/:id', ({ request, params }) => {
       if (!hasToken(request)) return unauthorized();

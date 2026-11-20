@@ -19,7 +19,9 @@ Skills, keywords and the score are always computed here, from the text.
 
 A resume's text is frozen once a match uses it (`services/resumes.py`). Saving re-reads
 the text `FOR SHARE`, and a text edit locks the row before checking for uses, so an edit
-can't slip in between scoring and saving: one of the two waits for the other.
+can't slip in between scoring and saving: one of the two waits for the other. Freezing
+isn't stored: it is counted on each edit, so deleting the matches (`delete_all_matches`)
+makes a version editable again unless an application still links it.
 """
 
 import base64
@@ -33,7 +35,7 @@ from functools import lru_cache
 from typing import Any
 
 import numpy as np
-from sqlalchemy import Select, func, select
+from sqlalchemy import Select, delete, func, select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -462,3 +464,16 @@ def list_matches(
         page_size=page_size,
         pages=applications.page_count(total, page_size),
     )
+
+
+# --------------------------------------------------------------------------- delete
+
+
+def delete_all_matches(db: Session, user: User) -> None:
+    """Deletes the user's whole match history (works whatever the mode, even "off").
+
+    Resume versions used only by these matches become editable and deletable again. A
+    match being saved concurrently commits either before (and is deleted) or after (and is
+    kept, like any match run after the delete)."""
+    db.execute(delete(MatchResult).where(MatchResult.user_id == user.id))
+    db.commit()

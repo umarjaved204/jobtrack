@@ -61,6 +61,13 @@ def list_matches(
     )
 
 
+@router.delete("", status_code=status.HTTP_204_NO_CONTENT)
+def delete_matches(user: CurrentUser, db: DbSession) -> None:
+    """Delete the signed-in user's whole match history. Resume versions that only these
+    matches froze become editable again."""
+    service.delete_all_matches(db, user)
+
+
 @router.get("/{match_id}")
 def get_match(match_id: uuid.UUID, user: CurrentUser, db: DbSession) -> MatchRead:
     return service.get_match(db, user, match_id)
