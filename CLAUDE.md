@@ -407,6 +407,18 @@ jobtrack/
   reload mid-run (dependency optimisation): discard that run.
 - Vitest runs at `maxWorkers: '50%'` (the default parallelism caused cold-compile timeouts).
 
+## Conventions (established in Phase 10, redesign)
+- Target look: `docs/design/redesign/` (HTML mockups, light only). Our definitions win where
+  they disagree (cumulative funnel, match bands 35/65, small-sample styling, "so far" week).
+- Before/after review: `pnpm screenshots <label>` (frontend/screenshots/, git-ignored; needs
+  the app running and the seed). Compare with the mockup at 1440 and 390, light and dark.
+- Tokens: text is `foreground` / `muted-foreground` (secondary) / `subtle-foreground`
+  (tertiary, surfaces only, never on tints). `--status-*` are their own hexes (not palette
+  names; tags and accents keep the palette). Control boundaries and meaningful outlines use
+  `--input` (3:1); `--border` is decorative hairlines, `--border-quiet` decorative outlines.
+  Corners are square (`--radius-*` are 0; `rounded-full` for round things). Overlays use
+  `shadow-print*`. Page containers: `max-w-page page-gutter`.
+
 ## Conventions (established in 9b, resume file import)
 - Import code: `features/resumes/import/` (`file-type.ts` signatures, `pdf-lines.ts` line
   rebuilding, `clean-text.ts`, `extract-pdf.ts` / `extract-docx.ts`, `import-file.ts` with

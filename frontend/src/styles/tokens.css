@@ -51,7 +51,7 @@
    * type (≥ 24px), rules and graphics. Button fills use the slightly deeper `-fill`.
    */
   --vermilion-display: #e4412b;
-  --vermilion-fill: #c8361f;
+  --vermilion-fill: #c2361f;
 
   /* ---- Semantic roles (shadcn-compatible names) */
   --background: var(--paper);
@@ -61,20 +61,39 @@
   --popover: var(--paper-raised);
   --popover-foreground: var(--ink);
   --muted: var(--paper-sunken);
-  --muted-foreground: #5e554a;
+  /* Secondary text (standfirsts, notes, metadata). */
+  --muted-foreground: #4a433a;
+  /* Tertiary text: axis labels, "from Screening", small print. Never on tinted fills. */
+  --subtle-foreground: #6b6256;
   --secondary: var(--paper-sunken);
   --secondary-foreground: var(--ink);
-  --accent: #e5dccb; /* hover/selected surface, not the brand colour */
+  --accent: #ede6da; /* hover/selected surface, not the brand colour */
   --accent-foreground: var(--ink);
   --destructive: var(--palette-oxblood);
   --destructive-foreground: var(--palette-on);
   --highlight: var(--palette-cobalt); /* the secondary brand colour: links, focus */
 
-  /* Lines: hairlines are decorative; --input must hit 3:1 (WCAG 1.4.11). */
-  --border: #d6cdbd;
+  /* Side panels (sheets): a shade between paper and card. */
+  --panel: #f8f4ec;
+  /* Overdue items ("Coming up", calendar): text on it is --destructive or ink. */
+  --overdue-tint: #f6ddd6;
+  /* Where a dragged card will land; outlined in --ring, labelled in --status-applied. */
+  --drop-tint: #e7ebfa;
+
+  /*
+   * Lines. --border: decorative hairlines between rows and sections. --border-quiet:
+   * decorative outlines (tag chips, dashed "show more"), never the only edge of a control.
+   * --input: every control boundary and meaningful outline (inputs, unreached stages,
+   * drop zones), so it must hit 3:1 (WCAG 1.4.11).
+   */
+  --border: #d6ccbb;
+  --border-quiet: #cfc4b2;
   --rule: var(--ink);
   --input: #8a7f70;
   --ring: var(--palette-cobalt);
+
+  /* Hard offset "print" shadows on overlays (menus, palette, sign-in card). */
+  --print-shadow: var(--ink);
 
   /*
    * Hover/pressed tint laid over solid fills (see the `fill-hover` utility). Darkens in light
@@ -129,10 +148,17 @@
   --vermilion-display: #f2654e;
   --vermilion-fill: #e4412b;
 
-  --muted-foreground: #a89f90;
+  --muted-foreground: #b3aa9b;
+  --subtle-foreground: #948b7d;
   --accent: #2a2620;
+  --panel: #171411;
+  --overdue-tint: #3c2925;
+  --drop-tint: #23263a;
   --border: #322d27;
-  --input: #756c5f;
+  --border-quiet: #3d3730;
+  --input: #7d7466;
+  /* An ink shadow vanishes on night paper: a lighter edge reads as the same "print" offset. */
+  --print-shadow: #3d3730;
 
   --fill-hover: rgb(237 229 214 / 0.14);
   --shadow-rgb: 0 0 0;
@@ -192,24 +218,45 @@
 }
 
 /*
- * Application status ramp (7 steps, follows the pipeline left → right).
- * Rejected uses oxblood, not vermilion, so it never reads as the brand colour.
+ * Application status ramp (7 steps, follows the pipeline left → right). Its own values
+ * (docs/design/redesign), separate from the named palette that tags and accents use.
+ * Each colour is text-safe on paper, card and its own tint (tokens.contrast.test.ts).
+ * - Rejected stays oxblood, not vermilion, so it never reads as the brand colour.
+ * - Withdrawn is plum, not a grey: the redesign's grey sat on top of Wishlist's.
  */
 :root {
-  --status-wishlist: var(--palette-stone);
-  --status-wishlist-tint: var(--palette-stone-tint);
-  --status-applied: var(--palette-cobalt);
-  --status-applied-tint: var(--palette-cobalt-tint);
-  --status-screening: var(--palette-teal);
-  --status-screening-tint: var(--palette-teal-tint);
-  --status-interview: var(--palette-ochre);
-  --status-interview-tint: var(--palette-ochre-tint);
-  --status-offer: var(--palette-forest);
-  --status-offer-tint: var(--palette-forest-tint);
-  --status-rejected: var(--palette-oxblood);
-  --status-rejected-tint: var(--palette-oxblood-tint);
-  --status-withdrawn: var(--palette-plum);
-  --status-withdrawn-tint: var(--palette-plum-tint);
+  --status-wishlist: #5c5348;
+  --status-wishlist-tint: #e6ded0;
+  --status-applied: #2440c0;
+  --status-applied-tint: #dce2f7;
+  --status-screening: #0e6468;
+  --status-screening-tint: #d3e8e6;
+  --status-interview: #7a4f00;
+  --status-interview-tint: #f1e2c2;
+  --status-offer: #2e6b2f;
+  --status-offer-tint: #dcebd5;
+  --status-rejected: #8e2b2b;
+  --status-rejected-tint: #f2d9d2;
+  --status-withdrawn: #7c3a78;
+  --status-withdrawn-tint: #eadfe2;
+}
+
+/* Night edition: the same hues, lifted for dark paper. */
+.dark {
+  --status-wishlist: #a89f90;
+  --status-wishlist-tint: #322e29;
+  --status-applied: #8ea3ff;
+  --status-applied-tint: #262a3d;
+  --status-screening: #4ec0ba;
+  --status-screening-tint: #24342f;
+  --status-interview: #e2a93f;
+  --status-interview-tint: #3c301c;
+  --status-offer: #7cc284;
+  --status-offer-tint: #2b3427;
+  --status-rejected: #e37f76;
+  --status-rejected-tint: #3c2925;
+  --status-withdrawn: #d38ccb;
+  --status-withdrawn-tint: #392b32;
 }
 
 @media (prefers-reduced-motion: reduce) {

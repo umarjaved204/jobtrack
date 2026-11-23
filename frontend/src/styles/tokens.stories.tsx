@@ -57,7 +57,11 @@ const semantic = [
   'card',
   'muted',
   'muted-foreground',
+  'subtle-foreground',
+  'panel',
   'accent',
+  'overdue-tint',
+  'drop-tint',
   'primary',
   'primary-text',
   'primary-tint',
@@ -65,6 +69,7 @@ const semantic = [
   'highlight',
   'destructive',
   'border',
+  'border-quiet',
   'input',
   'rule',
   'ring',
@@ -174,21 +179,28 @@ export const Elevation: Story = {
   render: () => (
     <Section kicker="Foundations" title="Elevation, shape and motion">
       <div className="grid grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] gap-6">
-        {['shadow-xs', 'shadow-sm', 'shadow-md', 'shadow-lg'].map((s) => (
-          <div key={s} className={`rounded-lg bg-card p-5 ${s}`}>
+        {[
+          'shadow-xs',
+          'shadow-sm',
+          'shadow-md',
+          'shadow-lg',
+          'shadow-print-sm',
+          'shadow-print',
+          'shadow-print-lg',
+        ].map((s) => (
+          <div key={s} className={`border bg-card p-5 ${s}`}>
             <p className="figures text-xs">{s}</p>
           </div>
         ))}
       </div>
       <div className="mt-10 flex flex-wrap gap-6">
-        {['rounded-xs', 'rounded-sm', 'rounded-md', 'rounded-lg', 'rounded-xl', 'rounded-2xl'].map(
-          (r) => (
-            <div key={r} className="text-center">
-              <div className={`size-16 border-2 border-rule bg-primary-tint ${r}`} />
-              <p className="mt-2 figures text-xs text-muted-foreground">{r}</p>
-            </div>
-          ),
-        )}
+        {/* Corners are square throughout; only round things are round. */}
+        {['rounded-md', 'rounded-full'].map((r) => (
+          <div key={r} className="text-center">
+            <div className={`size-16 border-2 border-rule bg-primary-tint ${r}`} />
+            <p className="mt-2 figures text-xs text-muted-foreground">{r}</p>
+          </div>
+        ))}
       </div>
       <dl className="mt-10 grid max-w-md grid-cols-2 gap-y-1 figures text-sm">
         {Object.entries(duration).map(([name, s]) => (
