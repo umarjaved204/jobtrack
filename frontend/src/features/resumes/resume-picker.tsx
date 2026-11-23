@@ -14,6 +14,8 @@ import { NO_RESUME } from '@/features/applications/application-schema';
 import { resumesQuery } from './api';
 
 type ResumePickerProps = FieldControlProps & {
+  /** The form field's name: Radix gives it to the hidden native select inside a form. */
+  name?: string;
   value: string;
   onChange: (value: string) => void;
   onBlur?: () => void;
@@ -26,12 +28,20 @@ type ResumePickerProps = FieldControlProps & {
  * "Resume sent": active versions (the default first), or none. Archived versions are hidden,
  * except the one this application already used, which stays selectable and says so.
  */
-function ResumePicker({ value, onChange, onBlur, ref, savedId, ...control }: ResumePickerProps) {
+function ResumePicker({
+  name,
+  value,
+  onChange,
+  onBlur,
+  ref,
+  savedId,
+  ...control
+}: ResumePickerProps) {
   const resumes = useQuery(resumesQuery());
   const options = (resumes.data ?? []).filter((r) => !r.archived_at || r.id === savedId);
 
   return (
-    <Select value={value} onValueChange={onChange} disabled={resumes.isPending}>
+    <Select name={name} value={value} onValueChange={onChange} disabled={resumes.isPending}>
       <SelectTrigger {...control} onBlur={onBlur} ref={ref}>
         <SelectValue placeholder={resumes.isPending ? 'Loading versions…' : undefined} />
       </SelectTrigger>

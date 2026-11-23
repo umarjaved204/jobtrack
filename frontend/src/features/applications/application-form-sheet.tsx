@@ -229,7 +229,7 @@ function ApplicationForm({
                 control={form.control}
                 name="status"
                 render={({ field: f }) => (
-                  <Select value={f.value} onValueChange={f.onChange}>
+                  <Select name={f.name} value={f.value} onValueChange={f.onChange}>
                     <SelectTrigger {...control} onBlur={f.onBlur} ref={f.ref}>
                       <SelectValue />
                     </SelectTrigger>
@@ -251,7 +251,7 @@ function ApplicationForm({
                 control={form.control}
                 name="work_mode"
                 render={({ field: f }) => (
-                  <Select value={f.value} onValueChange={f.onChange}>
+                  <Select name={f.name} value={f.value} onValueChange={f.onChange}>
                     <SelectTrigger {...control} onBlur={f.onBlur} ref={f.ref}>
                       <SelectValue />
                     </SelectTrigger>
@@ -335,6 +335,7 @@ function ApplicationForm({
               render={({ field: f }) => (
                 <ResumePicker
                   {...control}
+                  name={f.name}
                   value={f.value}
                   onChange={f.onChange}
                   onBlur={f.onBlur}

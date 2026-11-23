@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { toInstant } from '@/features/reminders/due';
 import { makeEvent, makeReminder, mockApplicationsBackend } from '@/test/fake-applications';
+import { selectNames, unnamedFormFields } from '@/test/form-fields';
 import { mockAuthBackend } from '@/test/msw';
 import { findPageHeading, renderApp } from '@/test/render-app';
 
@@ -133,6 +134,8 @@ describe('calendar: month grid', () => {
     const { user } = await open('/calendar?month=2026-11&day=2026-11-26');
     await user.click(await within(dayPanel()).findByRole('button', { name: 'Add event' }));
     const dialog = await screen.findByRole('dialog', { name: 'Add an event' });
+    await waitFor(() => expect(selectNames(dialog)).toEqual(['kind', 'application_id']));
+    expect(unnamedFormFields(dialog)).toEqual([]);
     expect(within(dialog).getByLabelText('Start date')).toHaveValue('2026-11-26');
     await user.type(within(dialog).getByLabelText('Title'), 'Onsite: system design');
     const start = within(dialog).getByLabelText('Start time');

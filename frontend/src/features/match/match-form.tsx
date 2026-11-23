@@ -80,7 +80,12 @@ function MatchForm({ resumes, applications, running, error, onRun, initial }: Ma
           render={({ field }) => (
             <FormField label="Resume" error={errors.resume_id?.message}>
               {(control) => (
-                <Select value={field.value} onValueChange={field.onChange} disabled={running}>
+                <Select
+                  name={field.name}
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  disabled={running}
+                >
                   <SelectTrigger {...control} onBlur={field.onBlur} ref={field.ref}>
                     <SelectValue placeholder="Pick a version" />
                   </SelectTrigger>
@@ -113,6 +118,7 @@ function MatchForm({ resumes, applications, running, error, onRun, initial }: Ma
             >
               {(control) => (
                 <Select
+                  name={field.name}
                   value={field.value}
                   onValueChange={field.onChange}
                   disabled={running || applications === undefined}

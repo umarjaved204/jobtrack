@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { makeApplication, makeResume, mockApplicationsBackend } from '@/test/fake-applications';
 import { FakeEmbeddingClient } from '@/test/fake-embedding-client';
+import { selectNames, unnamedFormFields } from '@/test/form-fields';
 import { mockAuthBackend, server } from '@/test/msw';
 import { findPageHeading, renderApp } from '@/test/render-app';
 import type { EmbeddingsMode } from '@/types/match';
@@ -108,6 +109,9 @@ describe('match page: running a match', () => {
   it('matches the chosen resume, linked to the chosen application', async () => {
     runtime.cached = true;
     const user = await openPage();
+    const form = screen.getByLabelText('Job description').closest('form') as HTMLFormElement;
+    await waitFor(() => expect(selectNames(form)).toEqual(['resume_id', 'application_id']));
+    expect(unnamedFormFields(form)).toEqual([]);
     await user.click(screen.getByRole('combobox', { name: 'Resume' }));
     await user.click(await screen.findByRole('option', { name: 'Frontend v1' }));
     await user.click(screen.getByRole('combobox', { name: 'Application' }));
