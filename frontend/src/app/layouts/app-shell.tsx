@@ -1,8 +1,11 @@
 import { Menu } from 'lucide-react';
 import { AnimatePresence, m } from 'motion/react';
-import { type RefObject, useEffect, useRef } from 'react';
+import { type RefObject, useCallback, useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, ScrollRestoration, useLocation, useNavigation } from 'react-router';
 
+import { CommandPalette, CommandPaletteTrigger } from '@/app/command-palette/command-palette';
+import { isApplePlatform } from '@/app/command-palette/commands';
+import { usePaletteShortcut } from '@/app/command-palette/use-palette-shortcut';
 import { navItems } from '@/app/navigation';
 import { SkipLink } from '@/components/skip-link';
 import { ThemeMenu } from '@/components/theme-menu';
@@ -138,6 +141,10 @@ function AppShell() {
   const { pathname } = useLocation();
   const mainRef = useRef<HTMLElement>(null);
   useFocusPageHeadingOnNavigate(mainRef);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [apple] = useState(isApplePlatform);
+  const togglePalette = useCallback(() => setPaletteOpen((open) => !open), []);
+  usePaletteShortcut(togglePalette, apple);
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -148,6 +155,7 @@ function AppShell() {
         <div className="flex items-center justify-between gap-4 border-b pb-2">
           <p className="kicker text-muted-foreground">{dateline.format(new Date())}</p>
           <div className="flex items-center gap-1">
+            <CommandPaletteTrigger apple={apple} onOpen={() => setPaletteOpen(true)} />
             <ThemeMenu />
             <UserMenu />
           </div>
@@ -186,6 +194,7 @@ function AppShell() {
         </p>
       </footer>
 
+      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
       <ScrollRestoration />
     </div>
   );

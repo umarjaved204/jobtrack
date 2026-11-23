@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Plus, RotateCcw, SquareKanban, Table2 } from 'lucide-react';
 import { useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
 
 import { EmptyState } from '@/components/empty-state';
 import { PageHeader } from '@/components/page-header';
@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import type { ApplicationStatus } from '@/types/application';
 
 import { boardQuery } from './api';
+import { wantsAddApplication } from './add-application-state';
 import { ApplicationFormSheet } from './application-form-sheet';
 import { ApplicationsTableView } from './applications-table-view';
 import { KanbanBoard } from './kanban-board';
@@ -116,6 +117,22 @@ function ApplicationsPage() {
     status: 'wishlist',
   });
   const openForm = (status: ApplicationStatus) => setForm({ open: true, status });
+  // "Add an application" from the ⌘K palette arrives as navigation state. Read while
+  // rendering (no effect, no flash); closing the form clears it, so Back won't reopen it.
+  const location = useLocation();
+  const navigate = useNavigate();
+  const addRequested = wantsAddApplication(location.state);
+  const formOpen = form.open || addRequested;
+  const formStatus = addRequested && !form.open ? 'wishlist' : form.status;
+  const onFormOpenChange = (open: boolean) => {
+    setForm((f) => ({ ...f, open }));
+    if (!open && addRequested) {
+      void navigate(
+        { search: location.search, hash: location.hash },
+        { replace: true, state: null, preventScrollReset: true },
+      );
+    }
+  };
 
   return (
     <>
@@ -140,9 +157,9 @@ function ApplicationsPage() {
         )}
       </div>
       <ApplicationFormSheet
-        open={form.open}
-        onOpenChange={(open) => setForm((f) => ({ ...f, open }))}
-        mode={{ type: 'create', status: form.status }}
+        open={formOpen}
+        onOpenChange={onFormOpenChange}
+        mode={{ type: 'create', status: formStatus }}
       />
     </>
   );
