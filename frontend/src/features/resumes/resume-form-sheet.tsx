@@ -30,6 +30,7 @@ import { cn } from '@/lib/utils';
 import { isInUse, type Resume } from '@/types/resume';
 
 import { useCreateResume, useUpdateResume } from './api';
+import { ResumeFileImport } from './resume-file-import';
 import {
   MAX_RESUME_CHARS,
   normaliseResumeText,
@@ -98,7 +99,9 @@ function ResumeFormSheet({ mode, onClose, onSaved }: ResumeFormSheetProps) {
           <SheetHeader className="border-b pr-12">
             <SheetTitle>{title}</SheetTitle>
             <SheetDescription>
-              Paste the text as you sent it. Formatting isn’t kept, only the words.
+              {mode?.type === 'create' && !mode.initial
+                ? 'Paste the text as you sent it, or import it from a PDF or Word file. Formatting isn’t kept, only the words.'
+                : 'Paste the text as you sent it. Formatting isn’t kept, only the words.'}
             </SheetDescription>
           </SheetHeader>
           {mode && (
@@ -162,6 +165,8 @@ function ResumeForm({
   const update = useUpdateResume();
   const alert = useFormAlert();
   const editing = mode.type === 'edit' ? mode.resume : null;
+  // Importing is for a new version; a duplicate already has its text.
+  const canImport = mode.type === 'create' && !mode.initial;
   const locked = editing !== null && isInUse(editing);
   const form = useForm<ResumeFormValues>({
     resolver: zodResolver(resumeFormSchema),
@@ -207,6 +212,22 @@ function ResumeForm({
         >
           <Input autoComplete="off" {...form.register('label')} />
         </FormField>
+
+        {canImport && (
+          <ResumeFileImport
+            currentText={() => form.getValues('content_text')}
+            onImported={({ text, label }) => {
+              const validate = form.formState.isSubmitted;
+              form.setValue('content_text', text, { shouldDirty: true, shouldValidate: validate });
+              // The file name only suggests a name: one the user typed is kept.
+              if (!form.getValues('label').trim()) {
+                form.setValue('label', label, { shouldDirty: true, shouldValidate: validate });
+              }
+              onDirtyChange(true);
+              form.setFocus('content_text'); // review starts in the text
+            }}
+          />
+        )}
 
         <FormField
           label="Resume text"

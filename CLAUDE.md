@@ -175,13 +175,8 @@ jobtrack/
 7. Dashboard with animated stat cards and custom charts (done; metric definitions in docs/architecture.md)
 8. Calendar, reminders, resume versions (done; "Coming up" gained events and reminders; definitions in docs/architecture.md)
 9. AI match service, endpoint and UI (done; ADR 0004 and its revisions; scoring in docs/architecture.md "Match scoring")
-9b. Resume file import, branch `feat/resume-file-import` after the Phase 9 merge, before Phase 10:
-    PDF (pdf.js) and .docx (mammoth) read in the browser, loaded only when a file is picked; the
-    file is never uploaded, the extracted text fills the textarea for review, then saves as today.
-    First check both libraries' licences and maintenance. Latest pdf.js with `isEvalSupported: false`
-    (confirm current guidance on CVE-2024-4367); pdf.js worker served same-origin (COOP/COEP);
-    5 MB file cap; same normalisation and 50k limit as pasted text. Scanned PDFs: say so and ask
-    to paste (no OCR). No legacy .doc. Two-column layouts may extract out of order (hence review).
+9b. Resume file import (done, branch `feat/resume-file-import`; docs/architecture.md "Importing a
+    resume file"): PDF (pdf.js) and .docx (mammoth) read in the browser, never uploaded.
 10. Polish: offer celebration, animated funnel, ⌘K palette, empty/loading/error states, a11y, responsive, reduced motion;
     match progress says "Loading the match model" (not "Downloading") when it comes from the cache;
     fix the id/name autofill warnings on Radix Select controls
@@ -411,3 +406,21 @@ jobtrack/
   server takes ~30% CPU idle and skews results. A fresh Vite server's first page load can
   reload mid-run (dependency optimisation): discard that run.
 - Vitest runs at `maxWorkers: '50%'` (the default parallelism caused cold-compile timeouts).
+
+## Conventions (established in 9b, resume file import)
+- Import code: `features/resumes/import/` (`file-type.ts` signatures, `pdf-lines.ts` line
+  rebuilding, `clean-text.ts`, `extract-pdf.ts` / `extract-docx.ts`, `import-file.ts` with
+  the size cap, limits and one message per refusal). Parsers load on first use only; keep
+  them out of other chunks. The text only fills the form: nothing about the file (name
+  included) is stored.
+- pdf.js v6 has no `isEvalSupported` (the eval path behind CVE-2024-4367 is gone);
+  `no-eval.test.ts` must keep passing on upgrades. Its worker is imported with `?url` so it
+  loads same-origin under COEP. Mammoth must stay the browser build (it refuses linked files).
+- Test fixtures are synthetic and built in code (`src/test/documents.ts`: `makePdf`,
+  `makeDocx`), never real resumes. Tests run the real parsers through
+  `src/test/document-parsers.ts` (pdf.js legacy build with the worker on the main thread;
+  mammoth's browser bundle, since its Node build doesn't take an ArrayBuffer).
+- Invisible or look-alike characters (soft hyphens, zero-width spaces, private-use
+  bullets) are written as `\u` escapes in source or `String.fromCodePoint` in tests, never
+  literally: they can't be reviewed. ESLint's `no-misleading-character-class` rejects a
+  zero-width joiner inside `[...]`: use an alternation.
