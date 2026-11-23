@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>JobTrack — Dashboard</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..500&amp;family=Instrument+Sans:wght@400..700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:#F3EDE2}
+a{color:#B8321F}a:hover{color:#8E2414}
+:focus-visible{outline:2px solid #2B4BDB;outline-offset:2px}
+</style>
+</helmet>
+<div style="font-family: 'Instrument Sans', system-ui, sans-serif; color: #16130F; background: #F3EDE2; min-height: 100%">
+<dc-import name="Masthead" active="Dashboard" hint-size="100%,236px"></dc-import>
+
+<main style="max-width: 1296px; margin: 0 auto; padding: 0 clamp(20px, 5vw, 72px) 64px">
+
+<!-- Page head -->
+<section style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 24px; padding: 40px 0 28px">
+<div style="display: flex; flex-direction: column; gap: 10px; max-width: 720px">
+<p style="margin: 0; font-size: 12px; letter-spacing: 0.18em; font-weight: 600; color: #B8321F">OVERVIEW · LAST 90 DAYS</p>
+<h1 style="margin: 0; font-family: Fraunces, serif; font-weight: 600; font-size: clamp(48px, 6vw, 80px); line-height: 0.95; letter-spacing: -0.02em">Dashboard</h1>
+<p style="margin: 0; font-size: 19px; line-height: 1.5; color: #4A433A">Your search at a glance: what you’ve applied for, how far it got, and where it came from.</p>
+</div>
+<div role="group" aria-label="Date range" style="display: flex; border: 1px solid #16130F; border-radius: 2px">
+<sc-for list="{{ ranges }}" as="r" hint-placeholder-count="3">
+<button type="button" aria-pressed="{{ r.pressed }}" onClick="{{ r.pick }}" style="font: 600 14px 'Instrument Sans', sans-serif; padding: 10px 16px; min-height: 44px; border: 0; border-right: 1px solid #16130F; cursor: pointer; background: {{ r.bg }}; color: {{ r.fg }}">{{ r.label }}</button>
+</sc-for>
+</div>
+</section>
+
+<!-- Ledger figures -->
+<section aria-label="Key figures" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); border-top: 3px solid #16130F; border-bottom: 1px solid #16130F">
+<sc-for list="{{ figures }}" as="f" hint-placeholder-count="4">
+<div style="padding: 22px 24px 24px 0; margin-left: 24px; display: flex; flex-direction: column; gap: 6px; border-right: 1px solid #D6CCBB">
+<p style="margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 0.12em; color: #4A433A">{{ f.label }}</p>
+<p style="margin: 0; font-family: Fraunces, serif; font-weight: 500; font-size: 88px; line-height: 0.95; letter-spacing: -0.03em; font-variant-numeric: lining-nums tabular-nums">{{ f.value }}</p>
+<p style="margin: 0; font-size: 14px; line-height: 1.45; color: #4A433A">{{ f.note }}</p>
+</div>
+</sc-for>
+</section>
+<p style="margin: 12px 0 0; font-size: 14px; color: #4A433A">Not counted above: <strong style="color: #16130F">6 roles on your wishlist</strong>, not yet applied. <a href="Board.dc.html">See the wishlist</a></p>
+
+<!-- Row: over time + coming up -->
+<section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr)); gap: 48px; margin-top: 48px">
+
+<article aria-labelledby="t-time" style="display: flex; flex-direction: column; gap: 16px">
+<header style="display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid #16130F; padding-bottom: 10px">
+<h2 id="t-time" style="margin: 0; font-family: Fraunces, serif; font-weight: 600; font-size: 28px">Applications over time</h2>
+<a href="#" style="font-size: 14px">View as table</a>
+</header>
+<p style="margin: 0; font-size: 14px; color: #4A433A">Weekly, by date applied. Busiest weeks: 4 applications in the weeks of Sep 28 and Oct 26.</p>
+<div role="img" aria-label="Weekly applications, Aug 24 to Nov 16: 1, 2, 0, 3, 2, 4, 1, 3, 2, 4, 3, 2, 1" style="position: relative; height: 240px; display: flex; align-items: flex-end; gap: 10px; padding: 0 0 28px 28px; border-left: 1px solid #D6CCBB">
+<div aria-hidden="true" style="position: absolute; left: 0; right: 0; bottom: 208px; border-top: 1px dashed #D6CCBB"></div>
+<div aria-hidden="true" style="position: absolute; left: 0; right: 0; bottom: 118px; border-top: 1px dashed #D6CCBB"></div>
+<span aria-hidden="true" style="position: absolute; left: -2px; bottom: 200px; font-size: 12px; color: #6B6256; transform: translateX(-100%)">4</span>
+<span aria-hidden="true" style="position: absolute; left: -2px; bottom: 110px; font-size: 12px; color: #6B6256; transform: translateX(-100%)">2</span>
+<sc-for list="{{ weeks }}" as="w" hint-placeholder-count="13">
+<div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 6px; height: 100%; position: relative">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #4A433A">{{ w.v }}</span>
+<div style="width: 100%; max-width: 34px; height: {{ w.h }}px; background: {{ w.c }}"></div>
+<span style="position: absolute; bottom: -24px; font-size: 11px; color: #6B6256; white-space: nowrap">{{ w.label }}</span>
+</div>
+</sc-for>
+</div>
+</article>
+
+<article aria-labelledby="t-up" style="display: flex; flex-direction: column; gap: 4px">
+<header style="display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid #16130F; padding-bottom: 10px">
+<h2 id="t-up" style="margin: 0; font-family: Fraunces, serif; font-weight: 600; font-size: 28px">Coming up</h2>
+<a href="Calendar.dc.html" style="font-size: 14px">Open calendar →</a>
+</header>
+<div style="display: flex; align-items: flex-start; gap: 14px; padding: 14px 16px; margin-top: 12px; background: #F6DDD6; border-left: 0">
+<input type="checkbox" id="od1" style="width: 20px; height: 20px; margin: 2px 0 0; accent-color: #B8321F">
+<label for="od1" style="display: flex; flex-direction: column; gap: 2px; flex: 1">
+<span style="font-size: 12px; font-weight: 700; letter-spacing: 0.12em; color: #9E2A1A">OVERDUE · 3 DAYS</span>
+<span style="font-size: 16px; font-weight: 600">Send a thank-you note to Fernhill Studio</span>
+<span style="font-size: 14px; color: #4A433A">Follow-up · was due Fri, Nov 20</span>
+</label>
+</div>
+<ol style="list-style: none; margin: 0; padding: 0">
+<sc-for list="{{ upcoming }}" as="u" hint-placeholder-count="5">
+<li style="display: grid; grid-template-columns: 64px 1fr; gap: 16px; padding: 14px 0; border-bottom: 1px solid #D6CCBB">
+<div style="display: flex; flex-direction: column; align-items: flex-start">
+<span style="font-size: 11px; font-weight: 700; letter-spacing: 0.14em; color: #4A433A">{{ u.wk }}</span>
+<span style="font-family: Fraunces, serif; font-size: 34px; font-weight: 500; line-height: 1">{{ u.day }}</span>
+<span style="font-size: 11px; letter-spacing: 0.1em; color: #6B6256">{{ u.mon }}</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 3px">
+<span style="font-size: 12px; font-weight: 700; letter-spacing: 0.12em; color: {{ u.c }}"><span aria-hidden="true">{{ u.glyph }}</span> {{ u.type }}</span>
+<a href="Detail.dc.html" style="font-size: 16px; font-weight: 600; color: #16130F; text-decoration: none">{{ u.title }}</a>
+<span style="font-size: 14px; color: #4A433A">{{ u.sub }}</span>
+</div>
+</li>
+</sc-for>
+</ol>
+</article>
+</section>
+
+<!-- Row: funnel + sources -->
+<section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr)); gap: 48px; margin-top: 56px">
+
+<article aria-labelledby="t-fun" style="display: flex; flex-direction: column; gap: 18px">
+<header style="border-bottom: 1px solid #16130F; padding-bottom: 10px">
+<h2 id="t-fun" style="margin: 0; font-family: Fraunces, serif; font-weight: 600; font-size: 28px">How far applications got</h2>
+</header>
+<p style="margin: 0; font-size: 14px; color: #4A433A">Each application counts once, at the furthest stage it ever reached.</p>
+<ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px">
+<sc-for list="{{ funnel }}" as="s" hint-placeholder-count="4">
+<li style="display: grid; grid-template-columns: 110px 1fr 56px; align-items: center; gap: 16px">
+<span style="font-size: 15px; font-weight: 600">{{ s.label }}</span>
+<div style="height: 40px; background: #E6DED0; position: relative">
+<div style="height: 100%; width: {{ s.pct }}%; background: {{ s.c }}"></div>
+</div>
+<span style="font-family: Fraunces, serif; font-size: 26px; font-weight: 500; text-align: right; font-variant-numeric: tabular-nums">{{ s.n }}</span>
+<span></span>
+<span style="font-size: 13px; color: #4A433A; padding: 4px 0 8px">{{ s.conv }}</span>
+<span></span>
+</li>
+</sc-for>
+</ol>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid #D6CCBB; padding-top: 14px; gap: 24px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 12px; font-weight: 700; letter-spacing: 0.12em; color: #9E2A1A">EXITS · REJECTED</span>
+<span style="font-family: Fraunces, serif; font-size: 34px; font-weight: 500">7</span>
+<span style="font-size: 13px; color: #4A433A">3 after applying · 2 after screening · 2 after interview</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 12px; font-weight: 700; letter-spacing: 0.12em; color: #5E5A54">EXITS · WITHDRAWN</span>
+<span style="font-family: Fraunces, serif; font-size: 34px; font-weight: 500">2</span>
+<span style="font-size: 13px; color: #4A433A">Both after applying</span>
+</div>
+</div>
+</article>
+
+<article aria-labelledby="t-src" style="display: flex; flex-direction: column; gap: 18px">
+<header style="border-bottom: 1px solid #16130F; padding-bottom: 10px">
+<h2 id="t-src" style="margin: 0; font-family: Fraunces, serif; font-weight: 600; font-size: 28px">Where they came from</h2>
+</header>
+<p style="margin: 0; font-size: 14px; color: #4A433A">Applications per source, and how many reached an interview. Rates on fewer than 5 applications are shown faded.</p>
+<ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column">
+<sc-for list="{{ sources }}" as="s" hint-placeholder-count="5">
+<li style="display: grid; grid-template-columns: 130px 1fr 150px; align-items: center; gap: 16px; padding: 12px 0; border-bottom: 1px solid #D6CCBB">
+<span style="font-size: 15px; font-weight: 600">{{ s.label }}</span>
+<div style="display: flex; align-items: center; gap: 10px">
+<div style="height: 14px; width: {{ s.w }}%; background: #16130F"></div>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 13px">{{ s.n }}</span>
+</div>
+<span style="font-size: 14px; color: {{ s.rc }}; text-align: right">{{ s.rate }}</span>
+</li>
+</sc-for>
+</ul>
+</article>
+</section>
+
+<!-- Recent changes ledger -->
+<section aria-labelledby="t-rec" style="margin-top: 56px">
+<header style="display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid #16130F; padding-bottom: 10px">
+<h2 id="t-rec" style="margin: 0; font-family: Fraunces, serif; font-weight: 600; font-size: 28px">Latest moves</h2>
+<a href="Table.dc.html" style="font-size: 14px">All applications →</a>
+</header>
+<div style="overflow-x: auto">
+<table style="width: 100%; border-collapse: collapse; min-width: 720px; font-size: 15px">
+<thead>
+<tr style="text-align: left; color: #4A433A; font-size: 12px; letter-spacing: 0.12em">
+<th scope="col" style="padding: 12px 12px 12px 0; font-weight: 600">DATE</th>
+<th scope="col" style="padding: 12px; font-weight: 600">COMPANY</th>
+<th scope="col" style="padding: 12px; font-weight: 600">ROLE</th>
+<th scope="col" style="padding: 12px; font-weight: 600">MOVED TO</th>
+</tr>
+</thead>
+<tbody>
+<sc-for list="{{ moves }}" as="m" hint-placeholder-count="5">
+<tr style="border-top: 1px solid #D6CCBB">
+<td style="padding: 12px 12px 12px 0; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #4A433A; white-space: nowrap">{{ m.date }}</td>
+<td style="padding: 12px; font-weight: 600">{{ m.company }}</td>
+<td style="padding: 12px">{{ m.role }}</td>
+<td style="padding: 12px"><span style="display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; font-size: 13px; font-weight: 600; color: {{ m.fg }}; background: {{ m.bg }}"><span aria-hidden="true" style="width: 7px; height: 7px; background: {{ m.fg }}"></span>{{ m.status }}</span> <span style="font-size: 13px; color: #6B6256">from {{ m.from }}</span></td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+</section>
+
+<footer style="margin-top: 64px; border-top: 1px solid #16130F; padding-top: 14px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; font-size: 13px; color: #4A433A">
+<span>JobTrack · Set in Fraunces &amp; Instrument Sans</span>
+<span>Figures cover applications dated Aug 25 – Nov 23, 2026</span>
+</footer>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var sel = (this.state && this.state.range) || '90';
+    var self = this;
+    var ranges = [['30','30 days'],['90','90 days'],['all','All time']].map(function (r) {
+      var on = r[0] === sel;
+      return { label: r[1], pressed: on ? 'true' : 'false', bg: on ? '#16130F' : 'transparent', fg: on ? '#F3EDE2' : '#16130F', pick: function () { self.setState({ range: r[0] }); } };
+    });
+    var wk = [['Aug 24',1],['',2],['Sep 7',0],['',3],['Sep 21',2],['',4],['Oct 5',1],['',3],['Oct 19',2],['',4],['Nov 2',3],['',2],['Nov 16',1]];
+    var weeks = wk.map(function (w, i) { return { label: w[0], v: w[1], h: w[1] * 45 + (w[1] === 0 ? 2 : 0), c: i === wk.length - 1 ? '#E4412B' : '#16130F' }; });
+    var st = {
+      Wishlist: ['#5C5348', '#E6DED0'], Applied: ['#2440C0', '#DCE2F7'], Screening: ['#0E6468', '#D3E8E6'],
+      Interview: ['#7A4F00', '#F1E2C2'], Offer: ['#2E6B2F', '#DCEBD5'], Rejected: ['#9E2A1A', '#F2D9D2'], Withdrawn: ['#55514B', '#E2DED8']
+    };
+    var moves = [
+      ['Nov 21', 'Kestrel Logistics', 'Python Developer', 'Applied', 'Wishlist'],
+      ['Nov 19', 'Halden Robotics', 'ML Engineer', 'Interview', 'Screening'],
+      ['Nov 18', 'Sable Pay', 'Software Engineer', 'Offer', 'Interview'],
+      ['Nov 17', 'Northwind Health', 'Backend Engineer', 'Interview', 'Screening'],
+      ['Nov 15', 'Atlas Freight', 'Data Engineer', 'Rejected', 'Screening']
+    ].map(function (m) { return { date: m[0], company: m[1], role: m[2], status: m[3], from: m[4], fg: st[m[3]][0], bg: st[m[3]][1] }; });
+    return {
+      ranges: ranges,
+      figures: [
+        { label: 'APPLIED', value: '28', note: '3 in the last two weeks' },
+        { label: 'ACTIVE', value: '19', note: 'Applied 9 · Screening 5 · Interview 4 · Offer 1' },
+        { label: 'INTERVIEW RATE', value: '25%', note: '7 of 28 reached an interview' },
+        { label: 'OFFERS', value: '1', note: 'Sable Pay · reply by Wed, Dec 2' }
+      ],
+      weeks: weeks,
+      upcoming: [
+        { wk: 'MON', day: '23', mon: 'NOV', type: 'ASSESSMENT · RUNNING', glyph: '◆', c: '#0E6468', title: 'Halden Robotics — take-home', sub: 'ML Engineer · due Wed, Nov 25 at 17:00' },
+        { wk: 'TUE', day: '24', mon: 'NOV', type: 'INTERVIEW', glyph: '●', c: '#7A4F00', title: 'Northwind Health — technical panel', sub: 'Backend Engineer · 10:30–11:30 · video call' },
+        { wk: 'THU', day: '26', mon: 'NOV', type: 'APPLY BY', glyph: '○', c: '#2440C0', title: 'Quarry Labs — Data Engineer', sub: 'On your wishlist · posting closes' },
+        { wk: 'FRI', day: '27', mon: 'NOV', type: 'FOLLOW-UP', glyph: '✓', c: '#16130F', title: 'Lumen Analytics — ask for a timeline', sub: 'Data Scientist · all day' },
+        { wk: 'MON', day: '30', mon: 'NOV', type: 'INTERVIEW', glyph: '●', c: '#7A4F00', title: 'Brightwell Bank — onsite', sub: 'AI Engineer · 14:00 · Blue Area, Islamabad' }
+      ],
+      funnel: [
+        { label: 'Applied', n: 28, pct: 100, c: '#16130F', conv: '14 moved on to screening (50%)' },
+        { label: 'Screening', n: 14, pct: 50, c: '#16130F', conv: '7 of 14 reached an interview (50%)' },
+        { label: 'Interview', n: 7, pct: 25, c: '#16130F', conv: '1 of 7 became an offer (14%)' },
+        { label: 'Offer', n: 1, pct: 3.6, c: '#E4412B', conv: '' }
+      ],
+      sources: [
+        { label: 'Company site', n: 11, w: 100, rate: '2 of 11 · 18%', rc: '#16130F' },
+        { label: 'LinkedIn', n: 9, w: 82, rate: '2 of 9 · 22%', rc: '#16130F' },
+        { label: 'Referral', n: 4, w: 36, rate: '3 of 4 · small sample', rc: '#6B6256' },
+        { label: 'Recruiter', n: 3, w: 27, rate: '0 of 3 · small sample', rc: '#6B6256' },
+        { label: 'Other', n: 1, w: 9, rate: '0 of 1 · small sample', rc: '#6B6256' }
+      ],
+      moves: moves
+    };
+  }
+}
+</script>
+</body>
+</html>

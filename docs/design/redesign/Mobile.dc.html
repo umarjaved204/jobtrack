@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>JobTrack — Board on a phone</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..500&amp;family=Instrument+Sans:wght@400..700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; overflow: hidden; font-family: 'Instrument Sans', system-ui, sans-serif; color: #16130F; background: #F3EDE2; display: flex; flex-direction: column">
+<header style="padding: 14px 16px 0">
+<div style="display: flex; align-items: center; justify-content: space-between">
+<button type="button" aria-label="Open menu" style="width: 44px; height: 44px; display: grid; place-items: center; background: transparent; border: 0; margin-left: -10px; color: #16130F">
+<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>
+</button>
+<span style="font-family: Fraunces, serif; font-weight: 600; font-size: 30px; letter-spacing: -0.03em">Job<span style="color: #E4412B">Track</span></span>
+<button type="button" aria-label="Search" style="width: 44px; height: 44px; display: grid; place-items: center; background: transparent; border: 0; margin-right: -10px; color: #16130F">
+<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+</button>
+</div>
+<div aria-hidden="true" style="border-top: 3px solid #16130F; border-bottom: 1px solid #16130F; height: 2px; margin-top: 8px"></div>
+<div style="display: flex; align-items: flex-end; justify-content: space-between; padding: 16px 0 10px">
+<h1 style="margin: 0; font-family: Fraunces, serif; font-weight: 600; font-size: 40px; line-height: 1">Pipeline</h1>
+<button type="button" style="min-height: 40px; padding: 0 14px; border: 0; background: #C2361F; color: #FFF; font: 600 14px 'Instrument Sans', sans-serif">+ Add</button>
+</div>
+<nav aria-label="Columns" style="display: flex; gap: 6px; overflow: hidden; padding-bottom: 12px; border-bottom: 1px solid #16130F">
+<sc-for list="{{ tabs }}" as="t" hint-placeholder-count="5">
+<a href="#" aria-current="{{ t.cur }}" style="flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 10px; font-size: 13px; font-weight: 600; text-decoration: none; color: {{ t.fg }}; background: {{ t.bg }}; border: 1px solid #16130F">{{ t.label }} <span style="font-family: 'JetBrains Mono', monospace; font-weight: 400">{{ t.n }}</span></a>
+</sc-for>
+</nav>
+</header>
+
+<div style="flex: 1; display: flex; gap: 12px; padding: 14px 0 0 16px; overflow: hidden">
+<section aria-label="Interview, 4 applications" style="flex: none; width: 330px; display: flex; flex-direction: column; gap: 10px">
+<sc-for list="{{ cards }}" as="c" hint-placeholder-count="4">
+<article style="display: flex; flex-direction: column; gap: 6px; padding: 12px; border: 1px solid #D6CCBB; background: #FBF8F2">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px">
+<span style="font-size: 13px; font-weight: 700">{{ c.co }}</span>
+<button type="button" aria-haspopup="menu" style="min-height: 32px; padding: 0 4px; background: transparent; border: 0; font: 600 12px 'Instrument Sans', sans-serif; color: #4A433A">Move to…</button>
+</div>
+<span style="font-family: Fraunces, serif; font-size: 19px; font-weight: 500; line-height: 1.2">{{ c.role }}</span>
+<span style="font-size: 13px; font-weight: {{ c.w }}; color: #2E2922">{{ c.next }}</span>
+</article>
+</sc-for>
+<p style="margin: 4px 0 0; font-size: 12px; color: #4A433A">Swipe for the next column. Press and hold a card to drag it.</p>
+</section>
+<section aria-label="Offer, 1 application" style="flex: none; width: 330px; opacity: 0.9">
+<article style="display: flex; flex-direction: column; gap: 6px; padding: 12px; border: 1px solid #D6CCBB; background: #FBF8F2"><span style="font-size: 13px; font-weight: 700">Sable Pay</span><span style="font-family: Fraunces, serif; font-size: 19px; font-weight: 500">Software Engineer</span><span style="font-size: 13px">■ Reply by Wed, Dec 2</span></article>
+</section>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var t = [['Applied', 9], ['Screening', 5], ['Interview', 4], ['Offer', 1], ['Rejected', 7]];
+    return {
+      tabs: t.map(function (x) { var on = x[0] === 'Interview'; return { label: x[0], n: x[1], cur: on ? 'true' : 'false', bg: on ? '#16130F' : 'transparent', fg: on ? '#F3EDE2' : '#16130F' }; }),
+      cards: [
+        { co: 'Northwind Health', role: 'Backend Engineer', next: '● Interview Tue, Nov 24 · 10:30', w: '600' },
+        { co: 'Halden Robotics', role: 'ML Engineer', next: '◆ Take-home due Wed, Nov 25', w: '600' },
+        { co: 'Brightwell Bank', role: 'AI Engineer', next: '● Onsite Mon, Nov 30 · 14:00', w: '400' },
+        { co: 'Fernhill Studio', role: 'Full-stack Engineer', next: 'Waiting on feedback · 6 days', w: '400' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

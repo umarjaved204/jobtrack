@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>JobTrack — Pipeline board</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..500&amp;family=Instrument+Sans:wght@400..700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:#F3EDE2}
+a{color:#B8321F}a:hover{color:#8E2414}
+:focus-visible{outline:2px solid #2B4BDB;outline-offset:2px}
+</style>
+</helmet>
+<div style="font-family: 'Instrument Sans', system-ui, sans-serif; color: #16130F; background: #F3EDE2; min-height: 100%">
+<dc-import name="Masthead" active="Applications" hint-size="100%,236px"></dc-import>
+
+<main style="max-width: 1296px; margin: 0 auto; padding: 0 clamp(20px, 5vw, 72px) 64px">
+<section style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 24px; padding: 40px 0 20px">
+<div style="display: flex; flex-direction: column; gap: 10px; max-width: 680px">
+<p style="margin: 0; font-size: 12px; letter-spacing: 0.18em; font-weight: 600; color: #B8321F">APPLICATIONS</p>
+<h1 style="margin: 0; font-family: Fraunces, serif; font-weight: 600; font-size: clamp(48px, 6vw, 80px); line-height: 0.95; letter-spacing: -0.02em">Pipeline</h1>
+<p style="margin: 0; font-size: 19px; line-height: 1.5; color: #4A433A">34 applications. Drag a card to move it, or use its <strong style="color: #16130F">Move to…</strong> menu.</p>
+</div>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px">
+<label style="display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px; border: 1px solid #CFC4B2; background: #FBF8F2; width: 260px">
+<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4A433A" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+<span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Filter cards</span>
+<input type="search" placeholder="Filter by company or role" style="border: 0; background: transparent; font: 15px 'Instrument Sans', sans-serif; color: #16130F; flex: 1; outline: none">
+</label>
+<button type="button" aria-haspopup="listbox" style="min-height: 44px; padding: 0 14px; border: 1px solid #CFC4B2; background: #FBF8F2; font: 500 15px 'Instrument Sans', sans-serif; color: #16130F; cursor: pointer">Tags: any</button>
+<div role="group" aria-label="View" style="display: flex; border: 1px solid #16130F">
+<span aria-current="page" style="display: inline-flex; align-items: center; min-height: 42px; padding: 0 16px; background: #16130F; color: #F3EDE2; font-weight: 600; font-size: 14px">Board</span>
+<a href="Table.dc.html" style="display: inline-flex; align-items: center; min-height: 42px; padding: 0 16px; color: #16130F; font-weight: 600; font-size: 14px; text-decoration: none">Table</a>
+</div>
+</div>
+</section>
+<p style="margin: 0 0 16px; font-size: 13px; color: #4A433A">Keyboard: focus a card’s handle, press Space to pick it up, arrow keys to move, Space to drop, Esc to cancel.</p>
+
+<div style="overflow-x: auto; border-top: 3px solid #16130F; padding-bottom: 8px">
+<div style="display: grid; grid-template-columns: repeat(5, minmax(236px, 1fr)) repeat(2, minmax(196px, 0.8fr)); min-width: 1560px">
+<sc-for list="{{ cols }}" as="col" hint-placeholder-count="7">
+<section aria-label="{{ col.label }}, {{ col.n }} applications" style="display: flex; flex-direction: column; gap: 10px; padding: 14px 12px 20px; border-right: 1px solid #D6CCBB; background: {{ col.bg }}">
+<header style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 10px; border-bottom: 1px solid #16130F">
+<h2 style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; letter-spacing: 0.14em; color: #16130F"><span aria-hidden="true" style="width: 9px; height: 9px; background: {{ col.fg }}"></span>{{ col.upper }}</h2>
+<span style="font-family: Fraunces, serif; font-size: 22px; font-weight: 500">{{ col.n }}</span>
+</header>
+<sc-for list="{{ col.cards }}" as="c" hint-placeholder-count="3">
+<sc-if value="{{ c.drop }}" hint-placeholder-val="{{ false }}">
+<div style="height: 118px; border: 2px dashed #2B4BDB; background: #E7EBFA; display: grid; place-items: center; font-size: 13px; font-weight: 600; color: #2440C0">Drop here · position 2 of 5</div>
+</sc-if>
+<sc-if value="{{ c.card }}" hint-placeholder-val="{{ true }}">
+<article style="position: relative; display: flex; flex-direction: column; gap: 8px; padding: 12px 12px 12px; border: 1px solid #D6CCBB; background: {{ c.bg }}; opacity: {{ c.op }}; transform: {{ c.tf }}; box-shadow: {{ c.sh }}; z-index: {{ c.z }}">
+<div style="display: flex; align-items: flex-start; gap: 10px">
+<span aria-hidden="true" style="flex: none; width: 34px; height: 34px; display: grid; place-items: center; background: #E6DED0; font-family: Fraunces, serif; font-weight: 600; font-size: 15px">{{ c.mono }}</span>
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+<span style="font-size: 14px; font-weight: 700">{{ c.company }}</span>
+<span style="font-size: 12px; color: #4A433A">{{ c.where }}</span>
+</div>
+<button type="button" aria-label="Move {{ c.company }}, {{ c.role }}" style="flex: none; width: 32px; height: 32px; display: grid; place-items: center; background: transparent; border: 0; color: #4A433A; cursor: grab">
+<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"></circle><circle cx="15" cy="6" r="1.6"></circle><circle cx="9" cy="12" r="1.6"></circle><circle cx="15" cy="12" r="1.6"></circle><circle cx="9" cy="18" r="1.6"></circle><circle cx="15" cy="18" r="1.6"></circle></svg>
+</button>
+</div>
+<a href="Detail.dc.html" style="font-family: Fraunces, serif; font-size: 19px; font-weight: 500; line-height: 1.2; color: #16130F; text-decoration: none">{{ c.role }}</a>
+<span style="font-size: 13px; color: {{ c.nextC }}; font-weight: {{ c.nextW }}">{{ c.next }}</span>
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px">
+<div style="display: flex; flex-wrap: wrap; gap: 4px">
+<sc-for list="{{ c.tags }}" as="t" hint-placeholder-count="1">
+<span style="font-size: 12px; padding: 2px 7px; border: 1px solid #CFC4B2; color: #4A433A">{{ t }}</span>
+</sc-for>
+</div>
+<button type="button" aria-haspopup="menu" aria-expanded="{{ c.menuOpen }}" style="font: 600 12px 'Instrument Sans', sans-serif; color: #4A433A; background: transparent; border: 0; padding: 6px 4px; min-height: 32px; cursor: pointer">Move to…</button>
+</div>
+<sc-if value="{{ c.menu }}" hint-placeholder-val="{{ false }}">
+<div role="menu" aria-label="Move Pinecrest Software to" style="position: absolute; right: -8px; top: calc(100% - 6px); z-index: 5; width: 200px; background: #FBF8F2; border: 1px solid #16130F; box-shadow: 4px 4px 0 #16130F; padding: 6px 0">
+<sc-for list="{{ moveTargets }}" as="m" hint-placeholder-count="6">
+<button type="button" role="menuitem" style="display: flex; align-items: center; gap: 10px; width: 100%; min-height: 36px; padding: 0 14px; background: {{ m.bg }}; border: 0; font: 500 14px 'Instrument Sans', sans-serif; color: #16130F; text-align: left; cursor: pointer"><span aria-hidden="true" style="width: 8px; height: 8px; background: {{ m.fg }}"></span>{{ m.label }}<span style="margin-left: auto; font-size: 12px; color: #6B6256">{{ m.note }}</span></button>
+</sc-for>
+</div>
+</sc-if>
+<sc-if value="{{ c.offer }}" hint-placeholder-val="{{ false }}">
+<span aria-hidden="true" style="position: absolute; right: 10px; bottom: 44px; transform: rotate(-8deg); border: 2px solid #C2361F; color: #C2361F; font-family: Fraunces, serif; font-weight: 700; font-size: 13px; letter-spacing: 0.12em; padding: 2px 8px">OFFER</span>
+</sc-if>
+</article>
+</sc-if>
+</sc-for>
+<sc-if value="{{ col.hasMore }}" hint-placeholder-val="{{ true }}">
+<button type="button" style="min-height: 40px; background: transparent; border: 1px dashed #CFC4B2; font: 600 13px 'Instrument Sans', sans-serif; color: #4A433A; cursor: pointer">{{ col.more }}</button>
+</sc-if>
+</section>
+</sc-for>
+</div>
+</div>
+
+<footer style="margin-top: 48px; border-top: 1px solid #16130F; padding-top: 14px; font-size: 13px; color: #4A433A">JobTrack · Set in Fraunces &amp; Instrument Sans</footer>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1250}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var S = {
+      Wishlist: ['#5C5348', '#E6DED0'], Applied: ['#2440C0', '#DCE2F7'], Screening: ['#0E6468', '#D3E8E6'],
+      Interview: ['#7A4F00', '#F1E2C2'], Offer: ['#2E6B2F', '#DCEBD5'], Rejected: ['#9E2A1A', '#F2D9D2'], Withdrawn: ['#55514B', '#E2DED8']
+    };
+    function card(o) {
+      var exit = !!o.exit;
+      return {
+        card: true, drop: false, company: o.co, role: o.role, where: o.where, mono: o.co.split(' ').map(function (w) { return w[0]; }).join('').slice(0, 2),
+        next: o.next, nextC: o.hot ? '#16130F' : '#4A433A', nextW: o.hot ? '600' : '400', tags: o.tags || [],
+        bg: exit ? '#EFE9DE' : '#FBF8F2', op: '1',
+        tf: o.lifted ? 'translate(18px, -6px) rotate(-2deg)' : 'none',
+        sh: o.lifted ? '0 18px 30px rgba(22,19,15,0.22), 0 2px 0 #16130F' : 'none',
+        z: o.lifted || o.menu ? 3 : 1, menu: !!o.menu, menuOpen: o.menu ? 'true' : 'false', offer: !!o.offer
+      };
+    }
+    var drop = { card: false, drop: true };
+    var cols = [
+      ['Wishlist', 6, [
+        card({ co: 'Quarry Labs', role: 'Data Engineer', where: 'Lahore · Hybrid', next: '○ Apply by Thu, Nov 26', hot: true, tags: ['Airflow'] }),
+        card({ co: 'Indus Analytics', role: 'ML Engineer', where: 'Remote', next: '○ Apply by Thu, Dec 3', tags: ['PyTorch'] }),
+        card({ co: 'Kite Health', role: 'Platform Engineer', where: 'Islamabad · On-site', next: 'Saved Nov 19' })
+      ]],
+      ['Applied', 9, [
+        card({ co: 'Kestrel Logistics', role: 'Python Developer', where: 'Karachi · On-site', next: 'Applied Nov 21 · 2 days here', tags: ['Django'] }),
+        card({ co: 'Tessera AI', role: 'ML Engineer Intern', where: 'Lahore · Remote', next: 'Applied Nov 16 · 7 days here', tags: ['NLP', 'Intern'] }),
+        card({ co: 'Orbit Grocers', role: 'Data Analyst', where: 'Islamabad · Hybrid', next: 'Applied Nov 12 · 11 days here' }),
+        card({ co: 'Ravi Labs', role: 'Backend Engineer', where: 'Lahore · Hybrid', next: 'Applied Nov 9 · 14 days here', tags: ['Go'] })
+      ]],
+      ['Screening', 5, [
+        card({ co: 'Lumen Analytics', role: 'Data Scientist', where: 'Remote', next: '✓ Follow up Fri, Nov 27', hot: true }),
+        card({ co: 'Margalla Systems', role: 'AI Engineer', where: 'Islamabad · Hybrid', next: 'Screening since Nov 10', tags: ['LLMs'], lifted: true }),
+        card({ co: 'Pinecrest Software', role: 'Software Engineer I', where: 'Islamabad · On-site', next: 'Screening since Nov 13', menu: true })
+      ]],
+      ['Interview', 4, [
+        card({ co: 'Northwind Health', role: 'Backend Engineer', where: 'Islamabad · Hybrid', next: '● Interview Tue, Nov 24 · 10:30', hot: true, tags: ['FastAPI'] }),
+        drop,
+        card({ co: 'Halden Robotics', role: 'ML Engineer', where: 'Remote', next: '◆ Take-home due Wed, Nov 25', hot: true }),
+        card({ co: 'Brightwell Bank', role: 'AI Engineer', where: 'Islamabad · On-site', next: '● Onsite Mon, Nov 30 · 14:00' }),
+        card({ co: 'Fernhill Studio', role: 'Full-stack Engineer', where: 'Remote', next: 'Waiting on feedback · 6 days' })
+      ]],
+      ['Offer', 1, [
+        card({ co: 'Sable Pay', role: 'Software Engineer', where: 'Karachi · Hybrid', next: '■ Reply by Wed, Dec 2', hot: true, offer: true })
+      ]],
+      ['Rejected', 7, [
+        card({ co: 'Atlas Freight', role: 'Data Engineer', where: 'Karachi', next: 'After screening · Nov 15', exit: true }),
+        card({ co: 'Corvid Security', role: 'Python Developer', where: 'Remote', next: 'After applying · Nov 10', exit: true })
+      ]],
+      ['Withdrawn', 2, [
+        card({ co: 'Juniper Retail', role: 'Data Analyst', where: 'Lahore', next: 'Withdrew Nov 2', exit: true }),
+        card({ co: 'Copperleaf', role: 'BI Developer', where: 'Remote', next: 'Withdrew Oct 28', exit: true })
+      ]]
+    ];
+    var shownReal = function (cards) { return cards.filter(function (c) { return c.card; }).length; };
+    return {
+      cols: cols.map(function (c) {
+        var exit = c[0] === 'Rejected' || c[0] === 'Withdrawn';
+        var left = c[1] - shownReal(c[2]);
+        return { label: c[0], upper: c[0].toUpperCase(), n: c[1], fg: S[c[0]][0], bg: exit ? '#EDE6DA' : 'transparent', cards: c[2], hasMore: left > 0, more: 'Show ' + left + ' more' };
+      }),
+      moveTargets: ['Wishlist', 'Applied', 'Screening', 'Interview', 'Offer', 'Rejected', 'Withdrawn'].map(function (s) {
+        return { label: s, fg: S[s][0], bg: s === 'Interview' ? '#EDE6DA' : 'transparent', note: s === 'Screening' ? 'current' : '' };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

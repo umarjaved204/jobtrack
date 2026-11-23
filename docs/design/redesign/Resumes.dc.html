@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>JobTrack — Resumes</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..500&amp;family=Instrument+Sans:wght@400..700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:#F3EDE2}
+a{color:#B8321F}a:hover{color:#8E2414}
+:focus-visible{outline:2px solid #2B4BDB;outline-offset:2px}
+</style>
+</helmet>
+<div style="font-family: 'Instrument Sans', system-ui, sans-serif; color: #16130F; background: #F3EDE2; min-height: 100%">
+<dc-import name="Masthead" active="Resumes" hint-size="100%,236px"></dc-import>
+
+<main style="max-width: 1296px; margin: 0 auto; padding: 0 clamp(20px, 5vw, 72px) 64px">
+<section style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 24px; padding: 40px 0 24px">
+<div style="display: flex; flex-direction: column; gap: 10px; max-width: 760px">
+<p style="margin: 0; font-size: 12px; letter-spacing: 0.18em; font-weight: 600; color: #B8321F">RESUMES</p>
+<h1 style="margin: 0; font-family: Fraunces, serif; font-weight: 600; font-size: clamp(48px, 6vw, 80px); line-height: 0.95; letter-spacing: -0.02em">Editions</h1>
+<p style="margin: 0; font-size: 19px; line-height: 1.5; color: #4A433A">Each version of your resume, kept as text. Once a version goes out with an application or is used in a match, it’s locked, so you always know exactly what was sent.</p>
+</div>
+<div style="display: flex; gap: 8px">
+<button type="button" style="min-height: 44px; padding: 0 16px; border: 1px solid #16130F; background: transparent; font: 600 15px 'Instrument Sans', sans-serif; color: #16130F; cursor: pointer">Import PDF or Word</button>
+<button type="button" style="min-height: 44px; padding: 0 16px; border: 0; background: #C2361F; color: #FFF; font: 600 15px 'Instrument Sans', sans-serif; cursor: pointer">+ New version</button>
+</div>
+</section>
+
+<div style="display: flex; flex-wrap: wrap; gap: 40px; border-top: 3px solid #16130F">
+
+<section aria-label="Versions" style="flex: 1 1 380px; display: flex; flex-direction: column">
+<ul style="list-style: none; margin: 0; padding: 0">
+<sc-for list="{{ versions }}" as="v" hint-placeholder-count="4">
+<li style="border-bottom: 1px solid #D6CCBB">
+<a href="#" aria-current="{{ v.cur }}" style="display: flex; flex-direction: column; gap: 6px; padding: 16px 14px; text-decoration: none; color: #16130F; background: {{ v.bg }}; box-shadow: {{ v.bar }}">
+<span style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+<span style="font-family: Fraunces, serif; font-size: 22px; font-weight: 500">{{ v.label }}</span>
+<span style="font-size: 11px; font-weight: 700; letter-spacing: 0.12em; padding: 2px 7px; color: {{ v.bfg }}; border: 1px solid {{ v.bfg }}">{{ v.badge }}</span>
+</span>
+<span style="font-size: 14px; color: #4A433A">{{ v.meta }}</span>
+<span style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: #2E2922">
+<svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>{{ v.lock }}</span>
+</a>
+</li>
+</sc-for>
+</ul>
+<label style="display: flex; align-items: center; gap: 10px; padding: 14px 0; font-size: 14px"><input type="checkbox" style="width: 18px; height: 18px; accent-color: #16130F">Show archived versions (1)</label>
+<div style="margin-top: 8px; padding: 18px; border: 1px dashed #A69B8B; display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 15px; font-weight: 600">Drop a PDF or .docx here</span>
+<span style="font-size: 13px; line-height: 1.5; color: #4A433A">Read on your device; the file isn’t uploaded. You check the extracted text before it’s saved. Scanned PDFs and old .doc files can’t be read.</span>
+</div>
+</section>
+
+<article aria-labelledby="t-v" style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 16px; padding-top: 18px">
+<header style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 14px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h2 id="t-v" style="margin: 0; font-family: Fraunces, serif; font-size: 36px; font-weight: 600">Backend v3 · Nov 2026</h2>
+<span style="font-size: 14px; color: #4A433A">Default · updated Nov 2 · 3,742 characters</span>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<button type="button" style="min-height: 44px; padding: 0 14px; border: 1px solid #16130F; background: #16130F; color: #F3EDE2; font: 600 14px 'Instrument Sans', sans-serif; cursor: pointer">Duplicate as new version</button>
+<button type="button" style="min-height: 44px; padding: 0 14px; border: 1px solid #16130F; background: transparent; color: #16130F; font: 600 14px 'Instrument Sans', sans-serif; cursor: pointer">Archive</button>
+</div>
+</header>
+<p role="note" style="margin: 0; display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; background: #E6DED0; font-size: 14px; line-height: 1.5">
+<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex: none; margin-top: 2px"><rect x="5" y="11" width="14" height="10"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
+<span><strong>Locked.</strong> Sent with 9 applications and used in 3 matches. You can rename it, but to change the text, duplicate it as a new version.</span></p>
+<div style="background: #FBF8F2; border: 1px solid #D6CCBB; box-shadow: 0 1px 0 #D6CCBB, 6px 6px 0 #E6DED0; padding: 40px 48px; font-family: Fraunces, serif; font-size: 16px; line-height: 1.6; white-space: pre-line; max-height: 560px; overflow: auto">AQIB JAVED
+Backend Engineer · Islamabad
+
+EXPERIENCE
+Backend Engineer, Kestrel Logistics (contract) · 2025–2026
+- Built and ran a FastAPI service handling 2M requests a day
+- Cut a reporting query from 9 s to 300 ms with partial indexes in Postgres
+- Moved email and PDF jobs to Celery workers with Redis as the broker
+
+Software Engineering Intern, Ravi Labs · 2024
+- Wrote pytest suites and GitHub Actions CI for an internal API
+
+PROJECTS
+JobTrack — job application tracker (React, FastAPI, Postgres)
+
+SKILLS
+Python, FastAPI, Django, PostgreSQL, Redis, Celery, Docker, pytest, GitHub Actions</div>
+<p style="margin: 0; font-size: 13px; color: #4A433A">Sample text for the mockup.</p>
+</article>
+</div>
+
+<footer style="margin-top: 56px; border-top: 1px solid #16130F; padding-top: 14px; font-size: 13px; color: #4A433A">JobTrack · Set in Fraunces &amp; Instrument Sans</footer>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1150}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var v = [
+      { label: 'Backend v3 · Nov 2026', badge: 'DEFAULT', bfg: '#B8321F', meta: 'Sent with 9 applications · 3 matches', lock: 'Locked', on: true },
+      { label: 'ML Engineer v2', badge: 'IN USE', bfg: '#4A433A', meta: 'Sent with 6 applications · 2 matches', lock: 'Locked', on: false },
+      { label: 'Data Engineer draft', badge: 'UNUSED', bfg: '#4A433A', meta: 'Not sent yet · updated Nov 20', lock: 'Editable', on: false }
+    ];
+    return {
+      versions: v.map(function (x) {
+        return { label: x.label, badge: x.badge, bfg: x.bfg, meta: x.meta, lock: x.lock, cur: x.on ? 'true' : 'false', bg: x.on ? '#EDE6DA' : 'transparent', bar: x.on ? 'inset 0 0 0 1px #16130F' : 'none' };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

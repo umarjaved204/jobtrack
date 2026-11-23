@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>JobTrack — Settings</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..500&amp;family=Instrument+Sans:wght@400..700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:#F3EDE2}
+a{color:#B8321F}a:hover{color:#8E2414}
+:focus-visible{outline:2px solid #2B4BDB;outline-offset:2px}
+</style>
+</helmet>
+<div style="font-family: 'Instrument Sans', system-ui, sans-serif; color: #16130F; background: #F3EDE2; min-height: 100%">
+<dc-import name="Masthead" active="Settings" hint-size="100%,236px"></dc-import>
+
+<main style="max-width: 1296px; margin: 0 auto; padding: 0 clamp(20px, 5vw, 72px) 64px">
+<section style="display: flex; flex-direction: column; gap: 10px; padding: 40px 0 24px">
+<p style="margin: 0; font-size: 12px; letter-spacing: 0.18em; font-weight: 600; color: #B8321F">SETTINGS</p>
+<h1 style="margin: 0; font-family: Fraunces, serif; font-weight: 600; font-size: clamp(48px, 6vw, 80px); line-height: 0.95; letter-spacing: -0.02em">Settings</h1>
+</section>
+
+<div style="display: flex; flex-wrap: wrap; gap: 48px; border-top: 3px solid #16130F; padding-top: 24px">
+<nav aria-label="Settings sections" style="flex: 1 1 200px; max-width: 240px">
+<ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column">
+<li><a href="#profile" aria-current="true" style="display: block; padding: 12px 0; font-weight: 700; color: #16130F; text-decoration: none; border-bottom: 1px solid #D6CCBB">Profile</a></li>
+<li><a href="#appearance" style="display: block; padding: 12px 0; color: #4A433A; text-decoration: none; border-bottom: 1px solid #D6CCBB">Appearance</a></li>
+<li><a href="#data" style="display: block; padding: 12px 0; color: #4A433A; text-decoration: none; border-bottom: 1px solid #D6CCBB">Your data</a></li>
+<li><a href="#account" style="display: block; padding: 12px 0; color: #4A433A; text-decoration: none; border-bottom: 1px solid #D6CCBB">Account</a></li>
+</ul>
+</nav>
+
+<div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 44px; max-width: 820px">
+
+<section id="profile" aria-labelledby="t-p" style="display: flex; flex-direction: column; gap: 16px">
+<h2 id="t-p" style="margin: 0; font-family: Fraunces, serif; font-size: 30px; font-weight: 600; border-bottom: 1px solid #16130F; padding-bottom: 8px">Profile</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Full name<input type="text" value="Aqib Javed" style="min-height: 44px; padding: 0 12px; border: 1px solid #CFC4B2; background: #FBF8F2; font: 16px 'Instrument Sans', sans-serif; color: #16130F"></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Email<input type="email" value="you@example.com" readonly="readonly" style="min-height: 44px; padding: 0 12px; border: 1px solid #CFC4B2; background: #ECE5D9; font: 16px 'Instrument Sans', sans-serif; color: #4A433A"></label>
+</div>
+<button type="button" style="align-self: flex-start; min-height: 44px; padding: 0 18px; border: 1px solid #16130F; background: #16130F; color: #F3EDE2; font: 600 15px 'Instrument Sans', sans-serif; cursor: pointer">Save profile</button>
+</section>
+
+<section id="appearance" aria-labelledby="t-a" style="display: flex; flex-direction: column; gap: 18px">
+<h2 id="t-a" style="margin: 0; font-family: Fraunces, serif; font-size: 30px; font-weight: 600; border-bottom: 1px solid #16130F; padding-bottom: 8px">Appearance</h2>
+<fieldset style="border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px">
+<legend style="font-size: 14px; font-weight: 600; padding: 0 0 10px">Edition</legend>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px">
+<sc-for list="{{ themes }}" as="t" hint-placeholder-count="3">
+<label style="display: flex; flex-direction: column; gap: 10px; padding: 12px; border: {{ t.bd }}; cursor: pointer">
+<span aria-hidden="true" style="height: 92px; background: {{ t.paper }}; border: 1px solid #CFC4B2; padding: 10px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-family: Fraunces, serif; font-weight: 600; font-size: 18px; color: {{ t.ink }}">Job<span style="color: #E4412B">Track</span></span>
+<span style="height: 2px; background: {{ t.ink }}"></span>
+<span style="height: 6px; width: 70%; background: {{ t.line }}"></span>
+<span style="height: 6px; width: 50%; background: {{ t.line }}"></span>
+</span>
+<span style="display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600"><input type="radio" name="theme" checked="{{ t.on }}" style="width: 18px; height: 18px; accent-color: #16130F">{{ t.label }}</span>
+<span style="font-size: 13px; color: #4A433A">{{ t.note }}</span>
+</label>
+</sc-for>
+</div>
+</fieldset>
+<fieldset style="border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px">
+<legend style="font-size: 14px; font-weight: 600; padding: 0 0 10px">Accent</legend>
+<div style="display: flex; flex-wrap: wrap; gap: 12px">
+<sc-for list="{{ accents }}" as="a" hint-placeholder-count="4">
+<label style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 14px 0 8px; border: {{ a.bd }}; cursor: pointer; font-size: 15px; font-weight: 500">
+<input type="radio" name="accent" checked="{{ a.on }}" style="position: absolute; opacity: 0; width: 1px; height: 1px">
+<span aria-hidden="true" style="width: 26px; height: 26px; background: {{ a.c }}"></span>{{ a.label }}</label>
+</sc-for>
+</div>
+<p style="margin: 0; font-size: 13px; color: #4A433A">Saved to your account, so every device opens in the same edition.</p>
+</fieldset>
+</section>
+
+<section id="data" aria-labelledby="t-d" style="display: flex; flex-direction: column; gap: 18px">
+<h2 id="t-d" style="margin: 0; font-family: Fraunces, serif; font-size: 30px; font-weight: 600; border-bottom: 1px solid #16130F; padding-bottom: 8px">Your data</h2>
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; padding-bottom: 16px; border-bottom: 1px solid #D6CCBB">
+<div style="display: flex; flex-direction: column; gap: 4px; max-width: 480px">
+<span style="font-size: 17px; font-weight: 700">Export everything</span>
+<span style="font-size: 14px; line-height: 1.5; color: #4A433A">Applications, timelines, contacts, tags, reminders, calendar events, resume versions and match results.</span>
+</div>
+<div style="display: flex; gap: 8px">
+<button type="button" style="min-height: 44px; padding: 0 16px; border: 1px solid #16130F; background: transparent; font: 600 14px 'Instrument Sans', sans-serif; color: #16130F; cursor: pointer">JSON (everything)</button>
+<button type="button" style="min-height: 44px; padding: 0 16px; border: 1px solid #16130F; background: transparent; font: 600 14px 'Instrument Sans', sans-serif; color: #16130F; cursor: pointer">CSV (applications)</button>
+</div>
+</div>
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 4px; max-width: 520px">
+<span style="font-size: 17px; font-weight: 700">Delete all match history</span>
+<span style="font-size: 14px; line-height: 1.5; color: #4A433A">Removes 12 match results and the job descriptions stored with them, and clears the match cache on this device. Resume versions locked only by matches become editable again.</span>
+</div>
+<button type="button" style="min-height: 44px; padding: 0 16px; border: 1px solid #9E2A1A; background: transparent; font: 600 14px 'Instrument Sans', sans-serif; color: #9E2A1A; cursor: pointer">Delete match history…</button>
+</div>
+<p style="margin: 0; padding: 14px; background: #E6DED0; font-size: 14px; line-height: 1.5">Matching runs its model on your device. Your resume and job descriptions are stored on JobTrack’s server and never sent to a third party.</p>
+</section>
+
+<section id="account" aria-labelledby="t-acc" style="display: flex; flex-direction: column; gap: 14px">
+<h2 id="t-acc" style="margin: 0; font-family: Fraunces, serif; font-size: 30px; font-weight: 600; border-bottom: 1px solid #16130F; padding-bottom: 8px">Account</h2>
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; padding: 18px; border: 2px solid #9E2A1A">
+<div style="display: flex; flex-direction: column; gap: 4px; max-width: 520px">
+<span style="font-size: 17px; font-weight: 700; color: #9E2A1A">Delete your account</span>
+<span style="font-size: 14px; line-height: 1.5; color: #2E2922">Permanently deletes everything above. Export first if you want a copy. You’ll be asked to type your email to confirm.</span>
+</div>
+<button type="button" style="min-height: 44px; padding: 0 16px; border: 0; background: #9E2A1A; font: 600 14px 'Instrument Sans', sans-serif; color: #FFF; cursor: pointer">Delete account…</button>
+</div>
+</section>
+</div>
+</div>
+
+<footer style="margin-top: 56px; border-top: 1px solid #16130F; padding-top: 14px; font-size: 13px; color: #4A433A">JobTrack · Set in Fraunces &amp; Instrument Sans</footer>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1350}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var sel = 'Paper';
+    var acc = 'Vermilion';
+    return {
+      themes: [
+        { label: 'Paper', note: 'Light, the default edition', paper: '#F3EDE2', ink: '#16130F', line: '#CFC4B2' },
+        { label: 'Night edition', note: 'Dark, for late-evening sessions', paper: '#12100E', ink: '#EDE4D3', line: '#4A433A' },
+        { label: 'Follow my system', note: 'Switches with your device', paper: 'linear-gradient(90deg, #F3EDE2 50%, #12100E 50%)', ink: '#8A8073', line: '#8A8073' }
+      ].map(function (t) { var on = t.label === sel; t.on = on; t.bd = on ? '2px solid #16130F' : '1px solid #CFC4B2'; return t; }),
+      accents: [
+        { label: 'Vermilion', c: '#E4412B' }, { label: 'Cobalt', c: '#2B4BDB' }, { label: 'Forest', c: '#2E6B2F' }, { label: 'Ink', c: '#16130F' }
+      ].map(function (a) { var on = a.label === acc; a.on = on; a.bd = on ? '2px solid #16130F' : '1px solid #CFC4B2'; return a; })
+    };
+  }
+}
+</script>
+</body>
+</html>
