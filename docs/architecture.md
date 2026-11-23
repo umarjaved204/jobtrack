@@ -107,6 +107,45 @@ that used one keep showing it, marked "(archived)". One default per user. The
 has match history (`RESTRICT` would also block deleting an account, since it's checked
 mid-cascade).
 
+**Importing a resume file** (`frontend/src/features/resumes/import/`). "Add a resume
+version" can fill its text from a PDF or a Word (.docx) file. The file is read in the
+browser and never uploaded: the text fills the form, the user reviews it, and only what
+they save is stored, exactly as if they had pasted it. The file name only suggests the
+version's name.
+
+- *Parsers:* pdf.js (Apache-2.0, Mozilla) for PDF and mammoth (BSD-2-Clause) for .docx,
+  each loaded only when such a file is picked (pdf.js 444 kB plus its 1.27 MB worker;
+  mammoth 308 kB; the main bundle is unchanged). The pdf.js worker is one of our own
+  assets, so it loads same-origin under cross-origin isolation.
+- *Type:* from the file's first bytes (`%PDF-`, or `PK` for the .docx zip), checked
+  against the extension. Contents that contradict the name are refused with their own
+  message.
+- *Refused, each with its own message:* over 5 MB (before reading); not PDF or Word;
+  contents that don't match the name; an old .doc or a password-protected .docx (both are
+  OLE containers, so they look the same); a password-protected PDF; a PDF with no text (a
+  scan: no OCR); more than 50,000 characters (pdf.js stops at the first page past it;
+  mammoth can't stop early, so its text is checked after); a damaged file.
+- *PDF lines* are rebuilt from pdf.js's positioned text runs (`pdf-lines.ts`): a run that
+  ends a line (`hasEOL`) or sits on another baseline starts a new line, a horizontal gap
+  becomes a space, a large vertical gap a blank line, and pages are separated by one.
+  Joining the runs would give one line per page, which the match's chunker and evidence
+  pairs can't use.
+- *Clean-up* (`clean-text.ts`), then the same normalisation as pasted text: bullet glyphs
+  at the start of a line (including the private-use bullets Word exports to PDF) become
+  "- ", words hyphenated at a line end are rejoined when the next line carries on in lower
+  case, runs of spaces collapse, and invisible characters go.
+- *Security:* CVE-2024-4367 (script through a crafted PDF font) came from pdf.js compiling
+  glyphs with `eval`. The fix (4.2.67) removed that code, and pdf.js v6 has no `eval` or
+  `new Function`, so its `isEvalSupported` switch is gone; `no-eval.test.ts` fails if an
+  upgrade brings dynamic code back. Mammoth's browser build refuses linked files outright,
+  so CVE-2025-11849 (local files read through a linked image) can't apply.
+- *Limits:* text in columns or tables may come out in the wrong order (the form says so,
+  and the text is reviewed before saving). Formatting isn't kept, as with pasted text.
+- *Checked* in the production build (`vite preview`, cross-origin isolated): a PDF and a
+  .docx imported through the real panel, the worker loaded from our origin, no blocked
+  request or console error; filled in 228 ms (PDF, including the first download of pdf.js
+  and its worker over localhost) and 123 ms (.docx).
+
 **Reminders** are in-app only (no email or push). Each is either *all-day* (`due_on`, a
 date) or *timed* (`due_at`, an instant), never both. An all-day reminder is due on its date
 in whatever zone the user is in, and overdue from the next local day; a timed one is
