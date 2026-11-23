@@ -25,6 +25,7 @@ import type {
 } from '@/types/application';
 
 import { type MoveInput, moveInBoard } from './board';
+import { celebrateOffer } from './offer-celebration/celebration-store';
 
 /*
  * Server state for applications, tags, timeline and contacts (TanStack Query).
@@ -125,7 +126,10 @@ export function useUpdateApplication(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (patch: ApplicationPatch) => api.patch<Application>(`/applications/${id}`, patch),
-    onSuccess: (updated) => {
+    onSuccess: (updated, patch) => {
+      // Patches carry the status only when it changed (the form sends dirty fields; the
+      // status picker skips no-ops), so this is a move *into* offer.
+      if (patch.status === 'offer' && updated.status === 'offer') celebrateOffer(updated.company);
       queryClient.setQueryData(applicationKeys.detail(id), updated);
       invalidateViews(queryClient, id); // a status change also adds a timeline event
     },
@@ -176,7 +180,14 @@ export function useMoveApplication() {
       await queryClient.cancelQueries({ queryKey: boardKey });
       const previous = queryClient.getQueryData<Board>(boardKey);
       if (previous) queryClient.setQueryData(boardKey, moveInBoard(previous, move));
-      return { previous };
+      const fromStatus = previous?.columns.find((column) =>
+        column.applications.some((a) => a.id === move.id),
+      )?.status;
+      return { previous, fromStatus };
+    },
+    onSuccess: (moved, _move, context) => {
+      // Celebrated once the server agrees, and not for reordering the offer column.
+      if (moved.status === 'offer' && context.fromStatus !== 'offer') celebrateOffer(moved.company);
     },
     onError: (_error, _move, context) => {
       if (context?.previous && isLastMove()) queryClient.setQueryData(boardKey, context.previous);

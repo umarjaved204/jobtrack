@@ -12,6 +12,7 @@ import { ThemeMenu } from '@/components/theme-menu';
 import { UserMenu } from '@/components/user-menu';
 import { Wordmark } from '@/components/wordmark';
 import { Button } from '@/components/ui/button';
+import { OfferCelebration } from '@/features/applications/offer-celebration/offer-celebration';
 import {
   Sheet,
   SheetClose,
@@ -195,6 +196,8 @@ function AppShell() {
       </footer>
 
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
+      {/* Outside <main>: its page transition transforms, which would pin `fixed` to it. */}
+      <OfferCelebration />
       <ScrollRestoration />
     </div>
   );
