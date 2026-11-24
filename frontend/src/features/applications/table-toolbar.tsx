@@ -75,7 +75,7 @@ function SearchField({ value, onSearch }: { value: string; onSearch: (q: string)
   return (
     <form
       role="search"
-      className="relative w-full sm:w-64"
+      className="relative w-full sm:max-w-95 sm:flex-[1_1_17.5rem]"
       onSubmit={(event) => {
         event.preventDefault();
         if (pending) send(query);
@@ -95,7 +95,7 @@ function SearchField({ value, onSearch }: { value: string; onSearch: (q: string)
         spellCheck={false}
         enterKeyHint="search"
         onChange={(event) => setDraft(event.target.value)}
-        className="h-9 pl-9"
+        className="pl-9"
       />
     </form>
   );
@@ -126,8 +126,7 @@ function DateRangeFilter({
       <PopoverTrigger asChild>
         <Button
           variant="outline"
-          size="sm"
-          className={cn('bg-card', active && 'border-foreground')}
+          className={cn('border-input bg-card font-medium', active && 'border-foreground')}
           // The dates alone don't say what they filter; the name includes the visible text.
           aria-label={summary ? `Applied: ${summary}` : undefined}
         >
@@ -146,7 +145,6 @@ function DateRangeFilter({
             value={from ?? ''}
             max={to ?? undefined}
             onChange={(event) => onChange({ from: read(event.target.value), to })}
-            className="h-9"
           />
         </div>
         <div className="grid gap-1.5">
@@ -157,7 +155,6 @@ function DateRangeFilter({
             value={to ?? ''}
             min={from ?? undefined}
             onChange={(event) => onChange({ from, to: read(event.target.value) })}
-            className="h-9"
           />
         </div>
         {active && (
@@ -202,7 +199,8 @@ function TableToolbar({ params, update }: { params: TableParams; update: Update 
   );
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    // The filter bar sits under a heavy ink rule, like the dashboard's figures.
+    <div className="flex flex-wrap items-center gap-2.5 border-t-[3px] border-b border-t-rule py-3.5">
       <SearchField value={params.q} onSearch={onSearch} />
       <FilterMenu
         label="Status"
@@ -238,7 +236,7 @@ function TableToolbar({ params, update }: { params: TableParams; update: Update 
       />
       <DateRangeFilter from={params.from} to={params.to} onChange={(range) => update(range)} />
       {hasFilters(params) && (
-        <Button variant="ghost" size="sm" onClick={() => update(clearedFilters)}>
+        <Button variant="link" className="h-11" onClick={() => update(clearedFilters)}>
           <X /> Clear filters
         </Button>
       )}
@@ -253,7 +251,7 @@ function TableToolbar({ params, update }: { params: TableParams; update: Update 
             update({ sort: applicationSorts.find((s) => s === sort) ?? params.sort })
           }
         >
-          <SelectTrigger id="table-sort" size="sm" className="w-52">
+          <SelectTrigger id="table-sort" className="w-52">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

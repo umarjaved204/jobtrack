@@ -26,6 +26,7 @@ import {
 } from '@/types/application';
 
 import { cardName } from './board-dnd';
+import { monogram } from './monogram';
 import { statusDotClass } from './status-classes';
 
 type BoardCardProps = {
@@ -174,14 +175,6 @@ function BoardCard({
       </Button>
     </article>
   );
-}
-
-/** "Octopus Energy" → "OE"; a single word gives its first two letters ("Monzo" → "MO"). */
-function monogram(company: string) {
-  const words = company.trim().split(/\s+/).filter(Boolean);
-  const letters =
-    words.length > 1 ? `${words[0]?.[0] ?? ''}${words[1]?.[0] ?? ''}` : company.trim().slice(0, 2);
-  return letters.toUpperCase();
 }
 
 /** The line under the role: the apply-by date on the wishlist, otherwise when it was sent. */
