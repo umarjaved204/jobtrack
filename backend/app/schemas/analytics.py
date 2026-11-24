@@ -1,11 +1,13 @@
 """Dashboard analytics. Definitions: docs/architecture.md, "Dashboard metrics"."""
 
+import uuid
 from datetime import date
 from typing import Literal
 
 from pydantic import BaseModel, Field
 
 from app.models.enums import ApplicationStatus
+from app.schemas.common import UtcDatetime
 
 # A rate is a fraction in [0, 1], or None when its denominator is 0 (nothing to divide by).
 Rate = float | None
@@ -53,3 +55,16 @@ class TimeseriesPoint(BaseModel):
 class Timeseries(BaseModel):
     interval: Literal["week", "month"]
     points: list[TimeseriesPoint]
+
+
+class Move(BaseModel):
+    application_id: uuid.UUID
+    company: str
+    role_title: str
+    from_status: ApplicationStatus
+    to_status: ApplicationStatus
+    moved_at: UtcDatetime
+
+
+class Moves(BaseModel):
+    moves: list[Move] = Field(description="Newest first")

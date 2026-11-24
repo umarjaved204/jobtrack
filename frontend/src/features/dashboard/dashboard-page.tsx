@@ -17,11 +17,12 @@ import { remindersQuery } from '@/features/reminders/api';
 import { parseDateOnly, toDateOnly } from '@/lib/dates';
 import type { Board, DateOnly } from '@/types/application';
 
-import { funnelQuery, sourcesQuery, summaryQuery, timeseriesQuery } from './api';
+import { funnelQuery, movesQuery, sourcesQuery, summaryQuery, timeseriesQuery } from './api';
 import { ApplicationsChart } from './applications-chart';
 import { type ComingUpSources, LOOKAHEAD_DAYS } from './coming-up';
 import { ComingUpPanel } from './coming-up-panel';
 import { Funnel } from './funnel';
+import { LatestMoves } from './latest-moves';
 import { LoadError } from './load-error';
 import { rangeLabels, useDashboardRange } from './range';
 import { RangePicker } from './range-picker';
@@ -96,6 +97,7 @@ function DashboardPage() {
   const timeseries = useQuery(timeseriesQuery(period));
   const funnel = useQuery(funnelQuery(period));
   const sources = useQuery(sourcesQuery(period));
+  const moves = useQuery(movesQuery());
   // Every application, for deadlines (and to spot a brand-new account). Often cached
   // already from the Applications page.
   const board = useQuery(boardQuery());
@@ -187,6 +189,14 @@ function DashboardPage() {
             ),
           )}
         </div>
+        {section(
+          moves,
+          'Latest moves didn’t load',
+          <SectionSkeleton label="the latest moves" height="h-40" />,
+          (data) => (
+            <LatestMoves moves={data} />
+          ),
+        )}
       </div>
     </>
   );

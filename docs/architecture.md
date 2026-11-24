@@ -170,7 +170,8 @@ most 366 days. The month grid starts weeks on Monday, like the dashboard's ISO w
 
 ## Dashboard metrics
 
-Endpoints: `GET /api/v1/analytics/summary|funnel|sources|timeseries?from&to`
+Endpoints: `GET /api/v1/analytics/summary|funnel|sources|timeseries?from&to` and
+`GET /api/v1/analytics/moves?limit`
 (`app/services/analytics.py`). The dashboard reads them plus the board.
 
 **Cohort.** Every range-scoped figure is computed over one cohort: the user's applications
@@ -212,6 +213,12 @@ later list.
 **Funnel** (`funnel`): for each stage, how many cohort applications reached it or a later
 one, and `rate_from_previous` (count ÷ the previous stage's count; `null` for Applied or when
 the previous stage is 0). The first bar is the same cohort as the Applied figure.
+
+**Latest moves** (`moves`): the user's most recent status changes across all applications,
+newest first (`limit`, 5 by default, 1 to 20). Only real moves: the event logged when an
+application is created has no `from_status` and is left out. Not range-scoped (it's "what
+happened lately", not a cohort figure). Deleting an application deletes its events, so its
+moves leave the list too.
 
 **Sources** (`sources`): cohort applications that reached Applied, grouped by source
 case-insensitively (`source` is free text, not an enum) and labelled with the most common

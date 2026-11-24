@@ -120,6 +120,7 @@ MATCH     GET /match/config; POST /match/prepare (client mode: chunks + digest);
           POST /match {resume_id, jd_text, application_id?, embeddings?{digest, jd, resume}};
           GET /match (?application_id &page &page_size); GET /match/{id}
 ANALYTICS GET /analytics/summary|timeseries|funnel|sources (?from&to: cohort by applied_on)
+          GET /analytics/moves?limit (latest status changes, 5 by default, at most 20; not range-scoped)
 EXPORT    GET /export?format=csv|json
 HEALTH    GET /health; GET /health/ready
 ```

@@ -33,6 +33,8 @@ from app.models.enums import ApplicationStatus, EventType
 from app.schemas.analytics import (
     Funnel,
     FunnelStage,
+    Move,
+    Moves,
     Rate,
     SourceRow,
     Sources,
@@ -235,4 +237,49 @@ def timeseries(db: Session, user: User, period: Period) -> Timeseries:
             TimeseriesPoint(start=bucket, count=counts[bucket])
             for bucket in _buckets(start, end, interval)
         ],
+    )
+
+
+MOVES_DEFAULT_LIMIT = 5
+MOVES_MAX_LIMIT = 20
+
+
+def moves(db: Session, user: User, limit: int = MOVES_DEFAULT_LIMIT) -> Moves:
+    """The user's latest status changes across all applications, newest first.
+
+    Only real moves: the event logged when an application is created (no from_status) is
+    left out. Not range-scoped: the dashboard shows what happened lately.
+    """
+    rows = db.execute(
+        select(
+            Application.id,
+            Application.company,
+            Application.role_title,
+            ApplicationEvent.from_status,
+            ApplicationEvent.to_status,
+            ApplicationEvent.created_at,
+        )
+        .join(Application, Application.id == ApplicationEvent.application_id)
+        .where(
+            Application.user_id == user.id,
+            ApplicationEvent.type == EventType.STATUS_CHANGE,
+            ApplicationEvent.from_status.is_not(None),
+            ApplicationEvent.to_status.is_not(None),
+        )
+        .order_by(ApplicationEvent.created_at.desc(), ApplicationEvent.id.desc())
+        .limit(limit)
+    ).all()
+    return Moves(
+        moves=[
+            Move(
+                application_id=app_id,
+                company=company,
+                role_title=role_title,
+                from_status=from_status,
+                to_status=to_status,
+                moved_at=moved_at,
+            )
+            for app_id, company, role_title, from_status, to_status, moved_at in rows
+            if from_status is not None and to_status is not None  # filtered above; narrows
+        ]
     )

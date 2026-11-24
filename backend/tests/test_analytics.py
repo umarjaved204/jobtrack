@@ -230,7 +230,7 @@ def test_an_inverted_range_is_rejected_on_the_to_field(client: TestClient, ayesh
 
 
 def test_analytics_require_authentication(client: TestClient) -> None:
-    for endpoint in ("summary", "funnel", "sources", "timeseries"):
+    for endpoint in ("summary", "funnel", "sources", "timeseries", "moves"):
         assert client.get(f"{ANALYTICS}/{endpoint}").status_code == 401
 
 
@@ -308,3 +308,58 @@ def test_an_open_range_follows_the_data(client: TestClient, ayesha: Headers) -> 
 
     points = get(client, ayesha, "timeseries")["points"]
     assert [p["start"] for p in points] == ["2026-10-05", "2026-10-12", "2026-10-19"]
+
+
+# --------------------------------------------------------------------------- moves
+
+
+def moves(client: TestClient, headers: Headers, **params: str) -> list[dict[str, Any]]:
+    result: list[dict[str, Any]] = get(client, headers, "moves", **params)["moves"]
+    return result
+
+
+def test_moves_are_the_latest_status_changes_newest_first(
+    client: TestClient, ayesha: Headers
+) -> None:
+    careem = create(client, ayesha, company="Careem", status="applied")
+    move(client, ayesha, careem, "screening", "interview")
+    create(client, ayesha, company="Arbisoft", status="applied")  # created, never moved
+    systems = create(client, ayesha, company="Systems Ltd", role_title="Data Engineer")
+    move(client, ayesha, systems, "applied")
+
+    latest = moves(client, ayesha)
+    assert [(m["company"], m["from_status"], m["to_status"]) for m in latest] == [
+        ("Systems Ltd", "wishlist", "applied"),
+        ("Careem", "screening", "interview"),
+        ("Careem", "applied", "screening"),
+    ]
+    assert latest[0]["application_id"] == systems
+    assert latest[0]["role_title"] == "Data Engineer"
+    assert latest[0]["moved_at"].endswith("Z") or latest[0]["moved_at"].endswith("+00:00")
+
+
+def test_moves_only_include_the_users_own_applications(
+    client: TestClient, ayesha: Headers, register: Callable[..., dict[str, Any]]
+) -> None:
+    bilal = auth_header(register(email="bilal.ahmed@mailbox-ok.com")["access_token"])
+    move(client, bilal, create(client, bilal, company="Bilal's pick"), "applied", "screening")
+    move(client, ayesha, create(client, ayesha, company="Careem"), "applied")
+
+    assert [m["company"] for m in moves(client, ayesha)] == ["Careem"]
+    assert [m["company"] for m in moves(client, bilal)] == ["Bilal's pick", "Bilal's pick"]
+
+
+def test_moves_default_to_5_and_take_a_limit_up_to_20(client: TestClient, ayesha: Headers) -> None:
+    app_id = create(client, ayesha, status="applied")
+    move(client, ayesha, app_id, *["screening", "applied"] * 4)  # 8 moves
+
+    assert len(moves(client, ayesha)) == 5
+    two = moves(client, ayesha, limit="2")
+    assert [(m["from_status"], m["to_status"]) for m in two] == [
+        ("screening", "applied"),
+        ("applied", "screening"),
+    ]
+    assert len(moves(client, ayesha, limit="20")) == 8
+    for bad in ("0", "21"):
+        response = client.get(f"{ANALYTICS}/moves", headers=ayesha, params={"limit": bad})
+        assert response.status_code == 422, bad

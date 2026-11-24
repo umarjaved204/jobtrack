@@ -316,3 +316,55 @@ describe('a brand-new account', () => {
     expect(screen.queryByRole('region', { name: /Key figures/ })).not.toBeInTheDocument();
   });
 });
+
+describe('latest moves', () => {
+  const movesTable = async () =>
+    screen.findByRole('table', { name: 'Latest status changes, newest first' });
+
+  it('lists the five newest moves, each linking to its application', async () => {
+    const backend = mockAnalyticsBackend(); // six moves on file
+    await openDashboard();
+
+    const rows = within(await movesTable())
+      .getAllByRole('row')
+      .slice(1)
+      .map((row) => row.textContent);
+    expect(rows).toEqual([
+      '17 NovMonzoSenior Frontend EngineerInterviewfrom Screening',
+      '16 NovWiseFrontend Engineer, PaymentsScreeningfrom Applied',
+      '14 NovDeliverooProduct EngineerRejectedfrom Interview',
+      '12 NovFigmaDesign Systems EngineerAppliedfrom Wishlist',
+      '10 NovOctopus EnergyProduct EngineerWithdrawnfrom Applied',
+    ]);
+    expect(backend.requests).toContain('moves?limit=5');
+    expect(screen.getByRole('link', { name: 'Deliveroo' })).toHaveAttribute(
+      'href',
+      '/applications/a3',
+    );
+    expect(screen.getByRole('link', { name: 'All applications' })).toHaveAttribute(
+      'href',
+      '/applications?view=table',
+    );
+  });
+
+  it('says when nothing has moved yet', async () => {
+    mockAnalyticsBackend({ moves: { moves: [] } });
+    await openDashboard();
+
+    const section = await screen.findByRole('region', { name: 'Latest moves' });
+    expect(within(section).getByText(/No moves yet/)).toBeVisible();
+  });
+
+  it('fails on its own, with a retry, leaving the rest of the page', async () => {
+    mockAnalyticsBackend();
+    server.use(
+      http.get('/api/v1/analytics/moves', () =>
+        HttpResponse.json({ detail: 'Server error' }, { status: 500 }),
+      ),
+    );
+    await openDashboard();
+
+    expect(await screen.findByText('Latest moves didn’t load')).toBeVisible();
+    expect(screen.getByRole('figure', { name: 'Pipeline' })).toBeVisible();
+  });
+});

@@ -3,6 +3,7 @@ import { keepPreviousData, queryOptions } from '@tanstack/react-query';
 import { api } from '@/lib/api/client';
 import type {
   AnalyticsFunnel,
+  AnalyticsMoves,
   AnalyticsPeriod,
   AnalyticsSources,
   AnalyticsSummary,
@@ -47,3 +48,13 @@ export const sourcesQuery = (period: AnalyticsPeriod) =>
   analyticsQuery<AnalyticsSources>('sources', period);
 export const timeseriesQuery = (period: AnalyticsPeriod) =>
   analyticsQuery<AnalyticsTimeseries>('timeseries', period);
+
+/** How many latest moves the dashboard shows (the API allows 1 to 20). */
+export const MOVES_SHOWN = 5;
+
+/** Latest status changes across every application: one list, no range (see analyticsKeys). */
+export const movesQuery = (limit = MOVES_SHOWN) =>
+  queryOptions({
+    queryKey: [...analyticsKeys.all, 'moves', limit] as const,
+    queryFn: ({ signal }) => api.get<AnalyticsMoves>(`/analytics/moves?limit=${limit}`, { signal }),
+  });
