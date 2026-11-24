@@ -130,6 +130,7 @@ def summary(db: Session, user: User, period: Period) -> Summary:
     applied = _reached(cohort, APPLIED)
     interviewed = _reached(cohort, INTERVIEW)
     offers = _reached(cohort, OFFER)
+    current = Counter(row.status for row in cohort if row.furthest >= APPLIED)
     wishlist = db.scalar(
         select(func.count())
         .select_from(Application)
@@ -143,6 +144,7 @@ def summary(db: Session, user: User, period: Period) -> Summary:
         interview_rate=_rate(interviewed, applied),
         offer_rate=_rate(offers, applied),
         wishlist=wishlist or 0,
+        by_status={status: current[status] for status in ApplicationStatus},
     )
 
 

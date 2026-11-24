@@ -200,6 +200,12 @@ counts as Screening too). Rejected and Withdrawn are outcomes, not stages.
 | Offers | Reached Offer; offer rate = Offers ÷ Applied |
 | Wishlist | Applications on the wishlist now. **Ignores the range** (they have no `applied_on`) |
 
+**Status breakdown** (`summary.by_status`): the cohort applications that reached Applied,
+counted by their **current** status. Every status is present (zeros included), and the counts
+sum to Applied. The dashboard shows the Rejected and Withdrawn totals from it. It says where
+applications are now, not after which stage they left: exits by stage are on the README's
+later list.
+
 **Rates** are fractions in [0, 1], or `null` when the denominator is 0; the UI shows "—"
 (read out as "Not enough data"), never 0%.
 

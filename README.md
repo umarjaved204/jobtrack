@@ -145,6 +145,7 @@ This is intentional; see [ADR 0002](docs/adr/0002-authentication.md).
 - **AI match** is English-only and estimates overlap; it doesn't predict how an employer or an ATS ranks a resume. Its calibration rests on 36 labelled pairs written by one person. Phone-class performance is unmeasured until a real device is tried (CPU throttling doesn't reach Web Workers). See ADR 0004.
 - **Data export** (Settings, Phase 10) must include resume versions, reminders and calendar events, not only applications.
 - **Reminder lists aren’t paginated**: a personal account’s reminders stay small, and the views use open reminders or one application’s.
+- **Exits by stage** (later): the dashboard shows how many applications were rejected or withdrawn, not after which stage. The timeline has the data (the last stage before the exit); it needs its own analytics field and a decision on how to show it.
 - **Dashboard bundle**: Recharts makes the lazy `/dashboard` chunk ~116 KB gzip (the main bundle is unaffected). If first paint matters later, the chart can become its own lazy chunk so the figures show first.
 - **Keyboard dragging** can occasionally skip a column when arrow keys are pressed faster than ~5 per second (dnd-kit measures card positions while the previous move animates). The "Move to…" menu on every card is the dependable keyboard path.
 - **Cross-tab sessions** use the Web Locks API, which needs a secure context (HTTPS or `localhost`). Opening the dev server from another device via a LAN IP uses the fallback path; see ADR 0002.

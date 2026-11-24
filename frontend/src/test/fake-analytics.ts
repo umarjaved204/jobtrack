@@ -33,6 +33,15 @@ export function sampleAnalytics(): AnalyticsData {
       interview_rate: 9 / 32,
       offer_rate: 2 / 32,
       wishlist: 6,
+      by_status: {
+        wishlist: 0,
+        applied: 5,
+        screening: 4,
+        interview: 3,
+        offer: 2,
+        rejected: 13,
+        withdrawn: 5,
+      },
     },
     funnel: {
       stages: [
@@ -83,6 +92,15 @@ export function emptyAnalytics(): AnalyticsData {
       interview_rate: null,
       offer_rate: null,
       wishlist: 0,
+      by_status: {
+        wishlist: 0,
+        applied: 0,
+        screening: 0,
+        interview: 0,
+        offer: 0,
+        rejected: 0,
+        withdrawn: 0,
+      },
     },
     funnel: {
       stages: (['applied', 'screening', 'interview', 'offer'] as const).map((stage) => ({

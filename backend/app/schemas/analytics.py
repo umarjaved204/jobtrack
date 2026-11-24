@@ -19,6 +19,9 @@ class Summary(BaseModel):
     interview_rate: Rate = Field(description="interviewed / applied")
     offer_rate: Rate = Field(description="offers / applied")
     wishlist: int = Field(description="Applications now on the wishlist (ignores the range)")
+    by_status: dict[ApplicationStatus, int] = Field(
+        description="Applied cohort by current status, every status present; sums to `applied`"
+    )
 
 
 class FunnelStage(BaseModel):

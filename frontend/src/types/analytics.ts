@@ -19,6 +19,8 @@ export type AnalyticsSummary = {
   offer_rate: Rate;
   /** On the wishlist now; ignores the range. */
   wishlist: number;
+  /** The Applied cohort by current status; every status is present and they sum to `applied`. */
+  by_status: Record<ApplicationStatus, number>;
 };
 
 export type FunnelStage = {

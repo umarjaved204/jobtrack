@@ -59,6 +59,15 @@ def test_an_empty_account_has_zero_counts_and_null_rates(
         "interview_rate": None,
         "offer_rate": None,
         "wishlist": 0,
+        "by_status": {
+            "wishlist": 0,
+            "applied": 0,
+            "screening": 0,
+            "interview": 0,
+            "offer": 0,
+            "rejected": 0,
+            "withdrawn": 0,
+        },
     }
     assert get(client, ayesha, "funnel")["stages"] == [
         {"stage": "applied", "count": 0, "rate_from_previous": None},
@@ -83,7 +92,7 @@ def test_stages_come_from_history_not_the_current_status(
     move(client, ayesha, offer, "interview", "offer")
 
     summary = get(client, ayesha, "summary", **OCT)
-    assert summary | {"interview_rate": None, "offer_rate": None} == {
+    assert summary | {"interview_rate": None, "offer_rate": None, "by_status": None} == {
         "applied": 3,
         "active": 2,  # the rejected one isn't active any more
         "interviewed": 2,
@@ -91,9 +100,41 @@ def test_stages_come_from_history_not_the_current_status(
         "interview_rate": None,
         "offer_rate": None,
         "wishlist": 0,
+        "by_status": None,
     }
     assert summary["interview_rate"] == pytest.approx(2 / 3)
     assert summary["offer_rate"] == pytest.approx(1 / 3)
+
+
+def test_the_status_breakdown_counts_the_applied_cohort_by_current_status(
+    client: TestClient, ayesha: Headers
+) -> None:
+    for day, path in [
+        ("05", ["interview", "rejected"]),
+        ("06", ["rejected"]),
+        ("07", ["withdrawn"]),
+        ("08", ["screening"]),
+    ]:
+        move(
+            client,
+            ayesha,
+            create(client, ayesha, status="applied", applied_on=f"2026-10-{day}"),
+            *path,
+        )
+    create(client, ayesha, status="rejected", applied_on="2026-09-30")  # outside the range
+    move(client, ayesha, create(client, ayesha, status="wishlist"), "withdrawn")  # never applied
+
+    summary = get(client, ayesha, "summary", **OCT)
+    assert summary["by_status"] == {
+        "wishlist": 0,
+        "applied": 0,
+        "screening": 1,
+        "interview": 0,
+        "offer": 0,
+        "rejected": 2,
+        "withdrawn": 1,
+    }
+    assert sum(summary["by_status"].values()) == summary["applied"]
 
 
 def test_skipped_stages_count_as_reached(client: TestClient, ayesha: Headers) -> None:
