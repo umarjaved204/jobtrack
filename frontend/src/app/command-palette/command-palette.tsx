@@ -4,7 +4,6 @@ import { type ReactNode, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import { StatusBadge } from '@/components/status-badge';
-import { Button } from '@/components/ui/button';
 import {
   Command,
   CommandGroup,
@@ -19,6 +18,7 @@ import { SEARCH_DEBOUNCE_MS } from '@/features/applications/table-params';
 import { useThemePreference } from '@/features/auth/hooks';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import type { Theme } from '@/lib/theme';
+import { cn } from '@/lib/utils';
 
 import {
   type CommandContext,
@@ -32,25 +32,33 @@ import {
 const SEARCH_RESULTS = 8;
 const RECENT_RESULTS = 5;
 
-/** Masthead button for the palette; shows the shortcut where there's room for it. */
+/**
+ * Masthead button for the palette. Desktop: drawn like a search field, with the shortcut.
+ * Phone: a 44px search icon. One element either way; its name is the visible label.
+ */
 function CommandPaletteTrigger({ apple, onOpen }: { apple: boolean; onOpen: () => void }) {
   const hint = shortcutHint(apple);
   return (
-    <Button
-      variant="ghost"
-      size="sm"
+    <button
+      type="button"
       onClick={onOpen}
       aria-keyshortcuts={hint.aria}
-      className="text-muted-foreground hover:text-foreground"
+      className={cn(
+        // Focus: the global :focus-visible outline (index.css).
+        'inline-flex size-11 shrink-0 cursor-pointer items-center justify-center text-foreground',
+        'transition-colors duration-(--duration-fast)',
+        'md:h-10 md:w-auto md:min-w-65 md:justify-start md:gap-2.5 md:border md:border-input md:bg-panel md:px-3 md:text-sm md:text-muted-foreground',
+        'hover:bg-accent md:hover:text-foreground',
+      )}
     >
-      <Search />
-      <span className="sr-only sm:not-sr-only">Search</span>
-      <span aria-hidden="true" className="hidden items-center gap-0.5 sm:inline-flex">
+      <Search aria-hidden="true" className="size-5 md:size-4" />
+      <span className="sr-only md:not-sr-only md:flex-1 md:text-left">Search or jump to…</span>
+      <span aria-hidden="true" className="hidden items-center gap-0.5 md:inline-flex">
         {hint.keys.map((key) => (
           <Kbd key={key}>{key}</Kbd>
         ))}
       </span>
-    </Button>
+    </button>
   );
 }
 

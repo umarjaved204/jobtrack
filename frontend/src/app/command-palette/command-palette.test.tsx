@@ -54,7 +54,7 @@ async function openPalette(user: ReturnType<typeof userEvent.setup>) {
 describe('command palette', () => {
   it('opens with Ctrl+K, closes with Escape and gives focus back', async () => {
     const { user } = await openApp();
-    const trigger = screen.getByRole('button', { name: 'Search' });
+    const trigger = screen.getByRole('button', { name: 'Search or jump to…' });
     expect(trigger).toHaveAttribute('aria-keyshortcuts', 'Control+K');
     trigger.focus();
 
@@ -69,7 +69,7 @@ describe('command palette', () => {
 
   it('opens from the masthead button, newest applications first', async () => {
     const { user } = await openApp();
-    await user.click(screen.getByRole('button', { name: 'Search' }));
+    await user.click(screen.getByRole('button', { name: 'Search or jump to…' }));
     const palette = await screen.findByRole('dialog', { name: 'Command palette' });
 
     const recent = await within(palette).findByRole('group', { name: 'Recently added' });

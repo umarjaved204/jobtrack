@@ -1,4 +1,4 @@
-import { LogOut, Settings } from 'lucide-react';
+import { ChevronDown, LogOut, Settings } from 'lucide-react';
 import { Link } from 'react-router';
 
 import { Button } from '@/components/ui/button';
@@ -29,17 +29,17 @@ function UserMenu() {
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          size="sm"
-          className="gap-2 pl-1"
+          className="h-11 gap-2.5 px-1.5 text-[0.9375rem] has-[>svg]:px-1.5"
           aria-label={`Account: ${user.full_name}`}
         >
           <span
             aria-hidden="true"
-            className="grid size-7 place-items-center rounded-full bg-primary text-xs font-semibold text-primary-foreground"
+            className="grid size-8 place-items-center rounded-full bg-primary text-[0.8125rem] font-bold text-primary-foreground"
           >
             {initials(user.full_name)}
           </span>
-          <span className="hidden max-w-40 truncate sm:inline">{user.full_name}</span>
+          <span className="hidden max-w-40 truncate md:inline">{user.full_name}</span>
+          <ChevronDown aria-hidden="true" className="hidden size-3.5 md:block" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">

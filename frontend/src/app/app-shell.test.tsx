@@ -2,7 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { mockApplicationsBackend } from '@/test/fake-applications';
+import { makeApplication, mockApplicationsBackend } from '@/test/fake-applications';
 import { mockAuthBackend } from '@/test/msw';
 import { findPageHeading, renderApp } from '@/test/render-app';
 
@@ -75,6 +75,45 @@ describe('App shell', () => {
     await user.click(screen.getByRole('button', { name: 'Appearance' }));
     await user.click(await screen.findByRole('menuitemradio', { name: /cobalt/i }));
     expect(document.documentElement.dataset['accent']).toBe('cobalt');
+  });
+
+  it('says how many applications are on file', async () => {
+    mockApplicationsBackend({
+      applications: [makeApplication({ company: 'Monzo' }), makeApplication({ company: 'Wise' })],
+    });
+    renderAt('/calendar');
+    await findPageHeading('Calendar');
+    expect(await screen.findByText('2 applications on file')).toBeInTheDocument();
+  });
+
+  it('says when nothing is on file yet', async () => {
+    renderAt('/calendar');
+    await findPageHeading('Calendar');
+    expect(await screen.findByText('Nothing on file yet')).toBeInTheDocument();
+  });
+
+  it('opens the add form from the section bar, keeping the list filters', async () => {
+    const user = userEvent.setup();
+    const router = renderAt('/applications?view=table&status=applied');
+    await findPageHeading('Applications');
+
+    await user.click(within(sectionNav()).getByRole('link', { name: 'Add application' }));
+
+    expect(await screen.findByRole('dialog', { name: 'Add an application' })).toBeVisible();
+    expect(router.state.location.search).toBe('?view=table&status=applied');
+  });
+
+  it('offers the add form in the mobile drawer too', async () => {
+    const user = userEvent.setup();
+    const router = renderAt('/dashboard');
+    await findPageHeading('Dashboard');
+
+    await user.click(screen.getByRole('button', { name: 'Open navigation' }));
+    const drawer = await screen.findByRole('dialog');
+    await user.click(within(drawer).getByRole('link', { name: 'Add application' }));
+
+    expect(await screen.findByRole('dialog', { name: 'Add an application' })).toBeVisible();
+    expect(router.state.location.pathname).toBe('/applications');
   });
 
   it('shows a 404 page inside the shell for unknown URLs', async () => {

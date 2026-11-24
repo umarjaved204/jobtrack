@@ -28,8 +28,8 @@ function ThemeMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon-sm" aria-label="Appearance">
-          <TriggerIcon />
+        <Button variant="ghost" size="icon" aria-label="Appearance" className="size-11">
+          <TriggerIcon className="size-5" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
