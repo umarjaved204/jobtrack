@@ -62,7 +62,8 @@ function VersionList({
   const headingId = `versions-${title.toLowerCase()}`;
   return (
     <section aria-labelledby={headingId} className="grid gap-2">
-      <h2 id={headingId} className="text-sm font-semibold text-muted-foreground">
+      {/* Group headings borrow the kicker style (CLAUDE.md "All-caps"). */}
+      <h2 id={headingId} className="pt-3 kicker text-muted-foreground">
         {title} <span className="figures">({resumes.length})</span>
       </h2>
       <ul className="grid border-t">
@@ -75,13 +76,16 @@ function VersionList({
                 aria-current={selected ? 'true' : undefined}
                 onClick={() => onSelect(resume.id)}
                 className={cn(
-                  'grid w-full gap-1 border-l-2 border-transparent px-3 py-3 text-left transition-colors duration-(--duration-fast) hover:bg-muted focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring',
-                  selected && 'border-primary bg-muted',
+                  'grid w-full gap-1.5 px-3.5 py-4 text-left transition-colors duration-(--duration-fast) hover:bg-accent focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring',
+                  // Selected: shaded, with a brand-colour bar on the left.
+                  selected && 'bg-accent shadow-[inset_3px_0_0_var(--primary)]',
                 )}
               >
-                <span className="flex items-center gap-2 font-semibold">
-                  <span className="min-w-0 truncate">{resume.label}</span>
-                  {resume.is_default && <Badge>Default</Badge>}
+                <span className="flex flex-wrap items-center gap-2.5">
+                  <span className="min-w-0 truncate font-display text-[1.375rem] leading-tight font-medium">
+                    {resume.label}
+                  </span>
+                  {resume.is_default && <Badge variant="outline">Default</Badge>}
                 </span>
                 <span className="text-sm text-muted-foreground">{usageLabel(resume)}</span>
               </button>
@@ -127,13 +131,16 @@ function VersionView({ summary, actions }: { summary: ResumeSummary; actions: Ac
   };
 
   return (
-    <article aria-labelledby="version-heading" className="grid content-start gap-5">
+    <article aria-labelledby="version-heading" className="grid content-start gap-5 pt-5">
       <header className="grid gap-3 border-b pb-5">
         <div className="flex flex-wrap items-center gap-2">
-          <h2 id="version-heading" className="font-display text-3xl font-semibold">
+          <h2
+            id="version-heading"
+            className="font-display text-[2.25rem] leading-tight font-semibold"
+          >
             {summary.label}
           </h2>
-          {summary.is_default && <Badge>Default</Badge>}
+          {summary.is_default && <Badge variant="outline">Default</Badge>}
           {archived && <Badge variant="secondary">Archived</Badge>}
         </div>
         <dl className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
@@ -209,8 +216,8 @@ function VersionView({ summary, actions }: { summary: ResumeSummary; actions: Ac
         </div>
 
         {used && (
-          <p className="flex items-start gap-2 text-sm text-muted-foreground">
-            <Lock aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
+          <p className="flex items-start gap-2.5 bg-muted px-3.5 py-3 text-sm leading-normal text-foreground">
+            <Lock aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
             {usageLabel(summary)}, so its text is locked and it can be archived but not deleted.
           </p>
         )}
@@ -242,8 +249,9 @@ function VersionView({ summary, actions }: { summary: ResumeSummary; actions: Ac
         </Alert>
       )}
       {resume.data && (
-        <div className="max-w-prose rounded-md border bg-card px-6 py-5 shadow-xs">
-          <p className="text-[0.9375rem] leading-relaxed break-words whitespace-pre-wrap">
+        // The text set like a printed page: card stock, hairline edge, an offset shadow.
+        <div className="max-w-prose border bg-card px-6 py-8 shadow-[0_1px_0_var(--border),6px_6px_0_var(--muted)] sm:px-12 sm:py-10">
+          <p className="font-display text-base leading-relaxed break-words whitespace-pre-wrap">
             {resume.data.content_text}
           </p>
         </div>
@@ -322,8 +330,8 @@ function ResumesPage() {
     );
   } else {
     content = (
-      <div className="mt-8 grid gap-10 lg:grid-cols-[20rem_minmax(0,1fr)]">
-        <nav aria-label="Resume versions" className="grid content-start gap-8">
+      <div className="mt-7 grid gap-10 border-t-[3px] border-rule lg:grid-cols-[22rem_minmax(0,1fr)]">
+        <nav aria-label="Resume versions" className="grid content-start gap-6">
           {active.length > 0 && (
             <VersionList title="Active" resumes={active} selectedId={selected.id} onSelect={open} />
           )}
