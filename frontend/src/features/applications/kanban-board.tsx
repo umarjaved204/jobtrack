@@ -190,6 +190,7 @@ function KanbanBoard({
   const active = drag
     ? applicationStatuses.flatMap((s) => columns[s]).find((a) => a.id === drag.activeId)
     : undefined;
+  const dropAt = drag ? placement(columns, drag.activeId) : null;
 
   return (
     <DndContext
@@ -204,10 +205,16 @@ function KanbanBoard({
         screenReaderInstructions: { draggable: SCREEN_READER_INSTRUCTIONS },
       }}
     >
+      <p className="mb-4 text-[0.8125rem] text-muted-foreground">
+        Keyboard: focus a card’s handle, press Space to pick it up, arrow keys to move, Space to
+        drop, Esc to cancel. Or use its Move to… menu.
+      </p>
+      {/* `relative`: absolutely positioned descendants (sr-only text in far columns) must be
+          clipped by this scroller, not stretch the page sideways on phones. */}
       <div
         role="region"
         aria-label="Pipeline board"
-        className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain px-4 pb-4 sm:mx-0 sm:px-0"
+        className="relative -mx-5 flex snap-x snap-mandatory scroll-px-5 overflow-x-auto overscroll-x-contain border-t-[3px] border-rule px-5 pb-2 sm:mx-0 sm:scroll-px-0 sm:px-0"
       >
         {applicationStatuses.map((status) => (
           <BoardColumn
@@ -227,6 +234,11 @@ function KanbanBoard({
                     focusAfterMove.status === application.status
                   }
                   onHandleFocused={clearFocusRequest}
+                  dropLabel={
+                    dropAt && drag?.activeId === application.id
+                      ? `Drop here · position ${dropAt.index} of ${dropAt.total}`
+                      : undefined
+                  }
                 />
               </li>
             ))}

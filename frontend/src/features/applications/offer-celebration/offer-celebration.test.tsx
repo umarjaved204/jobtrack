@@ -86,7 +86,7 @@ describe('offer celebration', () => {
     renderApp('/applications');
     await findPageHeading('Applications');
     await user.click(
-      await screen.findByRole('button', { name: 'Move Monzo, Senior Frontend Engineer to…' }),
+      await screen.findByRole('button', { name: 'Move to… Monzo, Senior Frontend Engineer' }),
     );
     await user.click(await screen.findByRole('menuitem', { name: 'Offer' }));
 

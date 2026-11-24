@@ -10,7 +10,7 @@ import { createQueryClient } from '@/lib/query-client';
 
 import { addDays } from 'date-fns/addDays';
 
-import { toDateOnly } from '@/lib/dates';
+import { formatDateOnly, toDateOnly } from '@/lib/dates';
 import { makeApplication, mockApplicationsBackend } from '@/test/fake-applications';
 import { mockAuthBackend, server } from '@/test/msw';
 import { findPageHeading, renderApp } from '@/test/render-app';
@@ -129,7 +129,7 @@ describe('Kanban board', () => {
     const user = userEvent.setup();
     await openBoard();
 
-    await user.click(screen.getByRole('button', { name: `Move ${MONZO} to…` }));
+    await user.click(screen.getByRole('button', { name: `Move to… ${MONZO}` }));
     await user.click(await screen.findByRole('menuitem', { name: 'Interview' }));
 
     await waitFor(() => expect(cardsIn('Interview')).toEqual(['Deliveroo', 'Monzo']));
@@ -150,7 +150,7 @@ describe('Kanban board', () => {
     const user = userEvent.setup();
     await openBoard();
 
-    await user.click(screen.getByRole('button', { name: `Move ${MONZO} to…` }));
+    await user.click(screen.getByRole('button', { name: `Move to… ${MONZO}` }));
     await user.click(await screen.findByRole('menuitem', { name: 'Offer' }));
 
     await waitFor(() => expect(cardsIn('Offer')).toEqual(['Monzo']));
@@ -169,7 +169,7 @@ describe('Kanban board', () => {
     const user = userEvent.setup();
     await openBoard();
 
-    await user.click(screen.getByRole('button', { name: `Move ${MONZO} to…` }));
+    await user.click(screen.getByRole('button', { name: `Move to… ${MONZO}` }));
     await user.click(await screen.findByRole('menuitem', { name: 'Offer' }));
 
     expect(await screen.findByText(`Couldn’t move ${MONZO}`)).toBeVisible();
@@ -188,8 +188,8 @@ describe('Kanban board', () => {
   });
 });
 
-describe('apply-by tag', () => {
-  it('shows on wishlist cards due within a week, not on applied ones', async () => {
+describe('apply-by line', () => {
+  it('shows the apply-by date on wishlist cards, flagged within a week; applied cards show when', async () => {
     const inDays = (n: number) => toDateOnly(addDays(new Date(), n));
     mockApplicationsBackend({
       applications: [
@@ -204,8 +204,12 @@ describe('apply-by tag', () => {
     });
     await openBoard();
 
-    expect(within(column('Wishlist')).getByText('Apply in 2d')).toBeVisible();
-    expect(within(column('Applied')).queryByText(/Apply in/)).not.toBeInTheDocument();
+    const due = formatDateOnly(inDays(2), 'EEE d MMM');
+    expect(within(column('Wishlist')).getByText(`Apply by ${due} · in 2 days`)).toHaveClass(
+      'font-semibold',
+    );
+    expect(within(column('Applied')).queryByText(/Apply by/)).not.toBeInTheDocument();
+    expect(within(column('Applied')).getByText(/^Applied \d{1,2} \w{3}$/)).toBeVisible();
   });
 });
 
