@@ -64,8 +64,11 @@ function LatestMatchSection({ applicationId }: Readonly<{ applicationId: string 
   }
 
   return (
-    <section aria-labelledby="latest-match-heading" className="grid gap-4">
-      <h2 id="latest-match-heading" className="font-display text-xl font-semibold">
+    <section aria-labelledby="latest-match-heading" className="grid gap-3">
+      <h2
+        id="latest-match-heading"
+        className="border-b border-rule pb-2 kicker text-[0.8125rem] font-bold text-foreground"
+      >
         Match
       </h2>
       {content}

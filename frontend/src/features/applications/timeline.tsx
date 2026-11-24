@@ -65,12 +65,7 @@ function NoteForm({ applicationId }: { applicationId: string }) {
           }}
         />
       </FormField>
-      <Button
-        type="submit"
-        variant="outline"
-        className="justify-self-start"
-        disabled={isSubmitting || alert.isWaiting}
-      >
+      <Button type="submit" className="justify-self-end" disabled={isSubmitting || alert.isWaiting}>
         {isSubmitting ? 'Saving…' : 'Add note'}
       </Button>
     </form>
@@ -82,42 +77,46 @@ const timestamp = (iso: string) => format(parseISO(iso), 'd MMM yyyy, HH:mm');
 function EventItem({ event }: { event: ApplicationEvent }) {
   const isNote = event.type === 'note';
   return (
-    <li className="group relative grid gap-1 pb-6 pl-6 last:pb-0">
-      {/* The rule and marker: a dot for status changes, a square for notes. */}
-      <span
-        aria-hidden="true"
-        className="absolute top-1.5 bottom-0 left-[3px] w-px bg-rule group-last:hidden"
-      />
+    <li className="relative grid gap-x-4 gap-y-1 pb-6 pl-5.5 last:pb-0 sm:grid-cols-[7.5rem_minmax(0,1fr)]">
+      {/* A square on the list's ink rule: brand colour for status changes, ink for notes. */}
       <span
         aria-hidden="true"
         className={cn(
-          'absolute top-1.5 left-0 size-[7px]',
-          isNote ? 'bg-foreground' : 'rounded-full bg-primary',
+          'absolute top-1 -left-[7px] size-3 border-2 border-background',
+          isNote ? 'bg-foreground' : 'bg-primary',
         )}
       />
-      <time dateTime={event.created_at} className="font-mono text-xs text-muted-foreground">
+      <time
+        dateTime={event.created_at}
+        className="pt-0.5 figures text-[0.8125rem] text-muted-foreground"
+      >
         {timestamp(event.created_at)}
       </time>
-      {isNote ? (
-        <p className="rounded-md bg-card px-3 py-2 text-sm whitespace-pre-wrap shadow-xs">
-          {event.body}
-        </p>
-      ) : event.from_status && event.to_status ? (
-        <p className="flex flex-wrap items-center gap-1.5 text-sm">
-          Moved from <strong className="font-semibold">{statusLabels[event.from_status]}</strong>
-          <ArrowRight aria-hidden="true" className="size-3.5 text-muted-foreground" />
-          <span className="sr-only">to</span>
-          <strong className="font-semibold">{statusLabels[event.to_status]}</strong>
-        </p>
-      ) : (
-        <p className="text-sm">
-          Added to{' '}
-          <strong className="font-semibold">
-            {event.to_status ? statusLabels[event.to_status] : 'the pipeline'}
-          </strong>
-        </p>
-      )}
+      <div className="grid min-w-0 gap-1">
+        <span className="kicker text-muted-foreground">{isNote ? 'Note' : 'Status'}</span>
+        <EventText event={event} />
+      </div>
     </li>
+  );
+}
+
+function EventText({ event }: { event: ApplicationEvent }) {
+  return event.type === 'note' ? (
+    <p className="font-display text-[1.0625rem] leading-normal whitespace-pre-wrap">{event.body}</p>
+  ) : event.from_status && event.to_status ? (
+    <p className="flex flex-wrap items-center gap-1.5 text-sm">
+      Moved from <strong className="font-semibold">{statusLabels[event.from_status]}</strong>
+      <ArrowRight aria-hidden="true" className="size-3.5 text-muted-foreground" />
+      <span className="sr-only">to</span>
+      <strong className="font-semibold">{statusLabels[event.to_status]}</strong>
+    </p>
+  ) : (
+    <p className="text-sm">
+      Added to{' '}
+      <strong className="font-semibold">
+        {event.to_status ? statusLabels[event.to_status] : 'the pipeline'}
+      </strong>
+    </p>
   );
 }
 
@@ -126,8 +125,11 @@ function Timeline({ applicationId }: { applicationId: string }) {
   const events = useQuery(eventsQuery(applicationId));
 
   return (
-    <section aria-labelledby="timeline-heading" className="grid gap-5">
-      <h2 id="timeline-heading" className="font-display text-2xl font-semibold">
+    <section aria-labelledby="timeline-heading" className="grid content-start gap-5">
+      <h2
+        id="timeline-heading"
+        className="border-b border-rule pb-2.5 font-display text-[1.875rem] font-semibold"
+      >
         Timeline
       </h2>
       <NoteForm applicationId={applicationId} />
@@ -149,7 +151,7 @@ function Timeline({ applicationId }: { applicationId: string }) {
           </Button>
         </Alert>
       ) : (
-        <ol aria-label="History, newest first" className="border-t pt-5">
+        <ol aria-label="History, newest first" className="ml-[5px] border-l-2 border-rule pt-1">
           {events.data.map((event) => (
             <EventItem key={event.id} event={event} />
           ))}

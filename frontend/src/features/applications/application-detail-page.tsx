@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, ExternalLink, Pencil, RotateCcw, Trash2 } from 'lucide-react';
+import { ExternalLink, Pencil, RotateCcw } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
@@ -34,6 +34,7 @@ import {
 import { applicationQuery, useDeleteApplication, useUpdateApplication } from './api';
 import { ApplicationFormSheet } from './application-form-sheet';
 import { ContactsSection } from './contacts-section';
+import { StageTrack } from './stage-track';
 import { Timeline } from './timeline';
 
 /** Where "back" goes: the list the user came from (with its filters), else the board. */
@@ -157,8 +158,11 @@ function Details({ application: a }: { application: Application }) {
   ];
 
   return (
-    <section aria-labelledby="details-heading" className="grid gap-3">
-      <h2 id="details-heading" className="font-display text-xl font-semibold">
+    <section aria-labelledby="details-heading" className="grid gap-1">
+      <h2
+        id="details-heading"
+        className="border-b border-rule pb-2 kicker text-[0.8125rem] font-bold text-foreground"
+      >
         Details
       </h2>
       <dl className="grid grid-cols-[7rem_1fr] gap-x-4 text-sm">
@@ -179,7 +183,7 @@ function StatusPicker({ application }: { application: Application }) {
   const update = useUpdateApplication(application.id);
   return (
     <div className="flex items-center gap-2">
-      <label htmlFor="detail-status" className="text-sm text-muted-foreground">
+      <label htmlFor="detail-status" className="text-sm font-semibold">
         Status
       </label>
       <Select
@@ -234,6 +238,13 @@ function ApplicationView({ application, back }: { application: Application; back
   const [editOpen, setEditOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
+  const where = [
+    application.location,
+    application.work_mode && workModeLabels[application.work_mode],
+  ]
+    .filter(Boolean)
+    .join(', ');
+
   const deleteApplication = () =>
     remove.mutate(application.id, {
       onSuccess: () => {
@@ -249,35 +260,43 @@ function ApplicationView({ application, back }: { application: Application; back
       <PageHeader
         kicker="Application"
         title={application.company}
-        description={application.role_title}
+        description={
+          <>
+            <span className="font-display text-[1.375rem] text-foreground">
+              {application.role_title}
+            </span>
+            {where && <> · {where}</>}
+          </>
+        }
         actions={
           <>
+            <StatusPicker application={application} />
             <Button variant="outline" onClick={() => setEditOpen(true)}>
               <Pencil /> Edit
             </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                remove.reset();
-                setConfirmDelete(true);
-              }}
-            >
-              <Trash2 /> Delete
-            </Button>
           </>
         }
+        className="border-b-[3px] border-rule pb-6"
       />
-      <div className="mt-4">
-        <StatusPicker application={application} />
-      </div>
+      <StageTrack application={application} />
 
-      <div className="mt-8 grid gap-10 lg:grid-cols-[minmax(0,1fr)_22rem]">
+      <div className="mt-9 grid gap-12 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-14">
         <Timeline applicationId={application.id} />
-        <aside className="grid content-start gap-10" aria-label="About this application">
+        <aside className="grid content-start gap-8" aria-label="About this application">
           <Details application={application} />
           <LatestMatchSection applicationId={application.id} />
           <RemindersSection applicationId={application.id} company={application.company} />
           <ContactsSection applicationId={application.id} />
+          <Button
+            variant="link"
+            className="justify-self-start text-destructive"
+            onClick={() => {
+              remove.reset();
+              setConfirmDelete(true);
+            }}
+          >
+            Delete this application…
+          </Button>
         </aside>
       </div>
 
@@ -314,11 +333,22 @@ function ApplicationDetailPage() {
 
   return (
     <>
-      <Button asChild variant="link" size="sm" className="mb-4">
-        <Link to={back}>
-          <ArrowLeft /> All applications
+      <nav aria-label="Breadcrumb" className="mb-2 text-sm">
+        <Link to={back} className="link">
+          Applications
         </Link>
-      </Button>
+        {application.data && (
+          <>
+            {' '}
+            <span aria-hidden="true" className="text-subtle-foreground">
+              /
+            </span>{' '}
+            <span aria-current="page" className="text-muted-foreground">
+              {application.data.company}
+            </span>
+          </>
+        )}
+      </nav>
       {application.isPending && (
         <div aria-busy="true" aria-label="Loading the application" className="grid gap-3">
           <Skeleton className="h-14 w-72" />

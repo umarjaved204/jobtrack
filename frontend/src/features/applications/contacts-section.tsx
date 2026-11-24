@@ -244,12 +244,12 @@ function ContactsSection({ applicationId }: { applicationId: string }) {
   }
 
   return (
-    <section aria-labelledby="contacts-heading" className="grid gap-4">
-      <div className="flex items-center justify-between gap-2">
-        <h2 id="contacts-heading" className="font-display text-xl font-semibold">
+    <section aria-labelledby="contacts-heading" className="grid gap-3">
+      <div className="flex items-center justify-between gap-2 border-b border-rule pb-1">
+        <h2 id="contacts-heading" className="kicker text-[0.8125rem] font-bold text-foreground">
           Contacts
         </h2>
-        <Button variant="outline" size="sm" onClick={() => setEditing({ type: 'create' })}>
+        <Button variant="ghost" size="sm" onClick={() => setEditing({ type: 'create' })}>
           <Plus /> Add contact
         </Button>
       </div>

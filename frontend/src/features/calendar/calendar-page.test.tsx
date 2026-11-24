@@ -217,7 +217,7 @@ describe('deleting an application', () => {
     renderApp(`/applications/${monzo}`);
     await findPageHeading('Monzo');
 
-    await user.click(screen.getByRole('button', { name: 'Delete' }));
+    await user.click(screen.getByRole('button', { name: 'Delete this application…' }));
     const confirm = await screen.findByRole('alertdialog', { name: 'Delete Monzo?' });
     await waitFor(() =>
       expect(confirm).toHaveTextContent(
