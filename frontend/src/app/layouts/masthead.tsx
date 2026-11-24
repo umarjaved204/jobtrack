@@ -19,7 +19,6 @@ import {
 } from '@/components/ui/sheet';
 import { addApplicationState } from '@/features/applications/add-application-state';
 import { applicationsListQuery } from '@/features/applications/api';
-import { useCurrentUser } from '@/features/auth/hooks';
 import { cn } from '@/lib/utils';
 
 const dateline = new Intl.DateTimeFormat(undefined, {
@@ -51,11 +50,7 @@ function onFileText(total: number) {
   return `${total.toLocaleString()} ${total === 1 ? 'application' : 'applications'} on file`;
 }
 
-/**
- * "34 applications on file": the paper's circulation line. Blank until it loads.
- * Mounted only while signed in: sign-out clears the cache and the shell re-renders on its
- * way to /login, so an unconditional query would come back and fetch without a token.
- */
+/** "34 applications on file": the paper's circulation line. Blank until it loads. */
 function OnFileCount() {
   const total = useQuery({ ...applicationsListQuery({ page_size: 1 }), select: (p) => p.total });
   return (
@@ -158,7 +153,6 @@ function MobileNav() {
  *   count / double rule / section bar
  */
 function Masthead({ apple, onOpenPalette }: { apple: boolean; onOpenPalette: () => void }) {
-  const signedIn = useCurrentUser() !== null;
   return (
     <header className="mx-auto w-full max-w-page page-gutter">
       <div
@@ -186,7 +180,7 @@ function Masthead({ apple, onOpenPalette }: { apple: boolean; onOpenPalette: () 
         />
         <div className="hidden flex-col items-end gap-1 self-end pb-3.5 [grid-area:tag] md:flex">
           <p className="font-display text-xl text-foreground italic">The job hunt, in print.</p>
-          {signedIn ? <OnFileCount /> : <div className="min-h-4" />}
+          <OnFileCount />
         </div>
       </div>
       {/* The masthead's double rule: heavy over hairline, 2px apart. */}

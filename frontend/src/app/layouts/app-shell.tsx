@@ -1,5 +1,12 @@
 import { AnimatePresence, m } from 'motion/react';
-import { type RefObject, useCallback, useEffect, useRef, useState } from 'react';
+import {
+  type RefObject,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import { Outlet, ScrollRestoration, useLocation, useNavigation } from 'react-router';
 
 import { CommandPalette } from '@/app/command-palette/command-palette';
@@ -7,9 +14,23 @@ import { isApplePlatform } from '@/app/command-palette/commands';
 import { usePaletteShortcut } from '@/app/command-palette/use-palette-shortcut';
 import { SkipLink } from '@/components/skip-link';
 import { OfferCelebration } from '@/features/applications/offer-celebration/offer-celebration';
+import { session } from '@/lib/api/session';
 import { duration, ease } from '@/lib/motion';
 
 import { Masthead } from './masthead';
+
+/**
+ * False from the instant the session ends. Sign-out clears the query cache, then navigates
+ * to /login; until that lands, anything still mounted here can re-create its query (a
+ * request settling re-renders its component) and fetch again without a token. The listener
+ * runs synchronously in sign-out, so React drops the signed-in tree first.
+ */
+function useSessionActive() {
+  return useSyncExternalStore(
+    (onChange) => session.onSignedOut(() => onChange()),
+    () => session.getAccessToken() !== null,
+  );
+}
 
 /** Thin brand-coloured bar while a route (lazy chunk) is loading. */
 function NavigationProgress() {
@@ -54,6 +75,10 @@ function AppShell() {
   const [apple] = useState(isApplePlatform);
   const togglePalette = useCallback(() => setPaletteOpen((open) => !open), []);
   usePaletteShortcut(togglePalette, apple);
+  const sessionActive = useSessionActive();
+
+  // Signing out: render nothing for the moment until /login replaces the shell.
+  if (!sessionActive) return null;
 
   return (
     <div className="flex min-h-dvh flex-col">
