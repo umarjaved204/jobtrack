@@ -71,10 +71,8 @@ function Stamp({ company, reduceMotion }: { company: string; reduceMotion: boole
         style={{ filter: 'url(#offer-stamp-ink)' }}
         className="rounded-lg border-[6px] border-double border-brand bg-paper/85 px-10 py-4 text-center shadow-lg"
       >
-        <p className="font-display text-[clamp(3.5rem,14vw,7rem)] leading-none font-black tracking-[0.06em] text-brand uppercase">
-          Offer
-        </p>
-        <p className="mt-2 border-t-2 border-brand pt-2 text-sm font-bold tracking-[0.18em] text-primary-text uppercase">
+        <p className="kicker-stamp text-brand">Offer</p>
+        <p className="mt-2 border-t-2 border-brand pt-2 kicker text-primary-text">
           Received · {company}
         </p>
       </div>

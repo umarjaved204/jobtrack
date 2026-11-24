@@ -204,6 +204,7 @@ function ApplicationForm({
   const field = (name: keyof ApplicationFormValues) => ({
     error: errors[name]?.message,
   });
+  const currencyField = form.register('salary_currency');
   const resumes = useQuery(resumesQuery());
   const hasResumes = resumes.isPending || resumes.isError || resumes.data.length > 0;
 
@@ -295,8 +296,15 @@ function ApplicationForm({
                 maxLength={3}
                 placeholder="GBP"
                 autoCapitalize="characters"
-                className="uppercase"
-                {...form.register('salary_currency')}
+                className="figures"
+                {...currencyField}
+                // A code, not a label: capitalise the value itself, not just how it looks.
+                onChange={(event) => {
+                  const upper = event.target.value.toUpperCase();
+                  // Only when it changes: assigning moves the caret to the end.
+                  if (upper !== event.target.value) event.target.value = upper;
+                  return currencyField.onChange(event);
+                }}
               />
             </FormField>
           </div>

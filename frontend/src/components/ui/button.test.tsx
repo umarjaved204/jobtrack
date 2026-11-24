@@ -34,6 +34,13 @@ describe('Button', () => {
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
+  it('is a 44px target by default, with the ink fill as a secondary solid', () => {
+    render(<Button variant="ink">Run match</Button>);
+    const button = screen.getByRole('button', { name: 'Run match' });
+    expect(button).toHaveAttribute('data-variant', 'ink');
+    expect(button).toHaveClass('h-11', 'bg-foreground', 'text-background');
+  });
+
   it('calls onClick, but not when disabled', async () => {
     const user = userEvent.setup();
     const onClick = vi.fn();

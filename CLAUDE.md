@@ -284,8 +284,8 @@ jobtrack/
   `findPageHeading(name)` waits for the fade-in. Setup resets the session, theme and localStorage
   after each test. Use `vi.fn<typeof fetch>()`-style typed fakes; `createSessionManager(deps)` takes
   injectable fetch/locks/channel/clock for unit tests.
-- Copy: no all-caps labels above titles on new pages, no "→" in buttons, sentence case,
-  typographic apostrophes (’) in user-facing strings.
+- Copy: no "→" in buttons, sentence case, typographic apostrophes (’) in user-facing
+  strings. All-caps: see Phase 10 "All-caps".
 - Every layout renders `<SkipLink />` first and has `<main id="main">`. Email inputs:
   `spellCheck={false}` + `autoCapitalize="none"`. Brand name: `translate="no"`.
 - Browser `theme-color` follows the chosen theme (`THEME_COLORS` in `src/lib/theme.ts`, same
@@ -418,6 +418,18 @@ jobtrack/
   `--input` (3:1); `--border` is decorative hairlines, `--border-quiet` decorative outlines.
   Corners are square (`--radius-*` are 0; `rounded-full` for round things). Overlays use
   `shadow-print*`. Page containers: `max-w-page page-gutter`.
+- All-caps: only from the `kicker` utility (index.css; `kicker-stamp` is its one documented
+  variant, for the offer stamp). Use it for eyebrows above titles, table column headers and
+  sidebar/menu section headings; those keep their elements (`th`, `h2`, `legend`) and only
+  borrow the style. Short labels of a few words: never sentences or buttons. Source text
+  stays sentence case (no hard-coded capitals; codes like GBP are data, not labels).
+  `src/styles/uppercase.test.ts` fails on `uppercase` anywhere else.
+- Base components: buttons default to 44px (`sm`/`xs` for dense rows only); `ink` is the
+  secondary solid (underlines on hover; no overlay reads on it). Fields and Select
+  triggers are 44px, 16px text, `bg-card` with an `--input` edge. Menus, popovers, selects
+  and toasts: `bg-popover`, ink border, `shadow-print-sm`. Dialogs: `bg-panel`, ink border,
+  `shadow-print-lg`. Sheets: `bg-panel` with a 3px ink edge. Status badges have a square
+  dot; tags are outlined (`--border-quiet`) with a small square in their colour.
 
 ## Conventions (established in 9b, resume file import)
 - Import code: `features/resumes/import/` (`file-type.ts` signatures, `pdf-lines.ts` line

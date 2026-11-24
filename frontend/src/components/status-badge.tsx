@@ -21,20 +21,20 @@ type StatusBadgeProps = React.ComponentProps<'span'> & {
   status: ApplicationStatus;
 };
 
-/** Application status pill: colour dot + text label (colour is never the only cue). */
+/** Application status label: tint, square colour dot and text (colour is never the only cue). */
 function StatusBadge({ status, className, ...props }: StatusBadgeProps) {
   return (
     <span
       data-slot="status-badge"
       data-status={status}
       className={cn(
-        'inline-flex w-fit items-center gap-1.5 rounded-sm px-1.5 py-0.5 text-xs leading-4 font-semibold whitespace-nowrap',
+        'inline-flex w-fit items-center gap-1.5 px-2 py-0.5 text-xs leading-4 font-semibold whitespace-nowrap',
         statusClasses[status],
         className,
       )}
       {...props}
     >
-      <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
+      <span aria-hidden="true" className="size-[7px] shrink-0 bg-current" />
       {statusLabels[status]}
     </span>
   );

@@ -282,13 +282,29 @@
   }
 }
 
-/* Small-caps style label above headings and stat figures ("kicker" in newsroom terms). */
+/*
+ * The ONLY source of all-caps text (CLAUDE.md "All-caps"): short labels of a few words,
+ * never sentences or buttons. Eyebrows above titles, table column headers, sidebar and
+ * menu section headings, the masthead's date line. Elements keep their semantics (th, h2,
+ * legend) and borrow the style. Source text stays in sentence case; `uppercase.test.ts`
+ * fails on `uppercase` anywhere else.
+ */
 @utility kicker {
   font-family: var(--font-sans);
   font-size: var(--text-xs);
   line-height: var(--text-xs--line-height);
   font-weight: 600;
   letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* Kicker variant for the one display-size label: the "Offer" ink stamp. */
+@utility kicker-stamp {
+  font-family: var(--font-display);
+  font-size: clamp(3.5rem, 14vw, 7rem);
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
