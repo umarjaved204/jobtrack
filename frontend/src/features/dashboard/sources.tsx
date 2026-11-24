@@ -50,7 +50,6 @@ function Sources({ sources, stale = false }: { sources: AnalyticsSources; stale?
                     )
                   }
                   fraction={share(row.applied, most)}
-                  tone="ink"
                   figures={
                     <>
                       <span className="figures text-base font-semibold">{row.applied}</span>

@@ -170,7 +170,12 @@ function DashboardPage() {
             'The pipeline didn’t load',
             <SectionSkeleton label="the pipeline" height="h-48" />,
             (data, stale) => (
-              <Funnel funnel={data} stale={stale} />
+              <Funnel
+                funnel={data}
+                outcomes={summary.data?.by_status}
+                cause={stale ? null : range}
+                stale={stale}
+              />
             ),
           )}
           {section(
