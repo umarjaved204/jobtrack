@@ -144,12 +144,16 @@ function CalendarPage() {
           onMonthChange={(next, day) => go({ month: next, day })}
           onOpenDay={openDay}
         />
-        <section aria-labelledby="day-heading" className="grid content-start gap-4">
+        <section
+          aria-labelledby="day-heading"
+          className="grid content-start gap-3 border-t-[3px] border-rule pt-3.5"
+        >
+          <p className="kicker text-muted-foreground">Selected day</p>
           <h2
             id="day-heading"
             ref={dayHeadingRef}
             tabIndex={-1}
-            className="font-display text-2xl font-semibold outline-none"
+            className="font-display text-[2rem] leading-tight font-semibold outline-none"
           >
             {dayHeading(selected)}
           </h2>
@@ -159,6 +163,9 @@ function CalendarPage() {
           ) : (
             <p className="text-sm text-muted-foreground">Nothing on this day.</p>
           )}
+          <p className="mt-2 text-[0.8125rem] text-muted-foreground">
+            Arrow keys move between days, Page Up and Page Down change month, Enter opens a day.
+          </p>
         </section>
       </div>
     );
@@ -173,7 +180,7 @@ function CalendarPage() {
           <section key={day} aria-labelledby={`agenda-${day}`} className="grid gap-3">
             <h3
               id={`agenda-${day}`}
-              className="border-b border-rule pb-1 font-display text-lg font-semibold"
+              className="border-b border-rule pb-1.5 font-display text-xl font-semibold"
             >
               {dayHeading(day)}
               {day === today && <span className="text-primary-text"> (today)</span>}
@@ -195,7 +202,11 @@ function CalendarPage() {
       />
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-        <h2 id="month-heading" aria-live="polite" className="font-display text-3xl font-semibold">
+        <h2
+          id="month-heading"
+          aria-live="polite"
+          className="font-display text-[2.5rem] leading-none font-semibold"
+        >
           {monthLabel(month)}
         </h2>
         <div className="flex gap-2">

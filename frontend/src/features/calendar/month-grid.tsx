@@ -32,7 +32,7 @@ function Chip({ item, day }: { item: CalendarItem; day: DateOnly }) {
   const starts = item.type === 'apply_by' ? null : item.starts_at;
   const start = starts && localDay(starts) === day ? starts : null;
   return (
-    <li className={cn('flex min-w-0 items-center gap-1 rounded-xs px-1 py-0.5 text-xs', className)}>
+    <li className={cn('flex min-w-0 items-center gap-1 px-1 py-0.5 text-xs', className)}>
       <Icon aria-hidden="true" className="size-3 shrink-0" />
       {start && <span className="shrink-0 font-mono">{localTime(start)}</span>}
       <span className={cn('truncate', item.type === 'reminder' && item.done_at && 'line-through')}>
@@ -110,7 +110,11 @@ function MonthGrid({
   };
 
   return (
-    <table role="grid" aria-labelledby={labelledBy} className="w-full table-fixed border-collapse">
+    <table
+      role="grid"
+      aria-labelledby={labelledBy}
+      className="w-full table-fixed border-collapse border-t-[3px] border-rule"
+    >
       <thead>
         <tr>
           {WEEKDAYS.map(([short, long]) => (
@@ -118,7 +122,8 @@ function MonthGrid({
               key={short}
               scope="col"
               abbr={long}
-              className="border-b border-rule pb-2 text-left text-sm font-semibold text-muted-foreground"
+              // Weekday headers borrow the kicker style (CLAUDE.md "All-caps").
+              className="border-r border-b border-r-border border-b-rule px-2.5 py-2 text-left kicker font-bold text-muted-foreground last:border-r-0"
             >
               {short}
             </th>
@@ -153,17 +158,18 @@ function MonthGrid({
                   }}
                   onKeyDown={(event) => onKeyDown(event, day)}
                   className={cn(
-                    'h-28 cursor-pointer border-b border-l border-rule p-1.5 align-top first:border-l-0',
-                    'transition-colors duration-(--duration-fast) hover:bg-muted',
+                    'h-28 cursor-pointer border-r border-b p-2 align-top last:border-r-0',
+                    'transition-colors duration-(--duration-fast) hover:bg-accent',
                     'focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring',
-                    day === selected && 'bg-muted shadow-[inset_0_-3px_0_var(--color-primary)]',
+                    // Selected: shaded and outlined in ink (focus keeps the cobalt ring).
+                    day === selected && 'bg-accent shadow-[inset_0_0_0_2px_var(--rule)]',
                     !inMonth && 'text-muted-foreground',
                   )}
                 >
                   <span
                     aria-hidden="true"
                     className={cn(
-                      'inline-grid size-7 place-items-center rounded-full font-mono text-sm',
+                      'inline-grid size-7 place-items-center rounded-full font-display text-[1.0625rem] tabular-nums',
                       isToday && 'bg-primary font-semibold text-primary-foreground',
                     )}
                   >
