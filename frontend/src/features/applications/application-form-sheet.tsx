@@ -105,7 +105,7 @@ function ApplicationFormSheet({ open, onOpenChange, mode, onSaved }: Application
       <Sheet open={open} onOpenChange={(next) => (next ? onOpenChange(true) : requestClose())}>
         <SheetContent
           side="right"
-          className="w-full gap-0 p-0 sm:w-[36rem] sm:max-w-[36rem]"
+          className="w-full gap-0 p-0 sm:w-[37.5rem] sm:max-w-[37.5rem]"
           onCloseAutoFocus={(event) => {
             if (opener.current?.isConnected) {
               event.preventDefault();
@@ -113,9 +113,14 @@ function ApplicationFormSheet({ open, onOpenChange, mode, onSaved }: Application
             }
           }}
         >
-          <SheetHeader className="border-b pr-12">
-            <SheetTitle>{title}</SheetTitle>
-            <SheetDescription>Only the company and role are required.</SheetDescription>
+          <SheetHeader className="gap-2 border-b border-rule px-5 pt-7 pr-14 pb-4.5 sm:px-8">
+            <p className="kicker text-primary-text">
+              {mode.type === 'create' ? 'New entry' : 'Editing'}
+            </p>
+            <SheetTitle className="text-[2rem] leading-none sm:text-[2.5rem]">{title}</SheetTitle>
+            <SheetDescription>
+              Only the company and role are required. Everything else can wait.
+            </SheetDescription>
           </SheetHeader>
           <ApplicationForm
             // Fresh form state for every open / application.
@@ -210,20 +215,20 @@ function ApplicationForm({
 
   return (
     <form noValidate onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col">
-      <div className="grid flex-1 content-start gap-5 overflow-y-auto px-5 py-5">
-        {alert.message && <Alert>{alert.message}</Alert>}
+      {/* Fields in four ruled groups, each named by a kicker legend (CLAUDE.md "All-caps"). */}
+      <div className="grid flex-1 content-start overflow-y-auto px-5 pb-2 sm:px-8">
+        {alert.message && <Alert className="mt-4">{alert.message}</Alert>}
 
-        <FormField label="Company" {...field('company')}>
-          <Input autoComplete="organization" {...form.register('company')} />
-        </FormField>
-        <FormField label="Role" {...field('role_title')}>
-          <Input autoComplete="off" {...form.register('role_title')} />
-        </FormField>
-        <FormField label="Job link" {...field('job_url')}>
-          <Input type="url" inputMode="url" placeholder="https://…" {...form.register('job_url')} />
-        </FormField>
-
-        <div className="grid gap-5 sm:grid-cols-2">
+        <fieldset className="grid gap-4 border-b pb-5 sm:grid-cols-2">
+          <legend className="pt-5 pb-2.5 kicker text-[0.8125rem] font-bold text-foreground">
+            The role
+          </legend>
+          <FormField label="Company" {...field('company')}>
+            <Input autoComplete="organization" {...form.register('company')} />
+          </FormField>
+          <FormField label="Role" {...field('role_title')}>
+            <Input autoComplete="off" {...form.register('role_title')} />
+          </FormField>
           <FormField label="Status" {...field('status')}>
             {(control) => (
               <Controller
@@ -245,6 +250,33 @@ function ApplicationForm({
                 )}
               />
             )}
+          </FormField>
+          <FormField label="Source" description="Where you found the role." {...field('source')}>
+            <Input list="application-sources" {...form.register('source')} />
+          </FormField>
+          <datalist id="application-sources">
+            {SOURCE_SUGGESTIONS.map((source) => (
+              <option key={source} value={source} />
+            ))}
+          </datalist>
+          <div className="sm:col-span-2">
+            <FormField label="Job link" {...field('job_url')}>
+              <Input
+                type="url"
+                inputMode="url"
+                placeholder="https://…"
+                {...form.register('job_url')}
+              />
+            </FormField>
+          </div>
+        </fieldset>
+
+        <fieldset className="grid gap-4 border-b pb-5 sm:grid-cols-2">
+          <legend className="pt-5 pb-2.5 kicker text-[0.8125rem] font-bold text-foreground">
+            Where and when
+          </legend>
+          <FormField label="Location" {...field('location')}>
+            <Input placeholder="London, Remote (UK)…" {...form.register('location')} />
           </FormField>
           <FormField label="Work mode" {...field('work_mode')}>
             {(control) => (
@@ -269,21 +301,26 @@ function ApplicationForm({
               />
             )}
           </FormField>
-          <FormField label="Location" {...field('location')}>
-            <Input placeholder="London, Remote (UK)…" {...form.register('location')} />
+          <FormField
+            label="Applied on"
+            description="Filled in automatically when it leaves the wishlist."
+            {...field('applied_on')}
+          >
+            <Input type="date" {...form.register('applied_on')} />
           </FormField>
-          <FormField label="Source" description="Where you found the role." {...field('source')}>
-            <Input list="application-sources" {...form.register('source')} />
+          <FormField
+            label="Apply by"
+            description="The last day to apply, if the ad gives one."
+            {...field('deadline_on')}
+          >
+            <Input type="date" {...form.register('deadline_on')} />
           </FormField>
-          <datalist id="application-sources">
-            {SOURCE_SUGGESTIONS.map((source) => (
-              <option key={source} value={source} />
-            ))}
-          </datalist>
-        </div>
+        </fieldset>
 
-        <fieldset className="grid gap-3">
-          <legend className="mb-1 text-sm font-semibold">Salary (yearly)</legend>
+        <fieldset className="grid gap-4 border-b pb-5">
+          <legend className="pt-5 pb-2.5 kicker text-[0.8125rem] font-bold text-foreground">
+            Salary (yearly)
+          </legend>
           <div className="grid grid-cols-[1fr_1fr_6rem] gap-3">
             <FormField label="Minimum" {...field('salary_min')}>
               <Input inputMode="numeric" className="figures" {...form.register('salary_min')} />
@@ -310,66 +347,53 @@ function ApplicationForm({
           </div>
         </fieldset>
 
-        <div className="grid gap-5 sm:grid-cols-2">
+        <fieldset className="grid gap-4 pb-5">
+          <legend className="pt-5 pb-2.5 kicker text-[0.8125rem] font-bold text-foreground">
+            Context
+          </legend>
           <FormField
-            label="Applied on"
-            description="Filled in automatically when it leaves the wishlist."
-            {...field('applied_on')}
+            label="Resume sent"
+            description={
+              hasResumes
+                ? 'The version you sent, so you can see which one works best.'
+                : 'No versions yet: add them on the Resumes page.'
+            }
+            {...field('resume_version_id')}
           >
-            <Input type="date" {...form.register('applied_on')} />
+            {(control) => (
+              <Controller
+                control={form.control}
+                name="resume_version_id"
+                render={({ field: f }) => (
+                  <ResumePicker
+                    {...control}
+                    name={f.name}
+                    value={f.value}
+                    onChange={f.onChange}
+                    onBlur={f.onBlur}
+                    ref={f.ref}
+                    savedId={mode.type === 'edit' ? mode.application.resume_version_id : null}
+                  />
+                )}
+              />
+            )}
           </FormField>
-          <FormField
-            label="Apply by"
-            description="The last day to apply, if the ad gives one."
-            {...field('deadline_on')}
-          >
-            <Input type="date" {...form.register('deadline_on')} />
+          <FormField label="Tags" {...field('tag_ids')}>
+            {(control) => (
+              <Controller
+                control={form.control}
+                name="tag_ids"
+                render={({ field: f }) => (
+                  <TagPicker {...control} value={f.value} onChange={f.onChange} />
+                )}
+              />
+            )}
           </FormField>
-        </div>
-
-        <FormField
-          label="Resume sent"
-          description={
-            hasResumes
-              ? 'The version you sent, so you can see which one works best.'
-              : 'No versions yet: add them on the Resumes page.'
-          }
-          {...field('resume_version_id')}
-        >
-          {(control) => (
-            <Controller
-              control={form.control}
-              name="resume_version_id"
-              render={({ field: f }) => (
-                <ResumePicker
-                  {...control}
-                  name={f.name}
-                  value={f.value}
-                  onChange={f.onChange}
-                  onBlur={f.onBlur}
-                  ref={f.ref}
-                  savedId={mode.type === 'edit' ? mode.application.resume_version_id : null}
-                />
-              )}
-            />
-          )}
-        </FormField>
-
-        <FormField label="Tags" {...field('tag_ids')}>
-          {(control) => (
-            <Controller
-              control={form.control}
-              name="tag_ids"
-              render={({ field: f }) => (
-                <TagPicker {...control} value={f.value} onChange={f.onChange} />
-              )}
-            />
-          )}
-        </FormField>
+        </fieldset>
       </div>
 
-      <div className="flex justify-end gap-2 border-t bg-popover px-5 py-4">
-        <Button variant="ghost" onClick={onCancel}>
+      <div className="flex justify-end gap-2.5 border-t border-rule bg-panel px-5 py-4 sm:px-8">
+        <Button variant="outline" onClick={onCancel}>
           Cancel
         </Button>
         <Button type="submit" disabled={isSubmitting}>
