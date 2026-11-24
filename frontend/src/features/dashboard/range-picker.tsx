@@ -2,7 +2,7 @@ import { cn } from '@/lib/utils';
 
 import { type DashboardRange, rangeLabels, ranges } from './range';
 
-/** Segmented control for the dashboard's date range (state lives in the URL). */
+/** Segmented control for the dashboard's date range (state lives in the URL): 44px, ink-ruled. */
 function RangePicker({
   value,
   onChange,
@@ -11,11 +11,7 @@ function RangePicker({
   onChange: (range: DashboardRange) => void;
 }) {
   return (
-    <div
-      role="group"
-      aria-label="Date range"
-      className="flex rounded-md border border-rule bg-card p-0.5"
-    >
+    <div role="group" aria-label="Date range" className="flex border border-rule">
       {ranges.map((range) => {
         const selected = range === value;
         return (
@@ -25,8 +21,8 @@ function RangePicker({
             aria-pressed={selected}
             onClick={() => onChange(range)}
             className={cn(
-              'inline-flex h-9 cursor-pointer items-center rounded-sm px-3 text-sm font-semibold whitespace-nowrap',
-              selected ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-accent',
+              'inline-flex h-11 cursor-pointer items-center border-r border-rule px-4 text-sm font-semibold whitespace-nowrap last:border-r-0',
+              selected ? 'bg-foreground text-background' : 'text-foreground hover:bg-accent',
             )}
           >
             {rangeLabels[range]}

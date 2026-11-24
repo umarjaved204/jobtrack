@@ -3,6 +3,7 @@ import type { AnalyticsFunnel } from '@/types/analytics';
 import { statusLabels } from '@/types/application';
 
 import { BarRow } from './bar-row';
+import { SectionHeading } from './section-heading';
 import { formatRate, share } from './rates';
 
 /**
@@ -15,18 +16,15 @@ function Funnel({ funnel, stale = false }: { funnel: AnalyticsFunnel; stale?: bo
 
   return (
     <figure aria-labelledby="funnel-heading" className="grid content-start gap-3">
-      <figcaption className="grid gap-1">
-        <h2 id="funnel-heading" className="font-display text-2xl font-semibold">
-          Pipeline
-        </h2>
-        <p className="text-sm text-muted-foreground">
+      <figcaption>
+        <SectionHeading id="funnel-heading" title="Pipeline">
           How far this period’s applications got. Each stage counts everything that reached it or
           went further.
-        </p>
+        </SectionHeading>
       </figcaption>
 
       {applied === 0 ? (
-        <p className="rounded-md border border-dashed px-4 py-10 text-center text-sm text-muted-foreground">
+        <p className="border border-dashed border-border-quiet px-4 py-10 text-center text-sm text-muted-foreground">
           Nothing applied for in this period yet.
         </p>
       ) : (

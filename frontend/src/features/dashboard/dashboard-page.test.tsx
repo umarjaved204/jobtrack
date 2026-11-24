@@ -269,9 +269,9 @@ describe('coming up', () => {
       .getAllByRole('listitem')
       .map((li) => li.textContent);
     expect(rows).toEqual([
-      '19 NovTomorrowPrep questionsFollow-up at 09:00',
-      '19 NovTomorrowPairing interviewInterview, 14:00–15:30, Deliveroo',
-      '20 NovIn 2 daysApply to FigmaSenior Frontend Engineer',
+      'Thu 19 NovFollow-up·TomorrowPrep questionsAt 09:00',
+      'Thu 19 NovInterview·TomorrowPairing interview14:00–15:30, Deliveroo',
+      'Fri 20 NovApply by·In 2 daysApply to FigmaSenior Frontend Engineer',
     ]);
     expect(within(panel).queryByText('Coffee chat')).not.toBeInTheDocument(); // "other"
     expect(within(panel).queryByText('Done already')).not.toBeInTheDocument();

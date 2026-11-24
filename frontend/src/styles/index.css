@@ -122,6 +122,15 @@
   --text-numeral: clamp(3.5rem, 2rem + 7vw, 8rem);
   --text-numeral--line-height: 0.85;
   --text-numeral--letter-spacing: -0.04em;
+  /* Redesign: page titles (48 → 80px), headline figures (56 → 88px), section heads. */
+  --text-title: clamp(3rem, 2rem + 4vw, 5rem);
+  --text-title--line-height: 0.95;
+  --text-title--letter-spacing: -0.02em;
+  --text-figure: clamp(3.5rem, 2.5rem + 3vw, 5.5rem);
+  --text-figure--line-height: 0.95;
+  --text-figure--letter-spacing: -0.03em;
+  --text-section: 1.75rem;
+  --text-section--line-height: 1.15;
 
   /*
    * ---- Shape: square, like type set on newsprint. The scale stays so components keep

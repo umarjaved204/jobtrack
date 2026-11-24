@@ -132,12 +132,12 @@ function DashboardPage() {
   return (
     <>
       <PageHeader
-        kicker="Overview"
+        kicker={`Overview · ${rangeLabels[range]}`}
         title="Dashboard"
         description="Your search at a glance: what you’ve applied for, how far it got, and where it came from."
         actions={<RangePicker value={range} onChange={setRange} />}
       />
-      <div className="mt-8 grid gap-12">
+      <div className="mt-7 grid gap-12 lg:gap-14">
         {section(summary, 'Your figures didn’t load', <StatStripSkeleton />, (data, stale) => (
           <StatStrip
             summary={data}
@@ -146,7 +146,7 @@ function DashboardPage() {
             rangeLabel={rangeLabels[range]}
           />
         ))}
-        <div className="grid gap-12 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:gap-16">
+        <div className="grid gap-12 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
           {section(
             timeseries,
             'Applications over time didn’t load',
@@ -164,7 +164,7 @@ function DashboardPage() {
             ),
           )}
         </div>
-        <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
+        <div className="grid gap-12 lg:grid-cols-2">
           {section(
             funnel,
             'The pipeline didn’t load',
