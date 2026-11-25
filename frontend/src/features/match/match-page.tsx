@@ -204,11 +204,13 @@ function VerdictPlaceholder() {
         The verdict
       </h2>
       <div className="grid gap-3 border-y border-rule py-8">
+        {/* An empty slot where the numeral will be: a dash at display size read as a rule. */}
         <p
           aria-hidden="true"
-          className="font-display text-[clamp(6rem,16vw,10.5rem)] leading-[0.8] font-medium tracking-[-0.04em] text-muted-foreground"
+          className="flex items-end gap-2 font-display text-[clamp(6rem,16vw,10.5rem)] leading-[0.8] font-medium text-muted-foreground"
         >
-          –<span className="text-4xl tracking-normal">/100</span>
+          <span className="h-[0.72em] w-[1.15em] border-2 border-dashed border-input" />
+          <span className="text-4xl leading-none">/100</span>
         </p>
         <p className="max-w-prose font-display text-xl leading-snug">
           Your score appears here, with the advert’s lines your resume answers best and the skills
