@@ -273,7 +273,13 @@ function ApplicationView({ application, back }: { application: Application; back
             <span className="font-display text-[1.375rem] text-foreground">
               {application.role_title}
             </span>
-            {where && <> · {where}</>}
+            {/* Phones: the location gets its own line (a trailing "·" read as a stray). */}
+            {where && (
+              <>
+                <span className="hidden sm:inline"> · </span>{' '}
+                <span className="block sm:inline">{where}</span>
+              </>
+            )}
           </>
         }
         actions={

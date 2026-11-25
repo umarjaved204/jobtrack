@@ -35,6 +35,9 @@ function BoardColumn({ status, applications, onAdd, children }: BoardColumnProps
       data-column={status}
       className={cn(
         'flex w-[85vw] max-w-80 shrink-0 snap-start flex-col border-r px-3 pt-3.5 pb-5 last:border-r-0',
+        // Phones show one column at a time: cap its height and scroll its cards inside it,
+        // or the page runs on to the height of the longest (hidden) column.
+        'max-sm:max-h-[75dvh]',
         EXITS.has(status) ? 'bg-accent sm:w-56' : 'sm:w-64',
       )}
     >
@@ -69,6 +72,8 @@ function BoardColumn({ status, applications, onAdd, children }: BoardColumnProps
           ref={setNodeRef}
           className={cn(
             'flex min-h-28 flex-1 flex-col gap-2.5 pt-2.5 transition-colors duration-(--duration-fast)',
+            // The 4px gutter keeps cards' focus outlines inside the scroll box.
+            'max-sm:-mx-1 max-sm:overflow-y-auto max-sm:overscroll-y-contain max-sm:px-1 max-sm:pb-1',
             isOver && 'bg-drop-tint',
           )}
         >
