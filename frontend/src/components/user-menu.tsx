@@ -27,18 +27,17 @@ function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          className="h-11 gap-2.5 px-1.5 text-[0.9375rem] has-[>svg]:px-1.5"
-          aria-label={`Account: ${user.full_name}`}
-        >
+        <Button variant="ghost" className="h-11 gap-2.5 px-1.5 text-[0.9375rem] has-[>svg]:px-1.5">
           <span
             aria-hidden="true"
             className="grid size-8 place-items-center rounded-full bg-primary text-[0.8125rem] font-bold text-primary-foreground"
           >
             {initials(user.full_name)}
           </span>
-          <span className="hidden max-w-40 truncate md:inline">{user.full_name}</span>
+          {/* The name comes from the text (not aria-label), so what's on screen is part of
+              it, for voice control: "Account: Sam Okafor". The name shows from md up. */}
+          <span className="sr-only">Account:</span>{' '}
+          <span className="sr-only max-w-40 truncate md:not-sr-only">{user.full_name}</span>
           <ChevronDown aria-hidden="true" className="hidden size-3.5 md:block" />
         </Button>
       </DropdownMenuTrigger>

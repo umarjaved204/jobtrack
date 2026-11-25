@@ -18,6 +18,9 @@ const THEME_NOTES: Record<Theme, string> = {
  * tokens (they flip with the page). Paper is THEME_COLORS; ink mirrors tokens.css.
  */
 const PREVIEW_INK = { light: '#16130f', dark: '#ede5d6' } as const;
+// Text-safe vermilion for each paper (tokens.css): the page's own --primary is only safe
+// on the page's own paper, and these previews show the other one too.
+const PREVIEW_BRAND = { light: '#b8321f', dark: '#f2654e' } as const;
 const PREVIEW_PAPER: Record<Theme, string> = {
   light: THEME_COLORS.light,
   dark: THEME_COLORS.dark,
@@ -145,7 +148,10 @@ function ThemePreview({ theme }: { theme: Theme }) {
         className="font-display text-lg leading-none font-semibold"
         style={{ color: theme === 'system' ? line : ink }}
       >
-        Job<span className="text-primary">Track</span>
+        Job
+        <span style={{ color: theme === 'dark' ? PREVIEW_BRAND.dark : PREVIEW_BRAND.light }}>
+          Track
+        </span>
       </span>
       <span className="h-0.5" style={{ background: line }} />
       <span className="h-1.5 w-[70%] opacity-40" style={{ background: line }} />

@@ -149,9 +149,6 @@ function MonthGrid({
                   tabIndex={day === active ? 0 : -1}
                   aria-selected={day === selected}
                   aria-current={isToday ? 'date' : undefined}
-                  aria-label={`${formatDateOnly(day, 'EEEE d MMMM')}, ${
-                    count ? `${count} item${count === 1 ? '' : 's'}` : 'nothing scheduled'
-                  }`}
                   onClick={() => {
                     setFocusDay(day);
                     onOpenDay(day);
@@ -166,14 +163,21 @@ function MonthGrid({
                     !inMonth && 'text-muted-foreground',
                   )}
                 >
+                  {/* The cell's name comes from its text, with the visible day number in
+                      it (voice control users say what they see): "Tuesday 10 November,
+                      1 item". The chips below are hidden: the day panel lists them. */}
+                  <span className="sr-only">{formatDateOnly(day, 'EEEE')}</span>{' '}
                   <span
-                    aria-hidden="true"
                     className={cn(
                       'inline-grid size-7 place-items-center rounded-full font-display text-[1.0625rem] tabular-nums',
                       isToday && 'bg-primary font-semibold text-primary-foreground',
                     )}
                   >
                     {Number(day.slice(8))}
+                  </span>{' '}
+                  <span className="sr-only">
+                    {formatDateOnly(day, 'MMMM')},{' '}
+                    {count ? `${count} item${count === 1 ? '' : 's'}` : 'nothing scheduled'}
                   </span>
                   {count > 0 && (
                     <ul aria-hidden="true" className="mt-1 grid gap-0.5">
