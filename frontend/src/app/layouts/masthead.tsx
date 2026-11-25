@@ -19,14 +19,8 @@ import {
 } from '@/components/ui/sheet';
 import { addApplicationState } from '@/features/applications/add-application-state';
 import { applicationsListQuery } from '@/features/applications/api';
+import { dateline } from '@/lib/dates';
 import { cn } from '@/lib/utils';
-
-const dateline = new Intl.DateTimeFormat(undefined, {
-  weekday: 'long',
-  day: 'numeric',
-  month: 'long',
-  year: 'numeric',
-});
 
 /**
  * Opens the add form on the Applications page (navigation state, like the ⌘K command).

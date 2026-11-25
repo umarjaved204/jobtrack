@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { emptyAnalytics, mockAnalyticsBackend } from '@/test/fake-analytics';
 import { mockApplicationsBackend } from '@/test/fake-applications';
-import { mockAuthBackend, server, testUser } from '@/test/msw';
+import { mockAuthBackend, server, TEST_PASSWORD, testUser } from '@/test/msw';
 import { findPageHeading, renderApp } from '@/test/render-app';
 
 // These flows end on the dashboard, which loads analytics and the board.
@@ -14,20 +14,48 @@ beforeEach(() => {
   mockApplicationsBackend({ applications: [] });
 });
 
+const HERO = 'Every application, on the record.';
+
 describe('landing page', () => {
-  it('greets anonymous visitors with the pitch and both ways in', async () => {
+  it('greets anonymous visitors with the pitch, sign-up and the sign-in form', async () => {
     renderApp('/');
 
-    await findPageHeading('Every application, accounted for.');
-    await waitFor(() => expect(document.title).toBe('JobTrack: every application, accounted for'));
+    await findPageHeading(HERO);
+    await waitFor(() => expect(document.title).toBe('JobTrack: every application, on the record'));
     const main = screen.getByRole('main');
-    expect(within(main).getByRole('link', { name: 'Create an account' })).toHaveAttribute(
+    expect(within(main).getByRole('link', { name: 'Start tracking, free' })).toHaveAttribute(
       'href',
       '/register',
     );
-    expect(within(main).getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/login');
-    // The sample week is real content here, labelled as an example.
-    expect(screen.getByRole('figure', { name: 'A sample week in JobTrack' })).toBeVisible();
+    const card = within(main).getByRole('complementary', { name: 'Sign in' });
+    expect(await within(card).findByLabelText('Email')).toBeVisible();
+    expect(within(card).getByRole('link', { name: 'Create an account' })).toHaveAttribute(
+      'href',
+      '/register',
+    );
+    expect(
+      within(screen.getByRole('navigation', { name: 'Account' })).getByRole('link', {
+        name: 'Sign in',
+      }),
+    ).toHaveAttribute('href', '#signin');
+    expect(within(main).getByRole('list', { name: 'What JobTrack does' })).toHaveTextContent(
+      'for example, 3 interviews from 12 applications',
+    );
+  });
+
+  it('signs in from the landing page and opens the dashboard', async () => {
+    mockAuthBackend();
+    const user = userEvent.setup();
+    const app = renderApp('/');
+    await findPageHeading(HERO);
+
+    const card = screen.getByRole('complementary', { name: 'Sign in' });
+    await user.type(await within(card).findByLabelText('Email'), testUser.email);
+    await user.type(within(card).getByLabelText('Password'), TEST_PASSWORD);
+    await user.click(within(card).getByRole('button', { name: 'Sign in' }));
+
+    await findPageHeading('Dashboard');
+    expect(app.location()).toBe('/dashboard');
   });
 
   it('renders the hero without waiting for the session check', async () => {
@@ -35,9 +63,9 @@ describe('landing page', () => {
     server.use(http.post('/api/v1/auth/refresh', () => new Promise<Response>(() => undefined)));
     renderApp('/');
 
-    await findPageHeading('Every application, accounted for.');
+    await findPageHeading(HERO);
     expect(
-      within(screen.getByRole('main')).getByRole('link', { name: 'Create an account' }),
+      within(screen.getByRole('main')).getByRole('link', { name: 'Start tracking, free' }),
     ).toBeVisible();
   });
 
@@ -45,13 +73,18 @@ describe('landing page', () => {
     mockAuthBackend({ signedIn: true });
     const app = renderApp('/');
 
-    await findPageHeading('Every application, accounted for.');
-    const main = screen.getByRole('main');
-    expect(await within(main).findByRole('link', { name: 'Open your dashboard' })).toHaveAttribute(
+    await findPageHeading(HERO);
+    const card = await screen.findByRole('complementary', { name: 'Welcome back' });
+    expect(card).toHaveTextContent(`You’re signed in as ${testUser.full_name}.`);
+    expect(within(card).getByRole('link', { name: 'Open your dashboard' })).toHaveAttribute(
       'href',
       '/dashboard',
     );
-    expect(within(main).queryByRole('link', { name: 'Create an account' })).not.toBeInTheDocument();
+    const main = screen.getByRole('main');
+    expect(
+      within(main).queryByRole('link', { name: 'Start tracking, free' }),
+    ).not.toBeInTheDocument();
+    expect(within(main).queryByLabelText('Password')).not.toBeInTheDocument();
     expect(
       within(screen.getByRole('navigation', { name: 'Account' })).getByRole('link', {
         name: 'Open your dashboard',
@@ -63,10 +96,10 @@ describe('landing page', () => {
   it('opens sign-up from the call to action', async () => {
     const user = userEvent.setup();
     renderApp('/');
-    await findPageHeading('Every application, accounted for.');
+    await findPageHeading(HERO);
 
     await user.click(
-      within(screen.getByRole('main')).getByRole('link', { name: 'Create an account' }),
+      within(screen.getByRole('main')).getByRole('link', { name: 'Start tracking, free' }),
     );
     await findPageHeading('Create your account');
   });
@@ -74,7 +107,7 @@ describe('landing page', () => {
 
 describe('skip link and brand name', () => {
   it.each([
-    ['/', 'Every application, accounted for.'],
+    ['/', HERO],
     ['/login', 'Sign in'],
     ['/register', 'Create your account'],
   ])('on %s the first Tab stop skips to the main content', async (path, heading) => {
@@ -91,7 +124,7 @@ describe('skip link and brand name', () => {
 
   it('keeps the JobTrack wordmark out of browser translation', async () => {
     renderApp('/');
-    await findPageHeading('Every application, accounted for.');
+    await findPageHeading(HERO);
     expect(screen.getByRole('link', { name: 'JobTrack' })).toHaveAttribute('translate', 'no');
   });
 });

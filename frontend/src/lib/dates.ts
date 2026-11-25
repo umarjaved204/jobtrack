@@ -44,3 +44,11 @@ export function formatDateOnly(value: DateOnly, pattern = 'd MMM yyyy'): string 
 export function daysUntil(value: DateOnly, now: Date = new Date()): number {
   return differenceInCalendarDays(parseDateOnly(value), now);
 }
+
+/** The masthead's date line: "Wednesday, 25 November 2026" in the browser's locale. */
+export const dateline = new Intl.DateTimeFormat(undefined, {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+});
