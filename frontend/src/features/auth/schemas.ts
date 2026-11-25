@@ -26,12 +26,15 @@ export const loginSchema = z.object({
     .max(PASSWORD_MAX, `Passwords are at most ${PASSWORD_MAX} characters`),
 });
 
+/** Sign-up and the Settings profile: the backend trims and allows 1–120 characters. */
+export const fullName = z
+  .string()
+  .trim()
+  .min(1, 'Enter your name')
+  .max(FULL_NAME_MAX, `Keep it under ${FULL_NAME_MAX} characters`);
+
 export const registerSchema = z.object({
-  full_name: z
-    .string()
-    .trim()
-    .min(1, 'Enter your name')
-    .max(FULL_NAME_MAX, `Keep it under ${FULL_NAME_MAX} characters`),
+  full_name: fullName,
   email,
   password: z
     .string()
