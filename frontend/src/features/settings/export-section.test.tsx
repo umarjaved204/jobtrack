@@ -30,7 +30,7 @@ async function setup() {
   const user = userEvent.setup();
   renderApp('/settings');
   await findPageHeading('Settings');
-  return { user, section: screen.getByRole('region', { name: 'Export your data' }) };
+  return { user, section: screen.getByRole('region', { name: 'Export everything' }) };
 }
 
 beforeEach(() => {

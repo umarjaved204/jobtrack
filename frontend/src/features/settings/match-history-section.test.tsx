@@ -39,7 +39,7 @@ describe('MatchHistorySection', () => {
   it('deletes the history and this browser’s cached vectors after confirming', async () => {
     const { user, backend, vectors, section } = await setup();
 
-    await user.click(within(section).getByRole('button', { name: 'Delete match history' }));
+    await user.click(within(section).getByRole('button', { name: 'Delete match history…' }));
     const dialog = await screen.findByRole('alertdialog', { name: 'Delete your match history?' });
     expect(dialog).toHaveTextContent('All 2 saved matches');
     await user.click(within(dialog).getByRole('button', { name: 'Delete match history' }));
@@ -56,7 +56,7 @@ describe('MatchHistorySection', () => {
   it('keeps everything when cancelled', async () => {
     const { user, backend, vectors, section } = await setup();
 
-    await user.click(within(section).getByRole('button', { name: 'Delete match history' }));
+    await user.click(within(section).getByRole('button', { name: 'Delete match history…' }));
     const dialog = await screen.findByRole('alertdialog');
     await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
 
@@ -74,7 +74,7 @@ describe('MatchHistorySection', () => {
       ),
     );
 
-    await user.click(within(section).getByRole('button', { name: 'Delete match history' }));
+    await user.click(within(section).getByRole('button', { name: 'Delete match history…' }));
     const dialog = await screen.findByRole('alertdialog');
     await user.click(within(dialog).getByRole('button', { name: 'Delete match history' }));
 

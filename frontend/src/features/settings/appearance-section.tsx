@@ -5,6 +5,8 @@ import { type AccentColor, accentColors } from '@/lib/palette';
 import { THEME_COLORS, THEME_NAMES, type Theme, themes } from '@/lib/theme';
 import { cn } from '@/lib/utils';
 
+import { SettingsSection } from './settings-section';
+
 const THEME_NOTES: Record<Theme, string> = {
   light: 'Ink on paper, the default.',
   dark: 'Cream on night paper, for the evening.',
@@ -40,10 +42,7 @@ function AppearanceSection() {
   const { theme, accent, setTheme, setAccent } = useThemePreference();
 
   return (
-    <section aria-labelledby="appearance-heading" className="grid gap-5 border-t border-rule pt-6">
-      <h2 id="appearance-heading" className="font-display text-xl font-semibold">
-        Appearance
-      </h2>
+    <SettingsSection id="appearance" className="gap-5">
       <fieldset className="grid gap-2.5">
         <legend className="pb-2.5 text-sm font-semibold">Edition</legend>
         <div className="grid gap-3.5 sm:grid-cols-3">
@@ -89,7 +88,7 @@ function AppearanceSection() {
           Saved to your account, so every device you sign in on opens the same way.
         </p>
       </fieldset>
-    </section>
+    </SettingsSection>
   );
 }
 

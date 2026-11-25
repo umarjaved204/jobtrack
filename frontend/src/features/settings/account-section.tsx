@@ -16,6 +16,8 @@ import { deleteAccount } from '@/features/auth/api';
 import { useCurrentUser } from '@/features/auth/hooks';
 import { isApiError } from '@/lib/api/errors';
 
+import { SettingsSection } from './settings-section';
+
 /** Emails are stored lowercased; what's typed is compared the same way, ignoring spaces. */
 const sameEmail = (typed: string, email: string) => typed.trim().toLowerCase() === email;
 
@@ -41,10 +43,7 @@ function AccountSection() {
   };
 
   return (
-    <section aria-labelledby="account-heading" className="grid gap-4 border-t border-rule pt-6">
-      <h2 id="account-heading" className="font-display text-xl font-semibold">
-        Account
-      </h2>
+    <SettingsSection id="account">
       <div className="flex flex-wrap items-center justify-between gap-4 border-2 border-oxblood p-4.5">
         <div className="grid max-w-prose gap-1">
           <p className="text-[1.0625rem] font-bold text-oxblood">Delete your account</p>
@@ -113,7 +112,7 @@ function AccountSection() {
           </form>
         </DialogContent>
       </Dialog>
-    </section>
+    </SettingsSection>
   );
 }
 

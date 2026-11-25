@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { matchesQuery, useDeleteMatchHistory } from '@/features/match/api';
 import { isApiError } from '@/lib/api/errors';
 
+import { SettingsRow } from './settings-section';
+
 function savedMatches(total: number) {
   return total === 1 ? '1 saved match' : `${total} saved matches`;
 }
@@ -29,29 +31,29 @@ function MatchHistorySection() {
   }
 
   return (
-    <section
-      aria-labelledby="match-history-heading"
-      className="grid gap-3 border-t border-rule pt-6"
-    >
-      <h2 id="match-history-heading" className="font-display text-xl font-semibold">
-        Match history
-      </h2>
-      <p className="max-w-prose text-muted-foreground">
-        {total === undefined ? 'Your saved match results' : `You have ${savedMatches(total)}`}, plus
-        the match data this browser keeps to make repeat matches faster. Deleting them makes resume
-        versions that only matches had used editable again.
-      </p>
-      <div>
+    <SettingsRow
+      title="Match history"
+      headingId="match-history-heading"
+      description={
+        <>
+          {total === undefined ? 'Your saved match results' : `You have ${savedMatches(total)}`},
+          plus the match data this browser keeps to make repeat matches faster. Deleting them makes
+          resume versions that only matches had used editable again.
+        </>
+      }
+      actions={
         <Button
           variant="outline"
+          className="border-oxblood text-oxblood"
           onClick={() => {
             remove.reset();
             setConfirming(true);
           }}
         >
-          Delete match history
+          Delete match history…
         </Button>
-      </div>
+      }
+    >
       <ConfirmDialog
         open={confirming}
         onOpenChange={setConfirming}
@@ -74,7 +76,7 @@ function MatchHistorySection() {
         }
         onConfirm={deleteHistory}
       />
-    </section>
+    </SettingsRow>
   );
 }
 

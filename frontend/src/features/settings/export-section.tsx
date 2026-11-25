@@ -8,6 +8,8 @@ import { api } from '@/lib/api/client';
 import { isApiError } from '@/lib/api/errors';
 import { saveFile } from '@/lib/save-file';
 
+import { SettingsRow } from './settings-section';
+
 type ExportFormat = 'json' | 'csv';
 
 const FORMATS: Record<ExportFormat, { label: string; hint: string; fallbackName: string }> = {
@@ -36,38 +38,37 @@ function ExportSection() {
   });
 
   return (
-    <section aria-labelledby="export-heading" className="grid gap-3 border-t border-rule pt-6">
-      <h2 id="export-heading" className="font-display text-xl font-semibold">
-        Export your data
-      </h2>
-      <p className="max-w-prose text-muted-foreground">
-        Everything you’ve entered: applications with their contacts, notes and status history, tags,
-        resume versions, reminders and calendar events. Match results aren’t included.
-      </p>
-      <ul className="flex flex-wrap gap-x-6 gap-y-4">
-        {(Object.keys(FORMATS) as ExportFormat[]).map((format) => {
-          const { label, hint } = FORMATS[format];
-          const pending = exportData.isPending && exportData.variables === format;
-          return (
-            <li key={format} className="grid content-start gap-1.5">
-              <div>
-                <Button
-                  variant="outline"
-                  aria-describedby={`export-${format}-hint`}
-                  disabled={exportData.isPending}
-                  onClick={() => exportData.mutate(format)}
-                >
-                  <Download aria-hidden="true" />
-                  {pending ? 'Preparing…' : label}
-                </Button>
-              </div>
-              <p id={`export-${format}-hint`} className="text-sm text-muted-foreground">
-                {hint}
-              </p>
-            </li>
-          );
-        })}
-      </ul>
+    <SettingsRow
+      title="Export everything"
+      headingId="export-heading"
+      description="Applications with their contacts, notes and status history, tags, resume versions, reminders and calendar events. Match results aren’t included."
+      actions={
+        <ul className="flex flex-wrap gap-x-3 gap-y-3">
+          {(Object.keys(FORMATS) as ExportFormat[]).map((format) => {
+            const { label, hint } = FORMATS[format];
+            const pending = exportData.isPending && exportData.variables === format;
+            return (
+              <li key={format} className="grid max-w-44 content-start gap-1.5">
+                <div>
+                  <Button
+                    variant="outline"
+                    aria-describedby={`export-${format}-hint`}
+                    disabled={exportData.isPending}
+                    onClick={() => exportData.mutate(format)}
+                  >
+                    <Download aria-hidden="true" />
+                    {pending ? 'Preparing…' : label}
+                  </Button>
+                </div>
+                <p id={`export-${format}-hint`} className="text-[0.8125rem] text-muted-foreground">
+                  {hint}
+                </p>
+              </li>
+            );
+          })}
+        </ul>
+      }
+    >
       {exportData.isError && (
         <Alert title="The export didn’t download" className="max-w-prose">
           {isApiError(exportData.error)
@@ -75,7 +76,7 @@ function ExportSection() {
             : 'Something went wrong. Try again.'}
         </Alert>
       )}
-    </section>
+    </SettingsRow>
   );
 }
 

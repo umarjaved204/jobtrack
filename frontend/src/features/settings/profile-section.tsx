@@ -13,6 +13,7 @@ import { useCurrentUser } from '@/features/auth/hooks';
 import { useFormAlert } from '@/features/auth/use-form-alert';
 
 import { profileFields, profileSchema, type ProfileValues } from './profile-schema';
+import { SettingsSection } from './settings-section';
 
 /** The name shown in the app; the sign-in email is shown but can't be changed here. */
 function ProfileSection() {
@@ -41,10 +42,7 @@ function ProfileSection() {
   });
 
   return (
-    <section aria-labelledby="profile-heading" className="grid gap-4 border-t border-rule pt-6">
-      <h2 id="profile-heading" className="font-display text-xl font-semibold">
-        Profile
-      </h2>
+    <SettingsSection id="profile">
       {alert.message && <Alert className="max-w-prose">{alert.message}</Alert>}
       <form noValidate onSubmit={(event) => void submit(event)} className="grid gap-4">
         <div className="grid gap-4 sm:grid-cols-2">
@@ -76,7 +74,7 @@ function ProfileSection() {
           </Button>
         </div>
       </form>
-    </section>
+    </SettingsSection>
   );
 }
 
