@@ -24,10 +24,19 @@ function Command({ className, ...props }: React.ComponentProps<typeof CommandPri
 
 function CommandInput({
   className,
+  wrapperClassName,
+  end,
   ...props
-}: React.ComponentProps<typeof CommandPrimitive.Input>) {
+}: React.ComponentProps<typeof CommandPrimitive.Input> & {
+  wrapperClassName?: string;
+  /** After the field, e.g. an Esc key cap. */
+  end?: React.ReactNode;
+}) {
   return (
-    <div data-slot="command-input-wrapper" className="flex h-10 items-center gap-2 border-b px-3">
+    <div
+      data-slot="command-input-wrapper"
+      className={cn('flex h-10 items-center gap-2 border-b px-3', wrapperClassName)}
+    >
       <SearchIcon aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
       <CommandPrimitive.Input
         data-slot="command-input"
@@ -37,6 +46,7 @@ function CommandInput({
         )}
         {...props}
       />
+      {end}
     </div>
   );
 }

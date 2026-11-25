@@ -14,6 +14,7 @@ import {
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { Kbd } from '@/components/ui/kbd';
 import { applicationsListQuery } from '@/features/applications/api';
+import { monogram } from '@/features/applications/monogram';
 import { SEARCH_DEBOUNCE_MS } from '@/features/applications/table-params';
 import { useThemePreference } from '@/features/auth/hooks';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
@@ -119,21 +120,34 @@ function PaletteBody({ theme, onRun }: { theme: Theme; onRun: (run: CommandConte
           setSelected('');
         }}
         placeholder="Search applications, pages and actions…"
-        className="h-12"
+        wrapperClassName="h-16 gap-3 border-rule px-4.5 [&>svg]:size-5 [&>svg]:text-foreground"
+        className="h-16 font-display text-lg sm:text-xl md:text-2xl"
+        end={
+          <Kbd aria-hidden="true" className="hidden sm:inline-flex">
+            Esc
+          </Kbd>
+        }
       />
-      <CommandList className="max-h-[min(24rem,60dvh)]">
+      <CommandList className="max-h-[min(32.5rem,60dvh)] py-2">
         {groups.map(({ group, commands }) => (
-          <CommandGroup key={group} heading={groupHeadings[group]}>
+          <CommandGroup key={group} heading={groupHeadings[group]} className={groupClass}>
             {commands.map((command) => (
-              <CommandItem key={command.id} value={command.id} onSelect={() => onRun(command.run)}>
-                <command.icon aria-hidden="true" className="text-muted-foreground" />
-                {command.label}
+              <CommandItem
+                key={command.id}
+                value={command.id}
+                onSelect={() => onRun(command.run)}
+                className={itemClass}
+              >
+                <Mark>
+                  <command.icon aria-hidden="true" />
+                </Mark>
+                <Lines title={command.label} detail={command.detail} />
               </CommandItem>
             ))}
           </CommandGroup>
         ))}
         {showApplications && applications.items.length > 0 && (
-          <CommandGroup heading={applications.heading}>
+          <CommandGroup heading={applications.heading} className={groupClass}>
             {applications.items.map((application) => (
               <CommandItem
                 key={application.id}
@@ -141,11 +155,10 @@ function PaletteBody({ theme, onRun }: { theme: Theme; onRun: (run: CommandConte
                 onSelect={() =>
                   onRun(({ navigate }) => navigate(`/applications/${application.id}`))
                 }
+                className={itemClass}
               >
-                <span className="min-w-0 flex-1 truncate">
-                  <span className="font-semibold">{application.company}</span>
-                  <span className="text-muted-foreground"> · {application.role_title}</span>
-                </span>
+                <Mark>{monogram(application.company)}</Mark>
+                <Lines title={application.company} detail={application.role_title} />{' '}
                 <StatusBadge status={application.status} />
               </CommandItem>
             ))}
@@ -162,7 +175,7 @@ function PaletteBody({ theme, onRun }: { theme: Theme; onRun: (run: CommandConte
       </p>
       <div
         aria-hidden="true"
-        className="hidden items-center gap-4 border-t px-3 py-2 text-xs text-muted-foreground sm:flex"
+        className="hidden items-center gap-4.5 border-t px-4.5 py-3 text-[0.8125rem] whitespace-nowrap text-muted-foreground sm:flex"
       >
         <span className="inline-flex items-center gap-1">
           <Kbd>↑</Kbd>
@@ -174,8 +187,40 @@ function PaletteBody({ theme, onRun }: { theme: Theme; onRun: (run: CommandConte
         <span className="inline-flex items-center gap-1">
           <Kbd>Esc</Kbd> to close
         </span>
+        <span className="ml-auto hidden md:inline">Searches applications, pages and actions</span>
       </div>
     </Command>
+  );
+}
+
+/** Palette rows: 48px, inked when highlighted (paper text on ink, like the mockup). */
+const itemClass =
+  'group min-h-12 gap-3 px-4.5 py-1.5 data-[selected=true]:bg-foreground data-[selected=true]:text-background';
+const groupClass =
+  'p-0 pb-2 [&_[cmdk-group-heading]]:px-4.5 [&_[cmdk-group-heading]]:pt-2 [&_[cmdk-group-heading]]:pb-1.5';
+
+/** The square at the start of a row: an icon, or an application's monogram. */
+function Mark({ children }: { children: ReactNode }) {
+  return (
+    <span
+      aria-hidden="true"
+      className="grid size-7 shrink-0 place-items-center border border-input font-display text-[0.8125rem] font-semibold group-data-[selected=true]:border-background [&_svg]:size-3.5"
+    >
+      {children}
+    </span>
+  );
+}
+
+/** Title and a second line. The second line stays out of the option's name (it's a hint),
+ * so the name is what the row is called. */
+function Lines({ title, detail }: { title: string; detail: string }) {
+  return (
+    <span className="grid min-w-0 flex-1">
+      <span className="truncate text-base font-semibold">{title}</span>
+      <span aria-hidden="true" className="truncate text-[0.8125rem] opacity-80">
+        {detail}
+      </span>
+    </span>
   );
 }
 
@@ -217,7 +262,7 @@ function CommandPalette({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className="top-[12dvh] translate-y-0 gap-0 overflow-hidden p-0 sm:max-w-xl"
+        className="top-[12dvh] translate-y-0 gap-0 overflow-hidden p-0 sm:max-w-[42.5rem]"
         onOpenAutoFocus={() => {
           // Runs before focus moves into the palette.
           returnFocusTo.current =

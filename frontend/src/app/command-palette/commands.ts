@@ -21,6 +21,8 @@ export type PaletteCommand = {
   id: string;
   group: CommandGroupId;
   label: string;
+  /** A short second line: what it opens or does. */
+  detail: string;
   /** Other words people might type for it (lower case). */
   keywords: string[];
   icon: LucideIcon;
@@ -37,6 +39,7 @@ const themeCommands: Record<Theme, { label: string; icon: LucideIcon }> = {
   dark: { label: 'Switch to the dark theme', icon: Moon },
   system: { label: 'Match the system theme', icon: Monitor },
 };
+const THEME_DETAIL = 'Appearance, saved to your account';
 
 /** Every fixed command, actions first. The current theme isn't offered (it would do nothing). */
 export function paletteCommands(currentTheme: Theme): PaletteCommand[] {
@@ -45,6 +48,7 @@ export function paletteCommands(currentTheme: Theme): PaletteCommand[] {
       id: 'add-application',
       group: 'actions',
       label: 'Add an application',
+      detail: 'Opens the form on Applications',
       keywords: ['new', 'create', 'job', 'role', 'wishlist'],
       icon: Plus,
       run: ({ navigate }) => navigate('/applications', { state: addApplicationState }),
@@ -53,6 +57,7 @@ export function paletteCommands(currentTheme: Theme): PaletteCommand[] {
       id: 'run-match',
       group: 'actions',
       label: 'Run a match',
+      detail: 'Score a resume against a job description',
       keywords: ['ai', 'resume', 'job description', 'jd', 'score', 'compare', 'skills'],
       icon: Sparkles,
       run: ({ navigate }) => navigate('/match'),
@@ -63,6 +68,7 @@ export function paletteCommands(currentTheme: Theme): PaletteCommand[] {
         id: `theme-${theme}`,
         group: 'actions',
         ...themeCommands[theme],
+        detail: THEME_DETAIL,
         keywords: ['theme', 'appearance', 'mode', 'colour', 'color', 'night', 'broadsheet'],
         run: ({ setTheme }) => setTheme(theme),
       })),
@@ -71,6 +77,7 @@ export function paletteCommands(currentTheme: Theme): PaletteCommand[] {
     id: `go-${to.slice(1)}`,
     group: 'navigation',
     label,
+    detail: 'Page',
     keywords: ['go', 'open', 'page'],
     icon,
     run: ({ navigate }) => navigate(to),

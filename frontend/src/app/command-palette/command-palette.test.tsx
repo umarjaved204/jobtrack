@@ -73,14 +73,11 @@ describe('command palette', () => {
     const palette = await screen.findByRole('dialog', { name: 'Command palette' });
 
     const recent = await within(palette).findByRole('group', { name: 'Recently added' });
-    expect(
-      within(recent)
-        .getAllByRole('option')
-        .map((o) => o.textContent),
-    ).toEqual([
-      'Skyscanner · Product EngineerApplied',
-      'Monzo · Senior Frontend EngineerInterview',
-    ]);
+    const [skyscanner, monzo] = within(recent).getAllByRole('option');
+    // The name is the company and status; the role is a visible second line.
+    expect(skyscanner).toHaveAccessibleName('Skyscanner Applied');
+    expect(skyscanner).toHaveTextContent('Product Engineer');
+    expect(monzo).toHaveAccessibleName('Monzo Interview');
     // The first row is highlighted, ready for Enter.
     expect(within(palette).getByRole('option', { name: 'Add an application' })).toHaveAttribute(
       'aria-selected',
@@ -166,10 +163,12 @@ describe('command palette', () => {
     ({ input } = await openPalette(user));
     await user.type(input, 'theme');
     const palette = screen.getByRole('dialog', { name: 'Command palette' });
-    expect(
-      within(palette)
-        .getAllByRole('option')
-        .map((o) => o.textContent),
-    ).toEqual(['Switch to the light theme', 'Match the system theme']);
+    const options = within(palette).getAllByRole('option');
+    expect(options.map((o) => o.getAttribute('data-value'))).toEqual([
+      'theme-light',
+      'theme-system',
+    ]);
+    expect(options[0]).toHaveAccessibleName('Switch to the light theme');
+    expect(options[1]).toHaveAccessibleName('Match the system theme');
   });
 });
