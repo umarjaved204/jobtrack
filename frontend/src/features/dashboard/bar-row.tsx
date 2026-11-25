@@ -21,10 +21,11 @@ function BarRow({
       <span className="truncate text-sm font-semibold">{name}</span>
       <span
         aria-hidden="true"
-        className="col-span-2 row-start-2 h-3 sm:col-span-1 sm:row-start-auto"
+        className="col-span-2 row-start-2 h-3.5 sm:col-span-1 sm:row-start-auto"
       >
         <span
-          className="block h-full rounded-r-[4px] bg-primary transition-[width] duration-(--duration-slow) ease-out-quint"
+          // Ink: the funnel has the primary colour (one hue per job).
+          className="block h-full rounded-r-[4px] bg-foreground transition-[width] duration-(--duration-slow) ease-out-quint"
           // A zero still gets a hairline, so the row visibly has a value of 0.
           style={{ width: fraction > 0 ? `${fraction * 100}%` : '1px' }}
         />

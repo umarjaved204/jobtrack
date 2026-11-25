@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { FileText, MonitorX, PowerOff } from 'lucide-react';
+import { FileText, Monitor, MonitorX, PowerOff } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router';
 
@@ -7,15 +7,16 @@ import { EmptyState } from '@/components/empty-state';
 import { PageHeader } from '@/components/page-header';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Loading } from '@/components/loading';
 import { Skeleton } from '@/components/ui/skeleton';
 import { applicationQuery, applicationsListQuery } from '@/features/applications/api';
-import { LoadError } from '@/features/dashboard/load-error';
+import { LoadError } from '@/components/load-error';
 import { resumesQuery } from '@/features/resumes/api';
 import type { Application } from '@/types/application';
 import type { MatchConfig } from '@/types/match';
 
 import { matchConfigQuery } from './api';
-import { isModelCached } from './embedding/model-cache';
+import { isModelCached, MODEL_DOWNLOAD_MB } from './embedding/model-cache';
 import { checkSupport, UNSUPPORTED_REASONS } from './embedding/support';
 import { MatchForm } from './match-form';
 import { MatchHistory } from './match-history';
@@ -42,11 +43,11 @@ function MatchPage() {
   return (
     <>
       <PageHeader
-        kicker="AI match"
-        title="Match a job description"
-        description="Paste a job description to see how well one of your resumes covers it."
+        kicker="Match"
+        title="How well does a resume fit the job?"
+        description="Paste a job description and choose a resume version. You get a score, the evidence behind it, and the skills the advert asks for that your resume doesn’t mention."
       />
-      <div className="mt-8">
+      <div className="mt-7">
         <MatchBody />
       </div>
     </>
@@ -56,7 +57,7 @@ function MatchPage() {
 function MatchBody() {
   const config = useQuery(matchConfigQuery());
 
-  if (config.isPending) return <Skeleton className="h-96" />;
+  if (config.isPending) return <MatchSkeleton />;
   if (config.isError) {
     return (
       <LoadError
@@ -106,7 +107,7 @@ function MatchWorkspace({ config }: { config: MatchConfig }) {
   }
   // The form reads its starting values once, so it waits for the linked application.
   if (resumes.isPending || (linkedId !== null && linked.isPending)) {
-    return <Skeleton className="h-96" />;
+    return <MatchSkeleton />;
   }
   if (resumes.isError) {
     return (
@@ -154,40 +155,34 @@ function MatchWorkspace({ config }: { config: MatchConfig }) {
       ? { ...initial, application_id: NO_APPLICATION }
       : initial;
 
+  let verdict;
+  if (state.status === 'running') {
+    verdict = <MatchProgressPanel progress={state.progress} onCancel={run.cancel} />;
+  } else if (state.status === 'error') {
+    verdict = <Alert title="The match didn’t finish">{state.message}</Alert>;
+  } else if (state.status === 'done') {
+    verdict = <MatchResult match={state.match} />;
+  } else {
+    verdict = <VerdictPlaceholder />;
+  }
+
   return (
-    <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_22rem]">
-      <div className="grid content-start gap-6">
-        <MatchForm
-          resumes={active}
-          applications={withLinked(applications.data?.items, linked.data)}
-          running={state.status === 'running'}
-          error={state.status === 'error' ? state.error : null}
-          onRun={(values) => void onRun(values)}
-          initial={formInitial}
-        />
-        {state.status === 'running' && (
-          <MatchProgressPanel progress={state.progress} onCancel={run.cancel} />
-        )}
-        {state.status === 'error' && <Alert title="The match didn’t finish">{state.message}</Alert>}
-        {state.status === 'done' && <MatchResult match={state.match} className="mt-4" />}
-      </div>
-      <aside className="grid content-start gap-10 border-t pt-6 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
-        <MatchHistory />
-        <div className="grid gap-4 text-sm text-muted-foreground">
-          <h2 className="kicker text-foreground">How the match works</h2>
-          <p>
-            The score combines the skills the advert asks for with how closely your resume’s lines
-            match its wording. It’s an estimate of overlap, not how an employer or an applicant
-            tracking system will rank you.
-          </p>
-          {config.embeddings === 'client' && (
-            <p>
-              The comparison runs on your device. The texts stay between your browser and JobTrack.
-            </p>
-          )}
-          <p>English adverts and resumes only.</p>
+    <div className="grid gap-14">
+      <div className="flex flex-wrap gap-12 border-t-[3px] border-rule pt-7">
+        <div className="grid flex-[1_1_22rem] content-start gap-5">
+          <MatchForm
+            resumes={active}
+            applications={withLinked(applications.data?.items, linked.data)}
+            running={state.status === 'running'}
+            error={state.status === 'error' ? state.error : null}
+            onRun={(values) => void onRun(values)}
+            initial={formInitial}
+          />
+          {config.embeddings === 'client' && <OnDeviceNote />}
         </div>
-      </aside>
+        <div className="grid min-w-0 flex-[999_1_36rem] content-start">{verdict}</div>
+      </div>
+      <MatchHistory />
 
       <ModelConsentDialog
         open={pending !== null}
@@ -198,6 +193,67 @@ function MatchWorkspace({ config }: { config: MatchConfig }) {
           setPending(null);
         }}
       />
+    </div>
+  );
+}
+
+/** The page's shape while matching's settings and the resumes load. */
+function MatchSkeleton() {
+  return (
+    <Loading
+      label="Loading the match form"
+      className="flex flex-wrap gap-12 border-t-[3px] border-rule pt-7"
+    >
+      <div className="grid flex-[1_1_22rem] content-start gap-5">
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-11 w-full" />
+        <Skeleton className="h-11 w-full" />
+        <Skeleton className="h-64 w-full" />
+        <Skeleton className="h-12 w-full" />
+      </div>
+      <div className="grid min-w-0 flex-[999_1_36rem] content-start gap-5">
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-40 w-full" />
+      </div>
+    </Loading>
+  );
+}
+
+/** Before the first run: what the verdict column will hold. */
+function VerdictPlaceholder() {
+  return (
+    <section aria-labelledby="verdict-heading" className="grid content-start gap-5">
+      <h2 id="verdict-heading" className="kicker">
+        The verdict
+      </h2>
+      <div className="grid gap-3 border-y border-rule py-8">
+        {/* An empty slot where the numeral will be: a dash at display size read as a rule. */}
+        <p
+          aria-hidden="true"
+          className="flex items-end gap-2 font-display text-[clamp(6rem,16vw,10.5rem)] leading-[0.8] font-medium text-muted-foreground"
+        >
+          <span className="h-[0.72em] w-[1.15em] border-2 border-dashed border-input" />
+          <span className="text-4xl leading-none">/100</span>
+        </p>
+        <p className="max-w-prose font-display text-xl leading-snug">
+          Your score appears here, with the advert’s lines your resume answers best and the skills
+          it doesn’t mention yet.
+        </p>
+      </div>
+    </section>
+  );
+}
+
+/** Client mode: the texts are embedded in this browser. */
+function OnDeviceNote() {
+  return (
+    <div className="flex gap-3 border bg-muted px-3.5 py-3.5">
+      <Monitor aria-hidden="true" className="size-5.5 shrink-0" />
+      <p className="text-sm leading-normal">
+        <strong>Runs on your device.</strong> Your browser compares the texts with a small language
+        model (about {MODEL_DOWNLOAD_MB} MB, downloaded once and kept by the browser). The texts go
+        only to JobTrack, never to a third party.
+      </p>
     </div>
   );
 }

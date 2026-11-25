@@ -17,7 +17,8 @@ type TagChipProps = React.ComponentProps<'span'> & {
 };
 
 /**
- * A tag in its palette colour: tint background + text-safe ink (AA-tested pair).
+ * An outlined tag: quiet decorative outline, secondary text, and a small square in the
+ * tag's palette colour (the name is the label; the colour only helps scanning).
  * Colours come from CSS variables, so any palette name works without new classes.
  */
 function TagChip({ name, color, onRemove, className, style, ...props }: TagChipProps) {
@@ -27,23 +28,24 @@ function TagChip({ name, color, onRemove, className, style, ...props }: TagChipP
       data-slot="tag-chip"
       data-color={palette}
       className={cn(
-        'inline-flex max-w-full items-center gap-1 rounded-sm px-1.5 py-0.5 text-xs leading-4 font-semibold',
+        'inline-flex max-w-full items-center gap-1.5 border border-border-quiet px-[7px] py-0.5 text-xs leading-4 font-medium text-muted-foreground',
         className,
       )}
-      style={{
-        background: `var(--palette-${palette}-tint)`,
-        color: `var(--palette-${palette})`,
-        ...style,
-      }}
+      style={style}
       {...props}
     >
+      <span
+        aria-hidden="true"
+        className="size-1.5 shrink-0"
+        style={{ background: `var(--palette-${palette})` }}
+      />
       <span className="truncate">{name}</span>
       {onRemove && (
         <button
           type="button"
           onClick={onRemove}
           aria-label={`Remove ${name}`}
-          className="-mr-0.5 grid size-4 cursor-pointer place-items-center rounded-xs hover:fill-hover"
+          className="-my-1 -mr-1.5 grid size-6 cursor-pointer place-items-center hover:bg-accent hover:text-foreground"
         >
           <XIcon aria-hidden="true" className="size-3" />
         </button>

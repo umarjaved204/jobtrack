@@ -76,6 +76,14 @@ export function mockAuthBackend({
       state.signedIn = false;
       return new HttpResponse(null, { status: 204 });
     }),
+    http.delete('/api/v1/users/me', ({ request }) => {
+      state.calls.push('delete-me');
+      if (!request.headers.get('Authorization')?.startsWith('Bearer ')) {
+        return HttpResponse.json({ detail: 'Not authenticated' }, { status: 401 });
+      }
+      state.signedIn = false; // the server clears the refresh cookie
+      return new HttpResponse(null, { status: 204 });
+    }),
     http.patch('/api/v1/users/me', async ({ request }) => {
       state.calls.push('patch-me');
       if (!request.headers.get('Authorization')?.startsWith('Bearer ')) {

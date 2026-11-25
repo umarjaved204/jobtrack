@@ -1,10 +1,11 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery } from '@tanstack/react-query';
-import { Mail, Pencil, Phone, Plus, RotateCcw, Trash2, UserRound } from 'lucide-react';
+import { Mail, Pencil, Phone, Plus, Trash2, UserRound } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { LoadError } from '@/components/load-error';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,6 +18,7 @@ import {
 } from '@/components/ui/dialog';
 import { FormField } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
+import { Loading } from '@/components/loading';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { applyServerError } from '@/features/auth/form-errors';
@@ -204,20 +206,18 @@ function ContactsSection({ applicationId }: { applicationId: string }) {
 
   let content;
   if (contacts.isPending) {
-    content = <Skeleton className="h-16 w-full" />;
+    content = (
+      <Loading label="Loading contacts">
+        <Skeleton className="h-16 w-full" />
+      </Loading>
+    );
   } else if (contacts.isError) {
     content = (
-      <Alert title="Contacts didn’t load">
-        <p>{isApiError(contacts.error) ? contacts.error.detail : 'Something went wrong.'}</p>
-        <Button
-          variant="outline"
-          size="sm"
-          className="mt-3"
-          onClick={() => void contacts.refetch()}
-        >
-          <RotateCcw /> Try again
-        </Button>
-      </Alert>
+      <LoadError
+        title="Contacts didn’t load"
+        error={contacts.error}
+        onRetry={() => void contacts.refetch()}
+      />
     );
   } else if (contacts.data.length === 0) {
     content = (
@@ -244,12 +244,12 @@ function ContactsSection({ applicationId }: { applicationId: string }) {
   }
 
   return (
-    <section aria-labelledby="contacts-heading" className="grid gap-4">
-      <div className="flex items-center justify-between gap-2">
-        <h2 id="contacts-heading" className="font-display text-xl font-semibold">
+    <section aria-labelledby="contacts-heading" className="grid gap-3">
+      <div className="flex items-center justify-between gap-2 border-b border-rule pb-1">
+        <h2 id="contacts-heading" className="kicker text-[0.8125rem] font-bold text-foreground">
           Contacts
         </h2>
-        <Button variant="outline" size="sm" onClick={() => setEditing({ type: 'create' })}>
+        <Button variant="ghost" size="sm" onClick={() => setEditing({ type: 'create' })}>
           <Plus /> Add contact
         </Button>
       </div>

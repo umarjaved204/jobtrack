@@ -24,10 +24,10 @@ function MatchProgressPanel({
   return (
     <section
       aria-label="Match in progress"
-      className={cn('grid gap-3 rounded-lg border bg-card px-5 py-4', className)}
+      className={cn('grid gap-4 border-y border-rule py-6', className)}
     >
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <p role="status" aria-live="polite" className="font-semibold">
+        <p role="status" aria-live="polite" className="font-display text-2xl font-semibold">
           {label}…
         </p>
         {detail && (
@@ -43,11 +43,11 @@ function MatchProgressPanel({
         aria-valuemax={100}
         aria-valuenow={percent ?? undefined}
         aria-valuetext={detail ?? undefined}
-        className="h-1.5 overflow-hidden rounded-full bg-muted"
+        className="h-2.5 overflow-hidden bg-muted"
       >
         <div
           className={cn(
-            'h-full rounded-full bg-primary transition-[width] duration-(--duration-base)',
+            'h-full bg-primary transition-[width] duration-(--duration-base)',
             percent === null && 'w-1/3 animate-pulse motion-reduce:animate-none',
           )}
           style={percent === null ? undefined : { width: `${percent}%` }}

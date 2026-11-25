@@ -34,8 +34,17 @@ function setup(mode: EmbeddingsMode = 'client') {
   client = new FakeEmbeddingClient();
 }
 
-const run = (mode: EmbeddingsMode = 'client', onProgress?: (p: MatchProgress) => void) =>
-  runMatch(INPUT, { embeddings: mode }, { embeddings: () => client }, { onProgress });
+const run = (
+  mode: EmbeddingsMode = 'client',
+  onProgress?: (p: MatchProgress) => void,
+  modelCached = false,
+) =>
+  runMatch(
+    INPUT,
+    { embeddings: mode },
+    { embeddings: () => client, modelCached: () => Promise.resolve(modelCached) },
+    { onProgress },
+  );
 
 /** The POST /match bodies the backend received. */
 function captureMatchBodies() {
@@ -84,7 +93,21 @@ describe('runMatch in client mode', () => {
       'embedding',
       'scoring',
     ]);
-    expect(progress[3]).toEqual({ phase: 'loading-model', loaded: 34e6, total: 34e6 });
+    expect(progress[3]).toEqual({
+      phase: 'loading-model',
+      source: 'network',
+      loaded: 34e6,
+      total: 34e6,
+    });
+  });
+
+  it('says the model comes from the cache when it is already in this browser', async () => {
+    const progress: MatchProgress[] = [];
+    await run('client', (p) => progress.push(p), true);
+
+    const loading = progress.filter((p) => p.phase === 'loading-model');
+    expect(loading.length).toBeGreaterThan(0);
+    expect(loading.every((p) => p.source === 'cache')).toBe(true);
   });
 
   it('sends the JD and resume vectors separately, one row per chunk', async () => {

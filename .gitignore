@@ -46,3 +46,6 @@ frontend/bench/data/
 
 # Browser embedding model, fetched by frontend/scripts/fetch-model.mjs (never committed)
 frontend/public/models/
+
+# Design-review screenshots from frontend/scripts/screenshots.mjs
+frontend/screenshots/

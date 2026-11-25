@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { toInstant } from '@/features/reminders/due';
 import { makeEvent, makeReminder, mockApplicationsBackend } from '@/test/fake-applications';
+import { selectNames, unnamedFormFields } from '@/test/form-fields';
 import { mockAuthBackend } from '@/test/msw';
 import { findPageHeading, renderApp } from '@/test/render-app';
 
@@ -51,7 +52,9 @@ async function open(path = '/calendar') {
   return { user, app };
 }
 const cell = (name: RegExp) => screen.findByRole('gridcell', { name });
-const dayPanel = () => screen.getByRole('region', { name: /^\w+day \d+ \w+ 2026$/ });
+// Waits: the panel renders once the feed loads, which can land after the page heading
+// (a get* query here made these tests fail at random under load).
+const dayPanel = () => screen.findByRole('region', { name: /^\w+day \d+ \w+ 2026$/ });
 
 describe('calendar: month grid', () => {
   beforeEach(wideScreen);
@@ -108,7 +111,7 @@ describe('calendar: month grid', () => {
 
   it('lists a day’s items with safe links, and acts on them', async () => {
     const { user } = await open('/calendar?month=2026-11&day=2026-11-20');
-    const panel = dayPanel();
+    const panel = await dayPanel();
     const list = await within(panel).findByRole('list', { name: 'On this day' });
     await waitFor(() => expect(within(list).getAllByRole('listitem')).toHaveLength(3));
     const texts = within(list)
@@ -131,8 +134,10 @@ describe('calendar: month grid', () => {
 
   it('adds an event on the open day, in local time', async () => {
     const { user } = await open('/calendar?month=2026-11&day=2026-11-26');
-    await user.click(await within(dayPanel()).findByRole('button', { name: 'Add event' }));
+    await user.click(await within(await dayPanel()).findByRole('button', { name: 'Add event' }));
     const dialog = await screen.findByRole('dialog', { name: 'Add an event' });
+    await waitFor(() => expect(selectNames(dialog)).toEqual(['kind', 'application_id']));
+    expect(unnamedFormFields(dialog)).toEqual([]);
     expect(within(dialog).getByLabelText('Start date')).toHaveValue('2026-11-26');
     await user.type(within(dialog).getByLabelText('Title'), 'Onsite: system design');
     const start = within(dialog).getByLabelText('Start time');
@@ -152,12 +157,12 @@ describe('calendar: month grid', () => {
         },
       ),
     );
-    expect(await within(dayPanel()).findByText('Onsite: system design')).toBeVisible();
+    expect(await within(await dayPanel()).findByText('Onsite: system design')).toBeVisible();
   });
 
   it('refuses an end before the start', async () => {
     const { user } = await open('/calendar?month=2026-11&day=2026-11-26');
-    await user.click(await within(dayPanel()).findByRole('button', { name: 'Add event' }));
+    await user.click(await within(await dayPanel()).findByRole('button', { name: 'Add event' }));
     const dialog = await screen.findByRole('dialog', { name: 'Add an event' });
     await user.type(within(dialog).getByLabelText('Title'), 'Backwards');
     const end = within(dialog).getByLabelText('End time');
@@ -171,7 +176,9 @@ describe('calendar: month grid', () => {
 
   it('deletes an event only after confirming', async () => {
     const { user } = await open('/calendar?month=2026-11&day=2026-11-20');
-    await user.click(await within(dayPanel()).findByRole('button', { name: 'Delete Coffee chat' }));
+    await user.click(
+      await within(await dayPanel()).findByRole('button', { name: 'Delete Coffee chat' }),
+    );
     const confirm = await screen.findByRole('alertdialog', { name: 'Delete Coffee chat?' });
     await user.click(within(confirm).getByRole('button', { name: 'Delete event' }));
 
@@ -214,7 +221,7 @@ describe('deleting an application', () => {
     renderApp(`/applications/${monzo}`);
     await findPageHeading('Monzo');
 
-    await user.click(screen.getByRole('button', { name: 'Delete' }));
+    await user.click(screen.getByRole('button', { name: 'Delete this application…' }));
     const confirm = await screen.findByRole('alertdialog', { name: 'Delete Monzo?' });
     await waitFor(() =>
       expect(confirm).toHaveTextContent(

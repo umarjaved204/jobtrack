@@ -13,11 +13,15 @@ export function describeProgress(progress: MatchProgress): {
       return { label: 'Reading the job description and your resume', detail: null, fraction: null }; // prettier-ignore
     case 'loading-model':
       if (progress.total > 0 && progress.loaded < progress.total) {
-        return {
-          label: 'Downloading the match model',
-          detail: `${megabytes(progress.loaded)} of ${megabytes(progress.total)} MB`,
-          fraction: progress.loaded / progress.total,
-        };
+        const fraction = progress.loaded / progress.total;
+        // From the cache it's a read, not a download: no megabytes to watch.
+        return progress.source === 'cache'
+          ? { label: 'Loading the match model', detail: null, fraction }
+          : {
+              label: 'Downloading the match model',
+              detail: `${megabytes(progress.loaded)} of ${megabytes(progress.total)} MB`,
+              fraction,
+            };
       }
       return { label: 'Starting the match model', detail: null, fraction: null };
     case 'embedding':

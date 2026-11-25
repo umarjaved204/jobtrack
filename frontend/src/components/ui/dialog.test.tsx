@@ -1,4 +1,5 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
+import * as React from 'react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 
@@ -71,5 +72,39 @@ describe('Dialog', () => {
 
     await user.click(closeButtons[index] as HTMLElement);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+});
+
+/** Opened from state, like ConfirmDialog: no DialogTrigger for Radix to return focus to. */
+function ControlledDialog() {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <>
+      <Button onClick={() => setOpen(true)}>Delete this application…</Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogTitle>Delete this application?</DialogTitle>
+          <DialogDescription>This can’t be undone.</DialogDescription>
+          <Button onClick={() => setOpen(false)}>Cancel</Button>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+describe('Dialog opened from state', () => {
+  it('gives focus back to what opened it, on Escape and on Cancel', async () => {
+    const user = userEvent.setup();
+    render(<ControlledDialog />);
+    const opener = screen.getByRole('button', { name: 'Delete this application…' });
+
+    await user.click(opener);
+    await screen.findByRole('dialog');
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(opener).toHaveFocus());
+
+    await user.click(opener);
+    await user.click(await screen.findByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(opener).toHaveFocus());
   });
 });

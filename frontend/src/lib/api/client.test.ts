@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { AuthResponse } from '@/types/auth';
 
-import { createApiClient } from './client';
+import { createApiClient, filenameFrom } from './client';
 import { ApiError } from './errors';
 
 const json = (status: number, body?: unknown, headers: Record<string, string> = {}) =>
@@ -167,5 +167,56 @@ describe('api client: responses', () => {
     await expect(
       createApiClient({ session: fakeSession(), fetch }).get('/tags'),
     ).rejects.toMatchObject({ name: 'AbortError' });
+  });
+});
+
+describe('api client: downloads', () => {
+  it('returns the body as a Blob with the server’s filename, sent with the token', async () => {
+    const fetch = vi.fn().mockResolvedValue(
+      new Response('a,b\r\n', {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/zip',
+          'Content-Disposition': 'attachment; filename="jobtrack-export-2026-11-25.zip"',
+        },
+      }),
+    );
+    const file = await createApiClient({ session: fakeSession(), fetch }).download(
+      '/export?format=csv',
+    );
+
+    expect(file.filename).toBe('jobtrack-export-2026-11-25.zip');
+    expect(await file.blob.text()).toBe('a,b\r\n');
+    expect(authHeader(fetch, 0)).toMatchObject({ Authorization: 'Bearer at-1', Accept: '*/*' });
+  });
+
+  it('refreshes and retries on a 401, like any request', async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(json(401, { detail: 'Invalid or expired access token' }))
+      .mockResolvedValueOnce(new Response('{}', { status: 200 }));
+    const file = await createApiClient({ session: fakeSession(), fetch }).download('/export');
+
+    expect(authHeader(fetch, 1)['Authorization']).toBe('Bearer at-2');
+    expect(file.filename).toBeNull();
+  });
+
+  it('throws an ApiError for a failed download', async () => {
+    const fetch = vi.fn().mockResolvedValue(json(422, { detail: 'Bad format' }));
+    await expect(
+      createApiClient({ session: fakeSession(), fetch }).download('/export?format=xlsx'),
+    ).rejects.toBeInstanceOf(ApiError);
+  });
+});
+
+describe('filenameFrom', () => {
+  it.each([
+    ['attachment; filename="export.json"', 'export.json'],
+    ['attachment; filename=export.zip', 'export.zip'],
+    ['attachment; filename="../../evil.sh"', '.._.._evil.sh'],
+    ['attachment', null],
+    [null, null],
+  ])('%s gives %s', (header, expected) => {
+    expect(filenameFrom(header)).toBe(expected);
   });
 });

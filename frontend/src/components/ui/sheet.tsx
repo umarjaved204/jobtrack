@@ -54,11 +54,11 @@ function SheetContent({
       <SheetPrimitive.Content
         data-slot="sheet-content"
         className={cn(
-          'fixed inset-y-0 z-50 flex h-full w-[min(20rem,85vw)] flex-col gap-4 overflow-y-auto overscroll-contain bg-popover text-popover-foreground shadow-lg',
+          'fixed inset-y-0 z-50 flex h-full w-[min(20rem,85vw)] flex-col gap-4 overflow-y-auto overscroll-contain border-rule bg-panel text-foreground',
           side === 'right' &&
-            'right-0 border-l data-[state=closed]:animate-slide-out-right data-[state=open]:animate-slide-in-right',
+            'right-0 border-l-[3px] data-[state=closed]:animate-slide-out-right data-[state=open]:animate-slide-in-right',
           side === 'left' &&
-            'left-0 border-r data-[state=closed]:animate-slide-out-left data-[state=open]:animate-slide-in-left',
+            'left-0 border-r-[3px] data-[state=closed]:animate-slide-out-left data-[state=open]:animate-slide-in-left',
           className,
         )}
         {...props}

@@ -5,6 +5,7 @@ import { Link, useNavigate, useParams } from 'react-router';
 import { PageHeader } from '@/components/page-header';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Loading } from '@/components/loading';
 import { Skeleton } from '@/components/ui/skeleton';
 import { isApiError } from '@/lib/api/errors';
 
@@ -33,10 +34,10 @@ function MatchDetailPage() {
         </Link>
       </Button>
       {match.isPending && (
-        <div aria-busy="true" aria-label="Loading the match" className="grid gap-3">
+        <Loading label="Loading the match" className="grid gap-3">
           <Skeleton className="h-14 w-72" />
           <Skeleton className="h-40" />
-        </div>
+        </Loading>
       )}
       {match.isError && (
         <>

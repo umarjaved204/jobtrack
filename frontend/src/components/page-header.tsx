@@ -3,7 +3,7 @@ import type * as React from 'react';
 import { cn } from '@/lib/utils';
 
 type PageHeaderProps = {
-  /** Small label above the title (section name). */
+  /** Small label above the title (section name), set with the kicker utility. */
   kicker?: string;
   title: string;
   /** One-line standfirst under the title. */
@@ -14,25 +14,28 @@ type PageHeaderProps = {
 };
 
 /**
- * Page title block. Also sets the document title (React 19 hoists <title> into <head>).
- * The h1 is focusable (tabIndex -1) so the app shell can move focus to it after
- * client-side navigation, which announces the new page to screen readers.
+ * Page title block: eyebrow, a 48 to 80px Fraunces title and a standfirst, with no rule
+ * under it (the content below brings its own). Also sets the document title (React 19
+ * hoists <title> into <head>). The h1 is focusable (tabIndex -1) so the app shell can move
+ * focus to it after client-side navigation, which announces the new page.
  */
 function PageHeader({ kicker, title, description, actions, className }: PageHeaderProps) {
   return (
     <header
       className={cn(
-        'flex flex-col gap-4 border-b pb-6 sm:flex-row sm:items-end sm:justify-between',
+        'flex flex-col gap-6 pt-2 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between',
         className,
       )}
     >
       <title>{`${title} · JobTrack`}</title>
-      <div className="max-w-prose">
+      <div className="grid max-w-180 gap-2.5">
         {kicker && <p className="kicker text-primary-text">{kicker}</p>}
-        <h1 tabIndex={-1} className="mt-2 display-face text-display outline-none">
+        <h1 tabIndex={-1} className="display-face text-title font-semibold outline-none">
           {title}
         </h1>
-        {description && <p className="mt-3 text-lg text-muted-foreground">{description}</p>}
+        {description && (
+          <p className="text-[1.1875rem] leading-normal text-muted-foreground">{description}</p>
+        )}
       </div>
       {actions && <div className="flex shrink-0 flex-wrap gap-2">{actions}</div>}
     </header>

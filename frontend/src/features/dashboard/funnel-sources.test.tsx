@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import { emptyAnalytics, sampleAnalytics } from '@/test/fake-analytics';
@@ -41,6 +41,33 @@ describe('Funnel', () => {
       ['Offer', '2', '22%'],
     ]);
     expect(screen.getByText('22% of Interview')).toBeInTheDocument();
+  });
+
+  it('grows each bar in from zero, stage by stage, to its share of Applied', async () => {
+    const { container } = render(<Funnel funnel={sampleAnalytics().funnel} />);
+    const bar = (stage: string) =>
+      container.querySelector<HTMLElement>(`[data-stage-bar="${stage}"]`);
+
+    // First paint: every bar at zero, so the transition has something to grow from.
+    expect(bar('applied')).toHaveStyle({ width: '0%' });
+    await waitFor(() => expect(bar('applied')).toHaveStyle({ width: '100%' }));
+    expect(bar('screening')).toHaveStyle({ width: `${(17 / 32) * 100}%` });
+    expect(bar('offer')).toHaveStyle({ width: `${(2 / 32) * 100}%` });
+    // The stagger is a multiple of a duration token, so reduced motion (tokens at 0) drops it.
+    expect(bar('interview')?.style.transitionDelay).toBe('calc(var(--duration-fast) * 2)');
+  });
+
+  it('adds the Rejected and Withdrawn totals once the summary has them', () => {
+    const { by_status } = sampleAnalytics().summary;
+    const { rerender } = render(<Funnel funnel={sampleAnalytics().funnel} />);
+    expect(screen.queryByText('Rejected')).not.toBeInTheDocument();
+
+    rerender(<Funnel funnel={sampleAnalytics().funnel} outcomes={by_status} />);
+    const total = (label: string) =>
+      screen.getByText(label, { selector: 'dt' }).parentElement as HTMLElement;
+    expect(total('Rejected')).toHaveTextContent('13');
+    expect(total('Withdrawn')).toHaveTextContent('5');
+    expect(screen.getByText('Applied in this period, now withdrawn')).toBeVisible();
   });
 
   it('says so when nothing was applied for', () => {

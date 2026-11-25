@@ -1,5 +1,7 @@
 import type * as React from 'react';
+import { Link } from 'react-router';
 
+import { Loading } from '@/components/loading';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import type { AnalyticsSummary, Rate } from '@/types/analytics';
@@ -18,28 +20,29 @@ function NoRate() {
   );
 }
 
+/*
+ * Ledger cells: hairlines between columns, and between the two rows on phones (2 × 2).
+ * Shared by the skeleton so the frame doesn't move when the figures land.
+ */
+const cellClass = cn(
+  'grid content-start gap-1.5 border-border px-4 py-5 sm:px-6',
+  'odd:border-r [&:nth-child(-n+2)]:border-b',
+  'lg:border-r lg:[&:nth-child(-n+2)]:border-b-0 lg:last:border-r-0',
+);
+
 function Figure({
   label,
   children,
   note,
-  accent = false,
 }: {
   label: string;
   children: React.ReactNode;
   note: React.ReactNode;
-  accent?: boolean;
 }) {
   return (
-    <div className="grid content-start gap-2 bg-background px-4 py-5 sm:px-5">
-      <dt className="text-sm font-semibold">{label}</dt>
-      <dd
-        className={cn(
-          'figures text-display leading-none tracking-tight',
-          accent && 'text-primary-text',
-        )}
-      >
-        {children}
-      </dd>
+    <div className={cellClass}>
+      <dt className="kicker text-muted-foreground">{label}</dt>
+      <dd className="display-face text-figure font-medium lining-nums tabular-nums">{children}</dd>
       <dd className="text-sm text-muted-foreground">{note}</dd>
     </div>
   );
@@ -57,8 +60,8 @@ type StatStripProps = {
 };
 
 /**
- * The dashboard's headline figures, set like a newspaper's market box: one ruled strip,
- * not a grid of cards. Counts come with their denominators ("9 of 32"), so a rate is never
+ * The dashboard's headline figures, set like a newspaper ledger: one strip between a heavy
+ * and a hairline ink rule, not a grid of cards. Counts come with their denominators ("9 of 32"), so a rate is never
  * read without its sample size.
  */
 function StatStrip({ summary: s, cause, rangeLabel }: StatStripProps) {
@@ -67,7 +70,7 @@ function StatStrip({ summary: s, cause, rangeLabel }: StatStripProps) {
       <h2 id="key-figures-heading" className="sr-only">
         Key figures, {rangeLabel.toLowerCase()}
       </h2>
-      <dl className="grid grid-cols-2 gap-px border-y-[3px] border-double border-rule bg-rule lg:grid-cols-4">
+      <dl className="grid grid-cols-2 border-t-[3px] border-b border-rule lg:grid-cols-4">
         <Figure label="Applied" note="Applications sent in this period">
           <Counter value={s.applied} cause={cause} />
         </Figure>
@@ -76,7 +79,6 @@ function StatStrip({ summary: s, cause, rangeLabel }: StatStripProps) {
         </Figure>
         <Figure
           label="Interview rate"
-          accent
           note={
             s.applied > 0
               ? `${s.interviewed} of ${s.applied} reached an interview`
@@ -105,9 +107,14 @@ function StatStrip({ summary: s, cause, rangeLabel }: StatStripProps) {
           'Nothing on your wishlist.'
         ) : (
           <>
-            Plus <span className="figures text-foreground">{s.wishlist}</span>{' '}
-            {s.wishlist === 1 ? 'role' : 'roles'} on your wishlist, not yet applied for (not limited
-            to this period).
+            Plus{' '}
+            <strong className="font-semibold text-foreground">
+              {s.wishlist} {s.wishlist === 1 ? 'role' : 'roles'} on your wishlist
+            </strong>
+            , not yet applied for (not limited to this period).{' '}
+            <Link to="/applications?view=table&status=wishlist" className="link">
+              See the wishlist
+            </Link>
           </>
         )}
       </p>
@@ -117,19 +124,18 @@ function StatStrip({ summary: s, cause, rangeLabel }: StatStripProps) {
 
 function StatStripSkeleton() {
   return (
-    <div
-      aria-busy="true"
-      aria-label="Loading key figures"
-      className="grid grid-cols-2 gap-px border-y-[3px] border-double border-rule bg-rule lg:grid-cols-4"
+    <Loading
+      label="Loading key figures"
+      className="grid grid-cols-2 border-t-[3px] border-b border-rule lg:grid-cols-4"
     >
       {Array.from({ length: 4 }, (_, i) => (
-        <div key={i} className="grid gap-3 bg-background px-4 py-5 sm:px-5">
+        <div key={i} className={cellClass}>
           <Skeleton className="h-4 w-24" />
-          <Skeleton className="h-12 w-20" />
+          <Skeleton className="h-14 w-24" />
           <Skeleton className="h-4 w-40 max-w-full" />
         </div>
       ))}
-    </div>
+    </Loading>
   );
 }
 

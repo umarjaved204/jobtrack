@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest';
 
 import { duration, ease } from '../lib/motion';
 import { accentColors, paletteColors } from '../lib/palette';
+import { applicationStatuses } from '../types/application';
 import indexCss from './index.css?raw';
 import tokensCss from './tokens.css?raw';
 
@@ -86,6 +87,7 @@ const NON_TEXT = 3; // WCAG 1.4.11 (UI boundaries, focus) and 1.4.3 large text
 type Pair = [fg: string, bg: string, min: number];
 
 const SURFACES = ['background', 'card', 'popover'];
+const STATUSES = applicationStatuses;
 
 /** Pairs that don't depend on the accent. */
 const themePairs: Pair[] = [
@@ -94,10 +96,19 @@ const themePairs: Pair[] = [
     bg,
     TEXT,
   ]),
-  ...['background', 'card', 'muted', 'accent'].map((bg): Pair => ['muted-foreground', bg, TEXT]),
+  ...['background', 'card', 'muted', 'accent', 'panel', 'overdue-tint'].map((bg): Pair => [
+    'muted-foreground',
+    bg,
+    TEXT,
+  ]),
+  // Tertiary text: on surfaces only, and the out-of-month calendar cells (muted).
+  ...[...SURFACES, 'muted', 'panel'].map((bg): Pair => ['subtle-foreground', bg, TEXT]),
+  ...['panel', 'overdue-tint', 'drop-tint'].map((bg): Pair => ['foreground', bg, TEXT]),
   ['destructive-foreground', 'destructive', TEXT],
-  ...SURFACES.map((bg): Pair => ['input', bg, NON_TEXT]),
-  ...SURFACES.map((bg): Pair => ['ring', bg, NON_TEXT]),
+  ['destructive', 'overdue-tint', TEXT],
+  ...[...SURFACES, 'panel', 'muted', 'accent'].map((bg): Pair => ['input', bg, NON_TEXT]),
+  ...[...SURFACES, 'panel', 'drop-tint'].map((bg): Pair => ['ring', bg, NON_TEXT]),
+  ['status-applied', 'drop-tint', TEXT],
   ...paletteColors.flatMap((name): Pair[] => {
     const c = `palette-${name}`;
     return [
@@ -106,8 +117,9 @@ const themePairs: Pair[] = [
       ['palette-on', c, TEXT],
     ];
   }),
-  ...['wishlist', 'applied', 'screening', 'interview', 'offer', 'rejected', 'withdrawn'].map(
-    (s): Pair => [`status-${s}`, `status-${s}-tint`, TEXT],
+  // Status colours label things as text (badges on their tint, kickers on paper and cards).
+  ...STATUSES.flatMap((s): Pair[] =>
+    [`status-${s}-tint`, ...SURFACES].map((bg): Pair => [`status-${s}`, bg, TEXT]),
   ),
 ];
 

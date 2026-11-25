@@ -41,14 +41,21 @@ describe('match history', () => {
 
   it('lists past matches newest first, each linking to its result', async () => {
     renderApp('/match');
-    const history = await screen.findByRole('region', { name: 'Past matches' });
-    const links = await within(history).findAllByRole('link');
+    const history = await screen.findByRole('region', { name: 'Earlier matches' });
+    const table = await within(history).findByRole('table');
+    const links = within(table).getAllByRole('link');
     expect(links.map((link) => link.getAttribute('href'))).toEqual([
       '/match/m-new',
       '/match/m-old',
     ]);
-    expect(links[0]).toHaveTextContent(/82 out of 100, Strong overlap\./);
-    expect(links[1]).toHaveTextContent('Older version');
+    expect(links.map((link) => link.textContent)).toEqual(['Monzo', 'Backend Engineer, Wise']);
+    const [, newer, older] = within(table).getAllByRole('row');
+    expect(newer).toHaveTextContent('82 Strong overlap');
+    expect(older).toHaveTextContent('31 Older version');
+    expect(within(history).getByRole('link', { name: 'delete them in Settings' })).toHaveAttribute(
+      'href',
+      '/settings',
+    );
   });
 });
 
@@ -57,8 +64,9 @@ describe('paging the history', () => {
     setup(Array.from({ length: 11 }, (_, i) => makeMatch({ jd_excerpt: `Advert ${i + 1}`, created_at: at(i + 1) }))); // prettier-ignore
     const user = userEvent.setup();
     renderApp('/match');
-    const history = await screen.findByRole('region', { name: 'Past matches' });
-    expect(await within(history).findAllByRole('link')).toHaveLength(10);
+    const history = await screen.findByRole('region', { name: 'Earlier matches' });
+    const table = await within(history).findByRole('table');
+    expect(within(table).getAllByRole('link')).toHaveLength(10);
     expect(within(history).getByText('Page 1 of 2')).toBeVisible();
 
     await user.click(within(history).getByRole('button', { name: 'Older' }));
@@ -98,7 +106,7 @@ describe('match detail page', () => {
     await findPageHeading('Match result');
     await user.click(screen.getAllByRole('button', { name: 'Run again' })[0] as HTMLElement);
 
-    await findPageHeading('Match a job description');
+    await findPageHeading('How well does a resume fit the job?');
     expect(app.location()).toBe('/match');
     expect(await screen.findByLabelText('Job description')).toHaveValue(
       'Frontend Engineer\n- React',
@@ -112,7 +120,7 @@ describe('match detail page', () => {
     renderApp('/match/m-1');
     await findPageHeading('Match result');
     await user.click(screen.getByRole('button', { name: 'Run again' }));
-    await findPageHeading('Match a job description');
+    await findPageHeading('How well does a resume fit the job?');
     expect(await screen.findByRole('combobox', { name: 'Resume' })).toHaveTextContent(
       'Frontend v2',
     );

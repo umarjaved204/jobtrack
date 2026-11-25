@@ -1,8 +1,9 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { ArrowRightLeft, CalendarClock, GripVertical } from 'lucide-react';
+import { format } from 'date-fns/format';
+import { GripVertical } from 'lucide-react';
 import { useReducedMotion } from 'motion/react';
-import { type MouseEvent, type SyntheticEvent, useEffect, useRef } from 'react';
+import { type MouseEvent, type ReactNode, type SyntheticEvent, useEffect, useRef } from 'react';
 import { Link } from 'react-router';
 
 import { TagChip } from '@/components/tag-chip';
@@ -25,6 +26,8 @@ import {
 } from '@/types/application';
 
 import { cardName } from './board-dnd';
+import { monogram } from './monogram';
+import { statusDotClass } from './status-classes';
 
 type BoardCardProps = {
   application: Application;
@@ -34,6 +37,8 @@ type BoardCardProps = {
   /** Focus the drag handle once rendered (after a "Move to…" move re-mounts the card). */
   focusHandle?: boolean;
   onHandleFocused?: () => void;
+  /** While this card is being dragged, its slot reads e.g. "Drop here · position 2 of 5". */
+  dropLabel?: string;
 };
 
 /** Pointer events on the card's own buttons must not start a drag. */
@@ -56,6 +61,7 @@ function BoardCard({
   justDragged,
   focusHandle,
   onHandleFocused,
+  dropLabel,
 }: BoardCardProps) {
   const reduceMotion = useReducedMotion();
   const name = cardName(application);
@@ -93,12 +99,53 @@ function BoardCard({
       onTouchStart={(e) => !fromButton(e) && onTouchStart?.(e)}
       style={{ transform: CSS.Translate.toString(transform), transition }}
       className={cn(
-        'group relative rounded-md border bg-card p-3 shadow-xs select-none [-webkit-touch-callout:none]',
-        'transition-shadow duration-(--duration-fast) hover:shadow-md',
-        isDragging && 'border-dashed opacity-40 shadow-none',
+        'group relative border bg-card p-3 select-none [-webkit-touch-callout:none]',
+        'transition-colors duration-(--duration-fast) hover:border-input',
+        // The dragged card's slot: where it lands, outlined in the focus colour.
+        isDragging && 'border-2 border-dashed border-ring bg-drop-tint hover:border-ring',
       )}
     >
-      <CardBody application={application} />
+      <div className={cn(isDragging && 'invisible')}>
+        <CardBody
+          application={application}
+          action={
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  className="relative z-10 -mr-1.5 h-8 px-1.5 font-semibold text-muted-foreground"
+                >
+                  {/* The name starts with the visible label (WCAG 2.5.3), then says which card. */}
+                  Move to… <span className="sr-only">{name}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuLabel>Move to</DropdownMenuLabel>
+                {applicationStatuses
+                  .filter((status) => status !== application.status)
+                  .map((status) => (
+                    <DropdownMenuItem key={status} onSelect={() => onMoveTo(status)}>
+                      <span
+                        aria-hidden="true"
+                        className={cn('size-2 shrink-0', statusDotClass[status])}
+                      />
+                      {statusLabels[status]}
+                    </DropdownMenuItem>
+                  ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          }
+        />
+      </div>
+      {isDragging && dropLabel && (
+        <p
+          aria-hidden="true"
+          className="absolute inset-0 grid place-items-center px-3 text-center text-[0.8125rem] font-semibold text-status-applied"
+        >
+          {dropLabel}
+        </p>
+      )}
       <Link
         to={`/applications/${application.id}`}
         aria-label={name}
@@ -106,97 +153,119 @@ function BoardCard({
           if (justDragged()) e.preventDefault();
         }}
         draggable={false}
-        className="absolute inset-0 rounded-md"
+        className="absolute inset-0"
       />
-      <div className="absolute top-2 right-2 z-10 flex gap-0.5">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon-sm" aria-label={`Move ${name} to…`}>
-              <ArrowRightLeft />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Move to</DropdownMenuLabel>
-            {applicationStatuses
-              .filter((status) => status !== application.status)
-              .map((status) => (
-                <DropdownMenuItem key={status} onSelect={() => onMoveTo(status)}>
-                  {statusLabels[status]}
-                </DropdownMenuItem>
-              ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <Button
-          ref={(element) => {
-            handle.current = element;
-            setActivatorNodeRef(element);
-          }}
-          variant="ghost"
-          size="icon-sm"
-          className="cursor-grab active:cursor-grabbing"
-          {...attributes}
-          onKeyDown={onKeyDown}
-          aria-label={`Move ${name}`}
-          data-drag-handle={application.id}
-        >
-          <GripVertical />
-        </Button>
-      </div>
+      <Button
+        ref={(element) => {
+          handle.current = element;
+          setActivatorNodeRef(element);
+        }}
+        variant="ghost"
+        size="icon-sm"
+        className={cn(
+          'absolute top-2 right-2 z-10 size-8 cursor-grab text-muted-foreground active:cursor-grabbing',
+          isDragging && 'invisible',
+        )}
+        {...attributes}
+        onKeyDown={onKeyDown}
+        aria-label={`Move ${name}`}
+        data-drag-handle={application.id}
+      >
+        <GripVertical />
+      </Button>
     </article>
   );
 }
 
-/** Card content, shared with the drag preview. */
-function CardBody({ application }: { application: Application }) {
-  // The apply-by date only matters while the role is still on the wishlist.
-  const applyInDays =
-    application.status === 'wishlist' && application.deadline_on
-      ? daysUntil(application.deadline_on)
-      : null;
+/** The line under the role: the apply-by date on the wishlist, otherwise when it was sent. */
+function StatusLine({ application }: { application: Application }) {
+  if (application.status === 'wishlist') {
+    if (!application.deadline_on) {
+      return (
+        <p className="text-[0.8125rem] text-muted-foreground">
+          Saved {format(new Date(application.created_at), 'd MMM')}
+        </p>
+      );
+    }
+    const days = daysUntil(application.deadline_on);
+    const soon = days >= 0 && days <= 7;
+    return (
+      <p
+        className={cn(
+          'text-[0.8125rem]',
+          soon ? 'font-semibold text-foreground' : 'text-muted-foreground',
+        )}
+      >
+        Apply by {formatDateOnly(application.deadline_on, 'EEE d MMM')}
+        {soon && (days === 0 ? ' · today' : ` · in ${days} ${days === 1 ? 'day' : 'days'}`)}
+      </p>
+    );
+  }
+  if (!application.applied_on) return null;
+  return (
+    <p className="text-[0.8125rem] text-muted-foreground">
+      Applied {formatDateOnly(application.applied_on, 'd MMM')}
+    </p>
+  );
+}
+
+/**
+ * Card content, shared with the drag preview. `action` (the card's "Move to…" menu) ends
+ * the last row, opposite the tags; the preview has none.
+ */
+function CardBody({ application, action }: { application: Application; action?: ReactNode }) {
   const meta = [
     application.location,
     application.work_mode ? workModeLabels[application.work_mode] : null,
   ].filter(Boolean);
 
   return (
-    <div className="grid gap-1.5">
-      {/* Right padding only beside the top-right buttons; the rest uses the full width. */}
-      <h3 className="pr-16 font-display text-base leading-tight font-semibold">
-        {application.company}
-      </h3>
-      <p className="pr-16 text-sm">{application.role_title}</p>
-      {meta.length > 0 && <p className="text-xs text-muted-foreground">{meta.join(', ')}</p>}
-      {(application.tags.length > 0 || applyInDays !== null || application.applied_on) && (
-        <div className="mt-1 flex flex-wrap items-center gap-1.5">
-          {application.tags.slice(0, 2).map((tag) => (
-            <TagChip key={tag.id} name={tag.name} color={tag.color} />
-          ))}
-          {application.tags.length > 2 && (
-            <span className="text-xs text-muted-foreground">
-              +{application.tags.length - 2} more
-            </span>
-          )}
-          {applyInDays !== null && applyInDays >= 0 && applyInDays <= 7 && (
-            <span className="inline-flex items-center gap-1 text-xs font-semibold text-ochre">
-              <CalendarClock aria-hidden="true" className="size-3.5" />
-              {applyInDays === 0 ? 'Apply today' : `Apply in ${applyInDays}d`}
-            </span>
-          )}
-          {application.applied_on && application.status !== 'wishlist' && (
-            <span className="ml-auto figures text-xs text-muted-foreground">
-              {formatDateOnly(application.applied_on, 'd MMM')}
-            </span>
+    <div className="relative grid gap-2">
+      {/* Right padding only beside the drag handle; the rest uses the full width. */}
+      <div className="flex items-start gap-2.5 pr-8">
+        <span
+          aria-hidden="true"
+          className="grid size-[34px] shrink-0 place-items-center bg-muted display-face text-[0.9375rem] font-semibold"
+        >
+          {monogram(application.company)}
+        </span>
+        <div className="grid min-w-0">
+          <h3 className="truncate text-sm font-bold">{application.company}</h3>
+          {meta.length > 0 && (
+            <p className="truncate text-xs text-muted-foreground">{meta.join(' · ')}</p>
           )}
         </div>
+      </div>
+      <p className="font-display text-[1.1875rem] leading-tight font-medium">
+        {application.role_title}
+      </p>
+      <StatusLine application={application} />
+      {/* One wrapping row: tags first; the menu keeps right and wraps when they need the room. */}
+      <div className="flex min-h-8 flex-wrap items-center gap-1">
+        {application.tags.slice(0, 2).map((tag) => (
+          <TagChip key={tag.id} name={tag.name} color={tag.color} />
+        ))}
+        {application.tags.length > 2 && (
+          <span className="text-xs text-muted-foreground">+{application.tags.length - 2} more</span>
+        )}
+        {action && <span className="ml-auto">{action}</span>}
+      </div>
+      {application.status === 'offer' && (
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute right-1 bottom-10 -rotate-[8deg] border-2 border-primary-text px-2 py-0.5 kicker text-primary-text"
+        >
+          Offer
+        </span>
       )}
     </div>
   );
 }
 
-/** What follows the pointer while dragging (rendered in the DragOverlay). */
+/** What follows the pointer while dragging (rendered in the DragOverlay): lifted and tilted. */
 function BoardCardPreview({ application }: { application: Application }) {
   return (
-    <div className="rounded-md border border-rule bg-card p-3 shadow-lg">
+    <div className="-rotate-2 border border-rule bg-card p-3 shadow-[0_18px_30px_rgb(var(--shadow-rgb)/0.22),0_2px_0_var(--rule)]">
       <CardBody application={application} />
     </div>
   );

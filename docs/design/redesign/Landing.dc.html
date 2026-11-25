@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>JobTrack — The job hunt, in print</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..500&amp;family=Instrument+Sans:wght@400..700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:#F3EDE2}
+a{color:#B8321F}a:hover{color:#8E2414}
+:focus-visible{outline:2px solid #2B4BDB;outline-offset:2px}
+</style>
+</helmet>
+<div style="font-family: 'Instrument Sans', system-ui, sans-serif; color: #16130F; background: #F3EDE2; min-height: 100%">
+<a href="#signin" style="position: absolute; left: 8px; top: -48px; padding: 8px 12px; background: #16130F; color: #F3EDE2">Skip to sign in</a>
+<div style="max-width: 1296px; margin: 0 auto; padding: 0 clamp(20px, 5vw, 72px) 56px">
+
+<header style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #D6CCBB">
+<p style="margin: 0; font-size: 12px; font-weight: 600; letter-spacing: 0.16em; color: #4A433A">MONDAY, NOVEMBER 23, 2026 · FREE TO USE</p>
+<a href="#signin" style="font-size: 15px; font-weight: 600">Sign in</a>
+</header>
+<div style="text-align: center; padding: 26px 0 16px">
+<p style="margin: 0; font-family: Fraunces, serif; font-weight: 600; font-size: clamp(56px, 9vw, 112px); line-height: 0.9; letter-spacing: -0.03em">Job<span style="color: #E4412B">Track</span></p>
+<p style="margin: 10px 0 0; font-family: Fraunces, serif; font-style: italic; font-size: 22px; color: #2E2922">The job hunt, in print.</p>
+</div>
+<div aria-hidden="true" style="border-top: 3px solid #16130F; border-bottom: 1px solid #16130F; height: 2px"></div>
+
+<main style="display: flex; flex-wrap: wrap; gap: 56px; padding-top: 40px">
+<section aria-labelledby="t-hero" style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 22px">
+<p style="margin: 0; font-size: 12px; letter-spacing: 0.18em; font-weight: 600; color: #B8321F">FRONT PAGE</p>
+<h1 id="t-hero" style="margin: 0; font-family: Fraunces, serif; font-weight: 600; font-size: clamp(48px, 6.4vw, 92px); line-height: 0.95; letter-spacing: -0.025em">Every application, on the record.</h1>
+<p style="margin: 0; font-size: 21px; line-height: 1.55; color: #2E2922; max-width: 640px">Track each role from wishlist to offer, see how far your applications really get, and check a resume against a job description before you send it.</p>
+<div style="display: flex; flex-wrap: wrap; gap: 10px">
+<a href="#signin" style="display: inline-flex; align-items: center; min-height: 52px; padding: 0 22px; background: #C2361F; color: #FFF; font-weight: 600; font-size: 17px; text-decoration: none">Start tracking, free</a>
+<a href="Main.dc.html" style="display: inline-flex; align-items: center; min-height: 52px; padding: 0 22px; border: 1px solid #16130F; color: #16130F; font-weight: 600; font-size: 17px; text-decoration: none">Try the demo account</a>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-top: 22px; border-top: 1px solid #16130F">
+<sc-for list="{{ features }}" as="f" hint-placeholder-count="3">
+<article style="padding: 18px 20px 0 0; display: flex; flex-direction: column; gap: 10px; border-right: 1px solid #D6CCBB; margin-right: 20px">
+<p style="margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.14em; color: #4A433A">{{ f.kicker }}</p>
+<h2 style="margin: 0; font-family: Fraunces, serif; font-size: 26px; font-weight: 600; line-height: 1.1">{{ f.title }}</h2>
+<p style="margin: 0; font-size: 15px; line-height: 1.55; color: #2E2922">{{ f.body }}</p>
+<p style="margin: 0; font-family: Fraunces, serif; font-size: 56px; font-weight: 500; line-height: 1; letter-spacing: -0.03em">{{ f.figure }}</p>
+<p style="margin: 0; font-size: 13px; color: #4A433A">{{ f.caption }}</p>
+</article>
+</sc-for>
+</div>
+</section>
+
+<aside id="signin" aria-labelledby="t-signin" style="flex: 1 1 360px; max-width: 440px">
+<form style="display: flex; flex-direction: column; gap: 16px; padding: 28px; background: #FBF8F2; border: 1px solid #16130F; box-shadow: 8px 8px 0 #16130F">
+<h2 id="t-signin" style="margin: 0; font-family: Fraunces, serif; font-size: 34px; font-weight: 600">Sign in</h2>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Email<input type="email" autocomplete="email" spellcheck="false" autocapitalize="none" style="min-height: 46px; padding: 0 12px; border: 1px solid #16130F; background: #FFFFFF; font: 16px 'Instrument Sans', sans-serif; color: #16130F"></label>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="pw" style="font-size: 14px; font-weight: 600">Password</label>
+<div style="display: flex; border: 1px solid #16130F; background: #FFF">
+<input id="pw" type="password" autocomplete="current-password" style="flex: 1; min-height: 44px; padding: 0 12px; border: 0; background: transparent; font: 16px 'Instrument Sans', sans-serif; color: #16130F; outline: none">
+<button type="button" aria-pressed="false" style="min-width: 64px; border: 0; border-left: 1px solid #CFC4B2; background: transparent; font: 600 13px 'Instrument Sans', sans-serif; color: #16130F; cursor: pointer">Show</button>
+</div>
+</div>
+<p role="alert" style="margin: 0; padding: 10px 12px; background: #F2D9D2; color: #7E2114; font-size: 14px; font-weight: 600">Too many attempts. Try again in 42 s.</p>
+<button type="submit" disabled="disabled" style="min-height: 48px; border: 0; background: #C9BFB0; color: #2E2922; font: 600 16px 'Instrument Sans', sans-serif">Sign in · 0:42</button>
+<p style="margin: 0; font-size: 14px; color: #2E2922">New here? <a href="#">Create an account</a></p>
+</form>
+<p style="margin: 18px 0 0; font-size: 13px; line-height: 1.5; color: #4A433A">Your session stays private to this browser: the access token lives in memory, never in local storage.</p>
+</aside>
+</main>
+
+<footer style="margin-top: 56px; border-top: 1px solid #16130F; padding-top: 14px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; font-size: 13px; color: #4A433A">
+<span>JobTrack · Set in Fraunces &amp; Instrument Sans</span>
+<span><a href="#">Source on GitHub</a></span>
+</footer>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1150}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      features: [
+        { kicker: 'THE PIPELINE', title: 'Seven columns, one drag', body: 'Wishlist to offer on a board you can drive by mouse, touch or keyboard. Every move goes on the record.', figure: '7', caption: 'stages, exits kept apart' },
+        { kicker: 'THE FIGURES', title: 'Know what’s working', body: 'Interview rate from real history, a funnel that counts each application once, and which sources pay off.', figure: '25%', caption: 'demo account interview rate' },
+        { kicker: 'THE MATCH', title: 'Check before you send', body: 'Paste a job description, pick a resume version, and see the evidence and the gaps. The model runs on your device.', figure: '74', caption: 'a strong overlap, explained' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

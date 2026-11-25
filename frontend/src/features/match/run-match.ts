@@ -3,6 +3,8 @@ import { isApiError } from '@/lib/api/errors';
 import type { Match, MatchConfig, MatchInput, MatchPrepared } from '@/types/match';
 
 import { type EmbeddingClient, EmbeddingError } from './embedding/embedding-client';
+import { isModelCached } from './embedding/model-cache';
+import type { ModelSpec } from './embedding/protocol';
 import { encodeVectors } from './encode-vectors';
 import type { ChunkVectorCache } from './vector-cache';
 
@@ -20,11 +22,17 @@ import type { ChunkVectorCache } from './vector-cache';
 
 export type MatchProgress =
   | { phase: 'preparing' }
-  /** Bytes; `total` is 0 until the first progress event (or when loading from cache). */
-  | { phase: 'loading-model'; loaded: number; total: number }
+  /**
+   * Bytes; `total` is 0 until the first progress event. Transformers.js reports bytes
+   * even when it reads the files from the browser cache, so `source` says which it is.
+   */
+  | { phase: 'loading-model'; source: ModelSource; loaded: number; total: number }
   /** Chunks ready so far (cached ones count from the start), JD and resume together. */
   | { phase: 'embedding'; done: number; total: number }
   | { phase: 'scoring' };
+
+/** Where the model files come from on this load. */
+export type ModelSource = 'network' | 'cache';
 
 export type RunMatchDeps = {
   api?: Pick<typeof defaultApi, 'post'>;
@@ -32,6 +40,8 @@ export type RunMatchDeps = {
   embeddings: () => EmbeddingClient;
   /** Vectors from earlier matches on this device; none when omitted. */
   vectors?: ChunkVectorCache | null;
+  /** Is the model already in this browser? Only changes the progress wording. */
+  modelCached?: (model: ModelSpec) => Promise<boolean>;
 };
 
 export type RunMatchOptions = {
@@ -44,7 +54,7 @@ const MAX_ATTEMPTS = 2;
 export async function runMatch(
   input: MatchInput,
   config: Pick<MatchConfig, 'embeddings'>,
-  { api = defaultApi, embeddings, vectors = null }: RunMatchDeps,
+  { api = defaultApi, embeddings, vectors = null, modelCached = isModelCached }: RunMatchDeps,
   { onProgress = () => {}, signal }: RunMatchOptions = {},
 ): Promise<Match> {
   const body = {
@@ -79,10 +89,7 @@ export async function runMatch(
 
     if (missing.length > 0) {
       const client = embeddings();
-      onProgress({ phase: 'loading-model', loaded: 0, total: 0 });
-      await client.load(prepared.model, (loaded, total) =>
-        onProgress({ phase: 'loading-model', loaded, total }),
-      );
+      await loadModel(client, prepared.model, modelCached, onProgress);
       signal?.throwIfAborted();
 
       const toEmbed = missing.map((index) => texts[index] as string);
@@ -118,6 +125,19 @@ export async function runMatch(
       throw error;
     }
   }
+}
+
+async function loadModel(
+  client: EmbeddingClient,
+  model: ModelSpec,
+  modelCached: (model: ModelSpec) => Promise<boolean>,
+  onProgress: (progress: MatchProgress) => void,
+) {
+  const source: ModelSource = (await modelCached(model)) ? 'cache' : 'network';
+  onProgress({ phase: 'loading-model', source, loaded: 0, total: 0 });
+  await client.load(model, (loaded, total) =>
+    onProgress({ phase: 'loading-model', source, loaded, total }),
+  );
 }
 
 /** By name: fetch, AbortSignal and jsdom don't all share one DOMException class. */

@@ -4,7 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query
 
 from app.api.deps import CurrentUser, DbSession
-from app.schemas.analytics import Funnel, Sources, Summary, Timeseries
+from app.schemas.analytics import Funnel, Moves, Sources, Summary, Timeseries
 from app.services import analytics as service
 from app.services.analytics import Period
 
@@ -47,3 +47,15 @@ def get_sources(user: CurrentUser, db: DbSession, period: PeriodQuery) -> Source
 def get_timeseries(user: CurrentUser, db: DbSession, period: PeriodQuery) -> Timeseries:
     """Applications per ISO week (or month, for long ranges), zero-filled."""
     return service.timeseries(db, user, period)
+
+
+@router.get("/moves")
+def get_moves(
+    user: CurrentUser,
+    db: DbSession,
+    limit: Annotated[
+        int, Query(ge=1, le=service.MOVES_MAX_LIMIT, description="How many, newest first")
+    ] = service.MOVES_DEFAULT_LIMIT,
+) -> Moves:
+    """The latest status changes across the user's applications (not range-scoped)."""
+    return service.moves(db, user, limit)

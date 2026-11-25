@@ -4,11 +4,13 @@ import { Link, useLocation } from 'react-router';
 
 import { StatusBadge } from '@/components/status-badge';
 import { TagChip } from '@/components/tag-chip';
+import { Loading } from '@/components/loading';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDateOnly } from '@/lib/dates';
 import { cn } from '@/lib/utils';
 import { type Application, type ApplicationSort, workModeLabels } from '@/types/application';
 
+import { monogram } from './monogram';
 import { columnSortState, nextColumnSort, type SortableColumn } from './table-params';
 
 type SortProps = { sort: ApplicationSort; onSort: (sort: ApplicationSort) => void };
@@ -24,11 +26,17 @@ function SortHeader({
   const state = columnSortState(column, sort);
   const Icon = state === 'ascending' ? ArrowUp : state === 'descending' ? ArrowDown : ArrowUpDown;
   return (
-    <th scope="col" aria-sort={state} className={className}>
+    <th
+      scope="col"
+      aria-sort={state}
+      // The sorted column reads in ink, the others in secondary text.
+      className={cn(className, state !== 'none' && 'font-bold text-foreground')}
+    >
       <button
         type="button"
         onClick={() => onSort(nextColumnSort(column, sort))}
-        className="-mx-1 inline-flex cursor-pointer items-center gap-1 rounded-sm px-1 py-0.5 hover:bg-accent"
+        // Buttons reset text-transform (preflight); inherit the header's kicker style.
+        className="-mx-1 inline-flex min-h-8 cursor-pointer items-center gap-1 px-1 [text-transform:inherit] hover:text-foreground"
       >
         {children}
         <Icon
@@ -54,7 +62,7 @@ function NoValue({ label }: { label: string }) {
 
 function DateCell({ value, none }: { value: string | null; none: string }) {
   return value ? (
-    <time dateTime={value} className="font-mono text-sm whitespace-nowrap">
+    <time dateTime={value} className="figures text-[0.8125rem] whitespace-nowrap">
       {formatDateOnly(value, 'd MMM yyyy')}
     </time>
   ) : (
@@ -66,12 +74,13 @@ function DateCell({ value, none }: { value: string | null; none: string }) {
 // status and applied date back; source, tags and deadline need a wide screen.
 const notPhone = 'hidden sm:table-cell';
 const wide = 'hidden md:table-cell';
-const th = 'px-3 py-2 text-left text-sm font-semibold';
+// Column headers borrow the kicker style (CLAUDE.md "All-caps"); they stay <th>.
+const th = 'px-3 py-2.5 text-left kicker font-semibold text-muted-foreground';
 const td = 'px-3 py-3 align-top';
 
 function TableHead({ sort, onSort }: SortProps) {
   return (
-    <thead className="border-b-2 border-foreground">
+    <thead className="border-b border-rule">
       <tr>
         <SortHeader column="company" sort={sort} onSort={onSort} className={th}>
           Company and role
@@ -120,24 +129,34 @@ function ApplicationsTable({ applications, sort, onSort, stale, caption }: Appli
         <TableHead sort={sort} onSort={onSort} />
         <tbody>
           {applications.map((a) => (
-            <tr key={a.id} className="border-b hover:bg-paper-sunken/60">
-              <td className={cn(td, 'sm:min-w-48')}>
-                <Link
-                  to={`/applications/${a.id}`}
-                  state={{ from }}
-                  className="font-display text-base leading-tight font-semibold underline-offset-4 hover:underline"
-                >
-                  {a.company}
-                </Link>
-                <p className="text-sm">{a.role_title}</p>
-                {(a.location || a.work_mode) && (
-                  <p className="text-xs text-muted-foreground">
-                    {[a.location, a.work_mode && workModeLabels[a.work_mode]]
-                      .filter(Boolean)
-                      .join(', ')}
-                  </p>
-                )}
-                <div className="mt-1.5 flex items-center gap-2 sm:hidden">
+            <tr key={a.id} className="border-b transition-colors hover:bg-accent">
+              <td className={cn(td, 'sm:min-w-56')}>
+                <div className="flex items-start gap-2.5">
+                  <span
+                    aria-hidden="true"
+                    className="mt-0.5 grid size-[30px] shrink-0 place-items-center bg-muted display-face text-[0.8125rem] font-semibold"
+                  >
+                    {monogram(a.company)}
+                  </span>
+                  <div className="grid min-w-0 gap-0.5">
+                    <Link
+                      to={`/applications/${a.id}`}
+                      state={{ from }}
+                      className="font-bold underline-offset-4 hover:underline"
+                    >
+                      {a.company}
+                    </Link>
+                    <p className="font-display text-[1.0625rem] leading-snug">{a.role_title}</p>
+                    {(a.location || a.work_mode) && (
+                      <p className="text-[0.8125rem] text-muted-foreground">
+                        {[a.location, a.work_mode && workModeLabels[a.work_mode]]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-1.5 flex items-center gap-2 pl-10 sm:hidden">
                   <StatusBadge status={a.status} />
                   {a.applied_on && (
                     <span className="text-xs text-muted-foreground">
@@ -149,7 +168,7 @@ function ApplicationsTable({ applications, sort, onSort, stale, caption }: Appli
               <td className={cn(td, notPhone)}>
                 <StatusBadge status={a.status} />
               </td>
-              <td className={cn(td, wide, 'text-sm')}>
+              <td className={cn(td, wide, 'text-sm text-muted-foreground')}>
                 {a.source ?? <NoValue label="No source" />}
               </td>
               <td className={cn(td, wide)}>
@@ -181,12 +200,12 @@ function ApplicationsTable({ applications, sort, onSort, stale, caption }: Appli
 
 function TableSkeleton({ rows = 6 }: { rows?: number }) {
   return (
-    <div aria-busy="true" aria-label="Loading applications" className="grid gap-px">
+    <Loading label="Loading applications" className="grid gap-px">
       <Skeleton className="mb-2 h-6 w-full" />
       {Array.from({ length: rows }, (_, i) => (
-        <Skeleton key={i} className="h-14 w-full rounded-sm" />
+        <Skeleton key={i} className="h-16 w-full" />
       ))}
-    </div>
+    </Loading>
   );
 }
 

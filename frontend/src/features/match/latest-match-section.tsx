@@ -4,8 +4,9 @@ import { Link } from 'react-router';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Loading } from '@/components/loading';
 import { Skeleton } from '@/components/ui/skeleton';
-import { LoadError } from '@/features/dashboard/load-error';
+import { LoadError } from '@/components/load-error';
 
 import { matchesQuery } from './api';
 import { matchLinkFor } from './match-schema';
@@ -17,7 +18,11 @@ function LatestMatchSection({ applicationId }: Readonly<{ applicationId: string 
 
   let content;
   if (latest.isPending) {
-    content = <Skeleton className="h-20" />;
+    content = (
+      <Loading label="Loading the latest match">
+        <Skeleton className="h-20" />
+      </Loading>
+    );
   } else if (latest.isError) {
     content = (
       <LoadError
@@ -64,8 +69,11 @@ function LatestMatchSection({ applicationId }: Readonly<{ applicationId: string 
   }
 
   return (
-    <section aria-labelledby="latest-match-heading" className="grid gap-4">
-      <h2 id="latest-match-heading" className="font-display text-xl font-semibold">
+    <section aria-labelledby="latest-match-heading" className="grid gap-3">
+      <h2
+        id="latest-match-heading"
+        className="border-b border-rule pb-2 kicker text-[0.8125rem] font-bold text-foreground"
+      >
         Match
       </h2>
       {content}

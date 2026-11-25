@@ -23,7 +23,7 @@ function Toaster() {
       toastOptions={{
         classNames: {
           toast:
-            'group !rounded-md !border !border-border !bg-popover !font-sans !text-popover-foreground !shadow-lg',
+            'group !rounded-none !border !border-rule !bg-popover !font-sans !text-popover-foreground !shadow-print-sm',
           title: '!text-sm !font-semibold',
           description: '!text-sm !text-muted-foreground',
           actionButton: '!bg-primary !text-primary-foreground',

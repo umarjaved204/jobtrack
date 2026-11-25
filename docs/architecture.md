@@ -170,7 +170,8 @@ most 366 days. The month grid starts weeks on Monday, like the dashboard's ISO w
 
 ## Dashboard metrics
 
-Endpoints: `GET /api/v1/analytics/summary|funnel|sources|timeseries?from&to`
+Endpoints: `GET /api/v1/analytics/summary|funnel|sources|timeseries?from&to` and
+`GET /api/v1/analytics/moves?limit`
 (`app/services/analytics.py`). The dashboard reads them plus the board.
 
 **Cohort.** Every range-scoped figure is computed over one cohort: the user's applications
@@ -200,12 +201,24 @@ counts as Screening too). Rejected and Withdrawn are outcomes, not stages.
 | Offers | Reached Offer; offer rate = Offers ÷ Applied |
 | Wishlist | Applications on the wishlist now. **Ignores the range** (they have no `applied_on`) |
 
+**Status breakdown** (`summary.by_status`): the cohort applications that reached Applied,
+counted by their **current** status. Every status is present (zeros included), and the counts
+sum to Applied. The dashboard shows the Rejected and Withdrawn totals from it. It says where
+applications are now, not after which stage they left: exits by stage are on the README's
+later list.
+
 **Rates** are fractions in [0, 1], or `null` when the denominator is 0; the UI shows "—"
 (read out as "Not enough data"), never 0%.
 
 **Funnel** (`funnel`): for each stage, how many cohort applications reached it or a later
 one, and `rate_from_previous` (count ÷ the previous stage's count; `null` for Applied or when
 the previous stage is 0). The first bar is the same cohort as the Applied figure.
+
+**Latest moves** (`moves`): the user's most recent status changes across all applications,
+newest first (`limit`, 5 by default, 1 to 20). Only real moves: the event logged when an
+application is created has no `from_status` and is left out. Not range-scoped (it's "what
+happened lately", not a cohort figure). Deleting an application deletes its events, so its
+moves leave the list too.
 
 **Sources** (`sources`): cohort applications that reached Applied, grouped by source
 case-insensitively (`source` is free text, not an enum) and labelled with the most common
@@ -373,6 +386,35 @@ the suggested keywords, the top 5 evidence pairs (JD line, best resume line, raw
 cosine), `sections_detected` and the versions. `GET /match` lists results newest first
 without the JD text, showing an excerpt (the JD's first line, at most 120 characters)
 instead.
+
+## Data export
+
+`GET /api/v1/export?format=json|csv` (Settings → Your data) downloads everything the user
+has entered. `format` is required; anything else is a 422. Code:
+`app/services/export.py`, shapes in `app/schemas/export.py`.
+
+**What's in it:** the profile (email, name, theme, accent), applications with their tag
+names, contacts and timeline (status changes and notes), tags, resume versions with their
+full text, reminders and calendar events. Every query filters by the user, contacts and
+the timeline through their application. **Not in it:** match results (derived from a
+resume and an advert; deleted from Settings), refresh tokens and the password hash, and the
+kanban `position` (an ordering detail).
+
+**JSON** is one document: `format_version` (1; bumped when a field is renamed or removed,
+not when one is added), `exported_at`, `user`, then one list per table, with contacts and
+the timeline nested under each application. Instants are UTC with a `Z`; date-only values
+(`applied_on`, `due_on`, ...) stay `YYYY-MM-DD`.
+
+**CSV** is a zip with one file per table (`applications`, `contacts`, `timeline`, `tags`,
+`resume_versions`, `reminders`, `calendar_events`), linked by ids; an application's tags
+are one cell joined with `; `. Each file is UTF-8 with a BOM so Excel reads accents and
+typographic quotes, and has a header row even when empty. Text cells starting with
+`= + - @`, a tab or a carriage return get a leading `'` so a spreadsheet won't run them as a
+formula (OWASP's CSV injection advice); the JSON keeps the text exactly as stored.
+
+Responses are `Content-Disposition: attachment` (`jobtrack-export-YYYY-MM-DD.json|zip`) and
+`Cache-Control: no-store`. The browser fetches them with `api.download` (the bearer token
+can't ride on a plain link) and saves the Blob with `saveFile` (`src/lib/save-file.ts`).
 
 ## Health checks
 

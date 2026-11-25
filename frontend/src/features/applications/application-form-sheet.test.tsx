@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createQueryClient } from '@/lib/query-client';
 import { makeApplication, makeResume, mockApplicationsBackend } from '@/test/fake-applications';
+import { selectNames, unnamedFormFields } from '@/test/form-fields';
 import { mockAuthBackend, server } from '@/test/msw';
 import type { Application } from '@/types/application';
 
@@ -52,6 +53,14 @@ async function openForm(mode: ApplicationFormMode = { type: 'create' }) {
 const field = (panel: HTMLElement, label: string) => within(panel).getByLabelText(label);
 
 describe('ApplicationFormSheet: create', () => {
+  it('gives every field an id or a name, the selects included (autofill)', async () => {
+    const { panel } = await openForm();
+    await waitFor(() =>
+      expect(selectNames(panel)).toEqual(['status', 'work_mode', 'resume_version_id']),
+    );
+    expect(unnamedFormFields(panel)).toEqual([]);
+  });
+
   it('adds an application, closes, and returns focus to the opener', async () => {
     const { user, opener, panel } = await openForm({ type: 'create', status: 'applied' });
 

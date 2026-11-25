@@ -1,12 +1,12 @@
 import { XIcon } from 'lucide-react';
 import { Dialog as DialogPrimitive } from 'radix-ui';
-import type * as React from 'react';
+import * as React from 'react';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 /*
- * Modal dialog (Radix): focus trap, Escape to close, focus returns to the trigger,
+ * Modal dialog (Radix): focus trap, Escape to close, focus returns to what opened it,
  * background is inert. Every dialog needs a DialogTitle (use `className="sr-only"` to hide it).
  */
 function Dialog(props: React.ComponentProps<typeof DialogPrimitive.Root>) {
@@ -43,14 +43,23 @@ function DialogOverlay({
   );
 }
 
+/**
+ * Focus goes back to whatever had it when the dialog opened, if it's still on the page.
+ * Radix only does that for a DialogTrigger, and most of our dialogs open from state (a
+ * menu item, a row's button, a shortcut), which left focus on <body> after closing.
+ * A caller that handles it itself calls `event.preventDefault()` in `onCloseAutoFocus`.
+ */
 function DialogContent({
   className,
   children,
   showCloseButton = true,
+  onOpenAutoFocus,
+  onCloseAutoFocus,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean;
 }) {
+  const returnTo = React.useRef<HTMLElement | null>(null);
   return (
     <DialogPortal>
       <DialogOverlay />
@@ -58,10 +67,24 @@ function DialogContent({
         data-slot="dialog-content"
         className={cn(
           'fixed top-1/2 left-1/2 z-50 grid max-h-[calc(100dvh-2rem)] w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-5 overflow-y-auto overscroll-contain',
-          'rounded-lg border border-t-4 border-t-rule bg-popover p-6 text-popover-foreground shadow-lg sm:max-w-lg',
+          'border border-rule bg-panel p-6 text-foreground shadow-print-lg sm:max-w-lg',
           'data-[state=closed]:animate-pop-out data-[state=open]:animate-pop-in',
           className,
         )}
+        onOpenAutoFocus={(event) => {
+          // Runs before focus moves in: activeElement is still what opened it.
+          returnTo.current =
+            document.activeElement instanceof HTMLElement ? document.activeElement : null;
+          onOpenAutoFocus?.(event);
+        }}
+        onCloseAutoFocus={(event) => {
+          onCloseAutoFocus?.(event);
+          const target = returnTo.current;
+          returnTo.current = null;
+          if (event.defaultPrevented || !target?.isConnected || target === document.body) return;
+          event.preventDefault();
+          target.focus();
+        }}
         {...props}
       >
         {children}

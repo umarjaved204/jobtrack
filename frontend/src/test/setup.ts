@@ -4,6 +4,7 @@ import { cleanup, configure } from '@testing-library/react';
 import { MotionGlobalConfig } from 'motion/react';
 import { afterAll, afterEach, beforeAll, vi } from 'vitest';
 
+import { resetCelebrationForTests } from '@/features/applications/offer-celebration/celebration-store';
 import { session } from '@/lib/api/session';
 import { resetThemeForTests } from '@/lib/theme';
 
@@ -37,6 +38,7 @@ afterEach(async () => {
   server.resetHandlers();
   // Module singletons must not leak between tests: the in-memory token, the theme cache.
   session.reset();
+  resetCelebrationForTests();
   localStorage.clear();
   document.documentElement.className = '';
   delete document.documentElement.dataset['accent'];

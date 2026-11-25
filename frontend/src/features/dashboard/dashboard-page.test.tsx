@@ -269,9 +269,9 @@ describe('coming up', () => {
       .getAllByRole('listitem')
       .map((li) => li.textContent);
     expect(rows).toEqual([
-      '19 NovTomorrowPrep questionsFollow-up at 09:00',
-      '19 NovTomorrowPairing interviewInterview, 14:00–15:30, Deliveroo',
-      '20 NovIn 2 daysApply to FigmaSenior Frontend Engineer',
+      'Thu 19 NovFollow-up·TomorrowPrep questionsAt 09:00',
+      'Thu 19 NovInterview·TomorrowPairing interview14:00–15:30, Deliveroo',
+      'Fri 20 NovApply by·In 2 daysApply to FigmaSenior Frontend Engineer',
     ]);
     expect(within(panel).queryByText('Coffee chat')).not.toBeInTheDocument(); // "other"
     expect(within(panel).queryByText('Done already')).not.toBeInTheDocument();
@@ -314,5 +314,57 @@ describe('a brand-new account', () => {
       '/applications',
     );
     expect(screen.queryByRole('region', { name: /Key figures/ })).not.toBeInTheDocument();
+  });
+});
+
+describe('latest moves', () => {
+  const movesTable = async () =>
+    screen.findByRole('table', { name: 'Latest status changes, newest first' });
+
+  it('lists the five newest moves, each linking to its application', async () => {
+    const backend = mockAnalyticsBackend(); // six moves on file
+    await openDashboard();
+
+    const rows = within(await movesTable())
+      .getAllByRole('row')
+      .slice(1)
+      .map((row) => row.textContent);
+    expect(rows).toEqual([
+      '17 NovMonzoSenior Frontend EngineerInterviewfrom Screening',
+      '16 NovWiseFrontend Engineer, PaymentsScreeningfrom Applied',
+      '14 NovDeliverooProduct EngineerRejectedfrom Interview',
+      '12 NovFigmaDesign Systems EngineerAppliedfrom Wishlist',
+      '10 NovOctopus EnergyProduct EngineerWithdrawnfrom Applied',
+    ]);
+    expect(backend.requests).toContain('moves?limit=5');
+    expect(screen.getByRole('link', { name: 'Deliveroo' })).toHaveAttribute(
+      'href',
+      '/applications/a3',
+    );
+    expect(screen.getByRole('link', { name: 'All applications' })).toHaveAttribute(
+      'href',
+      '/applications?view=table',
+    );
+  });
+
+  it('says when nothing has moved yet', async () => {
+    mockAnalyticsBackend({ moves: { moves: [] } });
+    await openDashboard();
+
+    const section = await screen.findByRole('region', { name: 'Latest moves' });
+    expect(within(section).getByText(/No moves yet/)).toBeVisible();
+  });
+
+  it('fails on its own, with a retry, leaving the rest of the page', async () => {
+    mockAnalyticsBackend();
+    server.use(
+      http.get('/api/v1/analytics/moves', () =>
+        HttpResponse.json({ detail: 'Server error' }, { status: 500 }),
+      ),
+    );
+    await openDashboard();
+
+    expect(await screen.findByText('Latest moves didn’t load')).toBeVisible();
+    expect(screen.getByRole('figure', { name: 'Pipeline' })).toBeVisible();
   });
 });

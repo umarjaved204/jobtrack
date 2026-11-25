@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 
 import { EmptyState } from '@/components/empty-state';
+import { Loading } from '@/components/loading';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -17,12 +18,13 @@ import { remindersQuery } from '@/features/reminders/api';
 import { parseDateOnly, toDateOnly } from '@/lib/dates';
 import type { Board, DateOnly } from '@/types/application';
 
-import { funnelQuery, sourcesQuery, summaryQuery, timeseriesQuery } from './api';
+import { funnelQuery, movesQuery, sourcesQuery, summaryQuery, timeseriesQuery } from './api';
 import { ApplicationsChart } from './applications-chart';
 import { type ComingUpSources, LOOKAHEAD_DAYS } from './coming-up';
 import { ComingUpPanel } from './coming-up-panel';
 import { Funnel } from './funnel';
-import { LoadError } from './load-error';
+import { LatestMoves } from './latest-moves';
+import { LoadError } from '@/components/load-error';
 import { rangeLabels, useDashboardRange } from './range';
 import { RangePicker } from './range-picker';
 import { Sources } from './sources';
@@ -81,10 +83,10 @@ function useComingUpSources(
 
 function SectionSkeleton({ label, height }: { label: string; height: string }) {
   return (
-    <div aria-busy="true" aria-label={`Loading ${label}`} className="grid content-start gap-3">
+    <Loading label={`Loading ${label}`} className="grid content-start gap-3">
       <Skeleton className="h-7 w-48" />
       <Skeleton className={`${height} w-full`} />
-    </div>
+    </Loading>
   );
 }
 
@@ -96,6 +98,7 @@ function DashboardPage() {
   const timeseries = useQuery(timeseriesQuery(period));
   const funnel = useQuery(funnelQuery(period));
   const sources = useQuery(sourcesQuery(period));
+  const moves = useQuery(movesQuery());
   // Every application, for deadlines (and to spot a brand-new account). Often cached
   // already from the Applications page.
   const board = useQuery(boardQuery());
@@ -132,12 +135,12 @@ function DashboardPage() {
   return (
     <>
       <PageHeader
-        kicker="Overview"
+        kicker={`Overview · ${rangeLabels[range]}`}
         title="Dashboard"
         description="Your search at a glance: what you’ve applied for, how far it got, and where it came from."
         actions={<RangePicker value={range} onChange={setRange} />}
       />
-      <div className="mt-8 grid gap-12">
+      <div className="mt-7 grid gap-12 lg:gap-14">
         {section(summary, 'Your figures didn’t load', <StatStripSkeleton />, (data, stale) => (
           <StatStrip
             summary={data}
@@ -146,7 +149,7 @@ function DashboardPage() {
             rangeLabel={rangeLabels[range]}
           />
         ))}
-        <div className="grid gap-12 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:gap-16">
+        <div className="grid gap-12 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
           {section(
             timeseries,
             'Applications over time didn’t load',
@@ -164,13 +167,18 @@ function DashboardPage() {
             ),
           )}
         </div>
-        <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
+        <div className="grid gap-12 lg:grid-cols-2">
           {section(
             funnel,
             'The pipeline didn’t load',
             <SectionSkeleton label="the pipeline" height="h-48" />,
             (data, stale) => (
-              <Funnel funnel={data} stale={stale} />
+              <Funnel
+                funnel={data}
+                outcomes={summary.data?.by_status}
+                cause={stale ? null : range}
+                stale={stale}
+              />
             ),
           )}
           {section(
@@ -182,6 +190,14 @@ function DashboardPage() {
             ),
           )}
         </div>
+        {section(
+          moves,
+          'Latest moves didn’t load',
+          <SectionSkeleton label="the latest moves" height="h-40" />,
+          (data) => (
+            <LatestMoves moves={data} />
+          ),
+        )}
       </div>
     </>
   );

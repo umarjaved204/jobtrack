@@ -2,6 +2,7 @@ import { RotateCcw } from 'lucide-react';
 import { isRouteErrorResponse, Link, useRouteError } from 'react-router';
 
 import { Button } from '@/components/ui/button';
+import { Loading } from '@/components/loading';
 import { Skeleton } from '@/components/ui/skeleton';
 import { isApiError } from '@/lib/api/errors';
 
@@ -58,16 +59,12 @@ function RootErrorBoundary() {
 /** Shown while the first route's code loads (before the shell can render). */
 function AppFallback() {
   return (
-    <div
-      aria-busy="true"
-      aria-label="Loading JobTrack"
-      className="mx-auto max-w-page px-4 pt-6 sm:px-6 lg:px-8"
-    >
+    <Loading label="Loading JobTrack" className="mx-auto max-w-page page-gutter pt-6">
       <Skeleton className="h-4 w-48" />
       <Skeleton className="mt-8 h-12 w-56" />
       <Skeleton className="mt-8 h-10 w-full" />
       <Skeleton className="mt-10 h-14 w-2/3" />
-    </div>
+    </Loading>
   );
 }
 

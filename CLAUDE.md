@@ -120,6 +120,7 @@ MATCH     GET /match/config; POST /match/prepare (client mode: chunks + digest);
           POST /match {resume_id, jd_text, application_id?, embeddings?{digest, jd, resume}};
           GET /match (?application_id &page &page_size); GET /match/{id}
 ANALYTICS GET /analytics/summary|timeseries|funnel|sources (?from&to: cohort by applied_on)
+          GET /analytics/moves?limit (latest status changes, 5 by default, at most 20; not range-scoped)
 EXPORT    GET /export?format=csv|json
 HEALTH    GET /health; GET /health/ready
 ```
@@ -177,9 +178,10 @@ jobtrack/
 9. AI match service, endpoint and UI (done; ADR 0004 and its revisions; scoring in docs/architecture.md "Match scoring")
 9b. Resume file import (done, branch `feat/resume-file-import`; docs/architecture.md "Importing a
     resume file"): PDF (pdf.js) and .docx (mammoth) read in the browser, never uploaded.
-10. Polish: offer celebration, animated funnel, ⌘K palette, empty/loading/error states, a11y, responsive, reduced motion;
-    match progress says "Loading the match model" (not "Downloading") when it comes from the cache;
-    fix the id/name autofill warnings on Radix Select controls
+10. Polish (done; branch `phase-10-polish`): redesign of every page to docs/design/redesign/, offer
+    celebration, animated funnel, ⌘K palette, Settings (name, theme/accent, export, delete
+    account), empty/loading/error states, a11y and phone passes. Landing Lighthouse mobile fell
+    85 → 71 (client-rendered, heavier page): prerender it in Phase 13
 11. Tests (unit, integration, 1-2 Playwright flows) and CI
 12. Email verification + password reset (scope in ADR 0002 "Planned"; provider chosen then)
 13. Deploy, demo seed script, README with screenshots, architecture diagram, GIF, "what I learned"
@@ -284,8 +286,8 @@ jobtrack/
   `findPageHeading(name)` waits for the fade-in. Setup resets the session, theme and localStorage
   after each test. Use `vi.fn<typeof fetch>()`-style typed fakes; `createSessionManager(deps)` takes
   injectable fetch/locks/channel/clock for unit tests.
-- Copy: no all-caps labels above titles on new pages, no "→" in buttons, sentence case,
-  typographic apostrophes (’) in user-facing strings.
+- Copy: no "→" in buttons, sentence case, typographic apostrophes (’) in user-facing
+  strings. All-caps: see Phase 10 "All-caps".
 - Every layout renders `<SkipLink />` first and has `<main id="main">`. Email inputs:
   `spellCheck={false}` + `autoCapitalize="none"`. Brand name: `translate="no"`.
 - Browser `theme-color` follows the chosen theme (`THEME_COLORS` in `src/lib/theme.ts`, same
@@ -406,6 +408,59 @@ jobtrack/
   server takes ~30% CPU idle and skews results. A fresh Vite server's first page load can
   reload mid-run (dependency optimisation): discard that run.
 - Vitest runs at `maxWorkers: '50%'` (the default parallelism caused cold-compile timeouts).
+
+## Conventions (established in Phase 10, redesign)
+- Target look: `docs/design/redesign/` (HTML mockups, light only). Our definitions win where
+  they disagree (cumulative funnel, match bands 35/65, small-sample styling, "so far" week).
+- Before/after review: `pnpm screenshots <label>` (frontend/screenshots/, git-ignored; needs
+  the app running and the seed). Compare with the mockup at 1440 and 390, light and dark.
+- Tokens: text is `foreground` / `muted-foreground` (secondary) / `subtle-foreground`
+  (tertiary, surfaces only, never on tints). `--status-*` are their own hexes (not palette
+  names; tags and accents keep the palette). Control boundaries and meaningful outlines use
+  `--input` (3:1); `--border` is decorative hairlines, `--border-quiet` decorative outlines.
+  Corners are square (`--radius-*` are 0; `rounded-full` for round things). Overlays use
+  `shadow-print*`. Page containers: `max-w-page page-gutter`.
+- All-caps: only from the `kicker` utility (index.css; `kicker-stamp` is its one documented
+  variant, for the offer stamp). Use it for eyebrows above titles, table column headers and
+  sidebar/menu section headings; those keep their elements (`th`, `h2`, `legend`) and only
+  borrow the style. Short labels of a few words: never sentences or buttons. Source text
+  stays sentence case (no hard-coded capitals; codes like GBP are data, not labels).
+  `src/styles/uppercase.test.ts` fails on `uppercase` anywhere else.
+- Base components: buttons default to 44px (`sm`/`xs` for dense rows only); `ink` is the
+  secondary solid (underlines on hover; no overlay reads on it). Fields and Select
+  triggers are 44px, 16px text, `bg-card` with an `--input` edge. Menus, popovers, selects
+  and toasts: `bg-popover`, ink border, `shadow-print-sm`. Dialogs: `bg-panel`, ink border,
+  `shadow-print-lg`. Sheets: `bg-panel` with a 3px ink edge. Status badges have a square
+  dot; tags are outlined (`--border-quiet`) with a small square in their colour.
+
+## Conventions (established in Phase 10, polish)
+- Shared states: `EmptyState` (card under a heavy rule, square ink icon frame), `LoadError`
+  (`components/load-error.tsx`: optional title, retry; never hand-copy the didn't-load
+  alert), `Loading` (`components/loading.tsx`: `aria-busy` + visually hidden label text;
+  never `aria-label` on a plain div, ARIA ignores it). Skeletons follow the shape of what
+  they stand in for.
+- Accessible names must contain the visible text (WCAG 2.5.3): prefer names built from
+  content plus `sr-only` words over `aria-label`. Spaces go outside `sr-only` spans.
+- Dialogs: `DialogContent` returns focus to whatever had it when it opened (most dialogs open
+  from state, not a `DialogTrigger`). A caller that manages focus itself calls
+  `event.preventDefault()` in `onCloseAutoFocus` (the palette, the sheets).
+- File downloads: `api.download(path)` (same token refresh and errors as `request`) then
+  `saveFile(blob, name)` (`lib/save-file.ts`). Export format: docs/architecture.md
+  "Data export".
+- Settings sections use `SettingsSection` (id + heading) and `SettingsRow`; the side nav
+  list is `settings-sections.ts`.
+- Public pages (landing, sign in/up) use `PublicMasthead`; keep heavy code out of them (the
+  sign-in form is lazy on the landing page; `lib/dateline.ts` exists so they don't pull
+  date-fns).
+- Phone board: columns are capped at 75dvh and scroll their own cards, so the page isn't as
+  tall as the longest hidden column.
+- Browser checks (need the app running and the seed): `pnpm a11y` (axe, WCAG 2.2 AA + best
+  practices, 13 screens × 2 widths × 2 themes; exits 1 on any violation) and `pnpm
+  screenshots <label> [shots]`; both use `scripts/app-pages.mjs` (pages, sign-in, settle).
+  `SCREENSHOT_EMAIL` points them at another local account (e.g. an empty one for empty
+  states). Lighthouse: also stop the frontend container while measuring.
+- Tests: query elements that render after data loads with `find*`, never `get*` right after
+  the page heading (that raced under load in the calendar tests).
 
 ## Conventions (established in 9b, resume file import)
 - Import code: `features/resumes/import/` (`file-type.ts` signatures, `pdf-lines.ts` line

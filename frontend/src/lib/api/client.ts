@@ -8,6 +8,9 @@ export type RequestOptions = {
   signal?: AbortSignal;
 };
 
+/** A file from the API: its bytes and the name the server suggests (Content-Disposition). */
+export type Download = { blob: Blob; filename: string | null };
+
 type FetchFn = typeof globalThis.fetch;
 type SessionLike = Pick<SessionManager, 'getAccessToken' | 'needsRefresh' | 'refresh' | 'end'>;
 
@@ -24,8 +27,8 @@ const isAuthEndpoint = (path: string) => path.startsWith('/auth/');
  * it ends it (listeners take the user to /login). Every failure is an `ApiError`.
  */
 export function createApiClient({ session, fetch }: { session: SessionLike; fetch: FetchFn }) {
-  async function send(path: string, options: RequestOptions, token: string | null) {
-    const headers: Record<string, string> = { Accept: 'application/json' };
+  async function send(path: string, options: RequestOptions, token: string | null, accept: string) {
+    const headers: Record<string, string> = { Accept: accept };
     if (options.body !== undefined) headers['Content-Type'] = 'application/json';
     if (token) headers['Authorization'] = `Bearer ${token}`;
     try {
@@ -54,14 +57,19 @@ export function createApiClient({ session, fetch }: { session: SessionLike; fetc
     return refreshed.access_token;
   }
 
-  async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  /** The successful response (any 2xx), after the token handling above; else an ApiError. */
+  async function respond(
+    path: string,
+    options: RequestOptions,
+    accept = 'application/json',
+  ): Promise<Response> {
     let response: Response;
 
     if (isAuthEndpoint(path)) {
-      response = await send(path, options, null);
+      response = await send(path, options, null, accept);
     } else {
       const token = await validToken();
-      response = await send(path, options, token);
+      response = await send(path, options, token, accept);
 
       if (response.status === 401) {
         // Another request may already have refreshed while this one was in flight.
@@ -74,18 +82,36 @@ export function createApiClient({ session, fetch }: { session: SessionLike; fetc
           session.end('expired');
           throw await ApiError.fromResponse(response);
         }
-        response = await send(path, options, retryToken);
+        response = await send(path, options, retryToken, accept);
         if (response.status === 401) session.end('expired'); // fresh token rejected: give up
       }
     }
 
     if (!response.ok) throw await ApiError.fromResponse(response);
+    return response;
+  }
+
+  async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+    const response = await respond(path, options);
     if (response.status === 204) return undefined as T;
     return (await response.json()) as T;
   }
 
+  /** GET a file (an export): same auth and errors as `request`, the body kept as a Blob. */
+  async function download(
+    path: string,
+    options: Omit<RequestOptions, 'method' | 'body'> = {},
+  ): Promise<Download> {
+    const response = await respond(path, { ...options, method: 'GET' }, '*/*');
+    return {
+      blob: await response.blob(),
+      filename: filenameFrom(response.headers.get('Content-Disposition')),
+    };
+  }
+
   return {
     request,
+    download,
     get: <T>(path: string, options?: Omit<RequestOptions, 'method' | 'body'>) =>
       request<T>(path, { ...options, method: 'GET' }),
     post: <T>(path: string, body?: unknown, options?: Omit<RequestOptions, 'method' | 'body'>) =>
@@ -95,6 +121,14 @@ export function createApiClient({ session, fetch }: { session: SessionLike; fetc
     delete: <T = void>(path: string, options?: Omit<RequestOptions, 'method' | 'body'>) =>
       request<T>(path, { ...options, method: 'DELETE' }),
   };
+}
+
+/** `attachment; filename="x.zip"` → "x.zip". Only the plain quoted or bare form (what our
+ * server sends); anything else is null and the caller picks a name. */
+export function filenameFrom(disposition: string | null): string | null {
+  const match = disposition?.match(/filename="([^"]+)"|filename=([^;\s]+)/i);
+  const name = match?.[1] ?? match?.[2];
+  return name ? name.replace(/[/\\]/g, '_') : null;
 }
 
 export const api = createApiClient({

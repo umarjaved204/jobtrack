@@ -7,16 +7,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { type Application, type ApplicationStatus, statusLabels } from '@/types/application';
 
-/* Full class strings so Tailwind sees them (status ramp tokens). */
-const statusDot: Record<ApplicationStatus, string> = {
-  wishlist: 'bg-status-wishlist',
-  applied: 'bg-status-applied',
-  screening: 'bg-status-screening',
-  interview: 'bg-status-interview',
-  offer: 'bg-status-offer',
-  rejected: 'bg-status-rejected',
-  withdrawn: 'bg-status-withdrawn',
-};
+import { statusDotClass } from './status-classes';
 
 type BoardColumnProps = {
   status: ApplicationStatus;
@@ -25,8 +16,15 @@ type BoardColumnProps = {
   children: ReactNode;
 };
 
-/** One status column: heading with count, an add button, and a drop area that's always
- * there (an empty column still accepts cards). Horizontal snap point on small screens. */
+/** Rejected and Withdrawn: outcomes, not stages. Narrower, on a shaded ground. */
+const EXITS: ReadonlySet<ApplicationStatus> = new Set(['rejected', 'withdrawn']);
+
+/**
+ * One status column: kicker heading with a square status dot, the count as a Fraunces
+ * figure, an add button, and a drop area that's always there (an empty column still
+ * accepts cards). Columns share the board's ink top rule and hairlines between them.
+ * Horizontal snap point on small screens.
+ */
 function BoardColumn({ status, applications, onAdd, children }: BoardColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
   const headingId = `column-${status}`;
@@ -35,14 +33,20 @@ function BoardColumn({ status, applications, onAdd, children }: BoardColumnProps
     <section
       aria-labelledby={headingId}
       data-column={status}
-      className="flex w-[85vw] max-w-80 shrink-0 snap-start flex-col rounded-lg bg-paper-sunken/60 sm:w-72"
+      className={cn(
+        'flex w-[85vw] max-w-80 shrink-0 snap-start flex-col border-r px-3 pt-3.5 pb-5 last:border-r-0',
+        // Phones show one column at a time: cap its height and scroll its cards inside it,
+        // or the page runs on to the height of the longest (hidden) column.
+        'max-sm:max-h-[75dvh]',
+        EXITS.has(status) ? 'bg-accent sm:w-56' : 'sm:w-64',
+      )}
     >
-      <header className="flex items-center gap-2 border-b px-3 py-2.5">
-        <span aria-hidden="true" className={cn('size-2 rounded-full', statusDot[status])} />
-        <h2 id={headingId} className="font-sans text-sm font-semibold">
+      <header className="flex items-center gap-2 border-b border-rule pb-2.5">
+        <span aria-hidden="true" className={cn('size-[9px] shrink-0', statusDotClass[status])} />
+        <h2 id={headingId} className="kicker text-[0.8125rem] font-bold text-foreground">
           {statusLabels[status]}
         </h2>
-        <span className="figures text-xs text-muted-foreground">
+        <span className="ml-auto display-face text-[1.375rem] leading-none font-medium tabular-nums">
           {applications.length}
           <span className="sr-only">
             {' '}
@@ -52,7 +56,7 @@ function BoardColumn({ status, applications, onAdd, children }: BoardColumnProps
         <Button
           variant="ghost"
           size="icon-sm"
-          className="ml-auto"
+          className="-mr-2"
           aria-label={`Add to ${statusLabels[status]}`}
           onClick={onAdd}
         >
@@ -67,15 +71,17 @@ function BoardColumn({ status, applications, onAdd, children }: BoardColumnProps
         <ol
           ref={setNodeRef}
           className={cn(
-            'flex min-h-28 flex-1 flex-col gap-2 p-2 transition-colors duration-(--duration-fast)',
-            isOver && 'bg-primary-tint/60',
+            'flex min-h-28 flex-1 flex-col gap-2.5 pt-2.5 transition-colors duration-(--duration-fast)',
+            // The 4px gutter keeps cards' focus outlines inside the scroll box.
+            'max-sm:-mx-1 max-sm:overflow-y-auto max-sm:overscroll-y-contain max-sm:px-1 max-sm:pb-1',
+            isOver && 'bg-drop-tint',
           )}
         >
           {children}
           {applications.length === 0 && (
             <li
               aria-hidden="true"
-              className="grid flex-1 place-items-center rounded-md border border-dashed border-input px-3 py-6 text-center text-xs text-muted-foreground"
+              className="grid flex-1 place-items-center border border-dashed border-input px-3 py-6 text-center text-xs text-muted-foreground"
             >
               Drop a card here
             </li>

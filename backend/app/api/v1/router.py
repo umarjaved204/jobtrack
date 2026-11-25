@@ -6,6 +6,7 @@ from app.api.v1 import (
     auth,
     calendar,
     contacts,
+    export,
     health,
     match,
     reminders,
@@ -26,3 +27,4 @@ api_router.include_router(resumes.router)
 api_router.include_router(reminders.router)
 api_router.include_router(calendar.router)
 api_router.include_router(match.router)
+api_router.include_router(export.router)

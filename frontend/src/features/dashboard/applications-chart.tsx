@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import type { AnalyticsTimeseries } from '@/types/analytics';
 import type { DateOnly } from '@/types/application';
 
+import { SectionHeading } from './section-heading';
 import { bucketLabel, describeTimeseries, isCurrentBucket, tickLabel } from './timeseries';
 
 type Row = { start: DateOnly; count: number; tick: string; label: string; current: boolean };
@@ -20,7 +21,7 @@ function ChartTooltip({ active, payload }: ChartTooltipProps) {
   const row = payload?.[0]?.payload as Row | undefined;
   if (!active || !row) return null;
   return (
-    <div className="rounded-md border bg-card px-3 py-2 text-sm shadow-md">
+    <div className="border border-rule bg-popover px-3 py-2 text-sm shadow-print-sm">
       <p className="font-semibold">
         {plural(row.count)}
         {row.current && ' so far'}
@@ -39,8 +40,8 @@ type ApplicationsChartProps = {
 
 /**
  * Applications per week (or month): one series, so no legend; the heading names it.
- * Columns in the primary colour, 24px at most with a rounded top; recessive hairline
- * grid; whole-number ticks. The current, still-growing bucket is drawn lighter and called
+ * Columns in the primary colour, 34px at most with a 4px rounded top; recessive dashed
+ * grid; whole-number ticks; no number on every bar (the tooltip and table carry them). The current, still-growing bucket is drawn lighter and called
  * "so far" so it doesn't read as a slump. A caption and a visually hidden table carry the
  * same information as the picture.
  */
@@ -58,15 +59,14 @@ function ApplicationsChart({ series, today, stale = false }: ApplicationsChartPr
 
   return (
     <figure aria-labelledby="over-time-heading" className="grid content-start gap-3">
-      <figcaption className="grid gap-1">
-        <h2 id="over-time-heading" className="font-display text-2xl font-semibold">
-          Applications over time
-        </h2>
-        <p className="text-sm text-muted-foreground">{summary}</p>
+      <figcaption>
+        <SectionHeading id="over-time-heading" title="Applications over time">
+          {summary}
+        </SectionHeading>
       </figcaption>
 
       {empty ? (
-        <p className="grid h-56 place-items-center rounded-md border border-dashed text-sm text-muted-foreground">
+        <p className="grid h-56 place-items-center border border-dashed border-border-quiet px-4 text-center text-sm text-muted-foreground">
           Applications you send in this period will show here, week by week.
         </p>
       ) : (
@@ -83,7 +83,7 @@ function ApplicationsChart({ series, today, stale = false }: ApplicationsChartPr
             title={`Applications per ${unit.toLowerCase()}`}
             style={{ width: '100%', height: '100%' }}
           >
-            <CartesianGrid vertical={false} stroke="var(--border)" />
+            <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
             <XAxis
               dataKey="tick"
               tickLine={false}
@@ -107,7 +107,7 @@ function ApplicationsChart({ series, today, stale = false }: ApplicationsChartPr
             <Bar
               dataKey="count"
               fill="var(--primary)"
-              maxBarSize={24}
+              maxBarSize={34}
               radius={[4, 4, 0, 0]}
               isAnimationActive={!reduceMotion}
               shape={(props) => (

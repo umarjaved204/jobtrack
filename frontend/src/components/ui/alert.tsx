@@ -25,7 +25,7 @@ function Alert({ tone = 'error', title, className, children, ...props }: AlertPr
       role={tone === 'error' ? 'alert' : 'status'}
       data-slot="alert"
       data-tone={tone}
-      className={cn('flex gap-3 rounded-md border px-4 py-3 text-sm', toneClass, className)}
+      className={cn('flex gap-3 border px-4 py-3 text-sm', toneClass, className)}
       {...props}
     >
       <Icon aria-hidden="true" className="mt-0.5 size-4 shrink-0" />

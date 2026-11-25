@@ -1,10 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
-import { ChevronLeft, ChevronRight, Plus, RotateCcw, SearchX, Table2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, SearchX, Table2 } from 'lucide-react';
 import { useEffect } from 'react';
 import { Link } from 'react-router';
 
 import { EmptyState } from '@/components/empty-state';
-import { Alert } from '@/components/ui/alert';
+import { LoadError } from '@/components/load-error';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
@@ -14,7 +14,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { isApiError } from '@/lib/api/errors';
 import type { ApplicationStatus, Page } from '@/types/application';
 
 import { applicationsListQuery } from './api';
@@ -53,14 +52,14 @@ function Pagination({
   return (
     <nav
       aria-label="Pages"
-      className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm"
+      className="flex flex-wrap items-center justify-between gap-3 border-b border-rule py-4 text-sm"
     >
       {/* Announced when the results change (filters, paging). */}
       <p role="status" className="text-muted-foreground">
         {data.total > data.items.length ? (
           <>
-            Showing <span className="font-mono text-foreground">{first}</span> to{' '}
-            <span className="font-mono text-foreground">{last}</span> of {plural(data.total)}
+            Showing <span className="figures text-foreground">{first}</span> to{' '}
+            <span className="figures text-foreground">{last}</span> of {plural(data.total)}
           </>
         ) : (
           plural(data.total)
@@ -77,7 +76,7 @@ function Pagination({
               update({ pageSize: pageSizes.find((n) => String(n) === value) ?? params.pageSize })
             }
           >
-            <SelectTrigger id="page-size" size="sm" className="w-18">
+            <SelectTrigger id="page-size" className="w-20">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -91,7 +90,7 @@ function Pagination({
         </div>
         {data.pages > 1 && (
           <div className="flex items-center gap-1">
-            <Button asChild variant="outline" size="sm" className={linkClass}>
+            <Button asChild variant="outline" className={linkClass}>
               <Link
                 to={pageLink(data.page - 1)}
                 preventScrollReset
@@ -102,10 +101,10 @@ function Pagination({
               </Link>
             </Button>
             <span className="px-2 whitespace-nowrap">
-              Page <span className="font-mono">{data.page}</span> of{' '}
-              <span className="font-mono">{data.pages}</span>
+              Page <span className="figures">{data.page}</span> of{' '}
+              <span className="figures">{data.pages}</span>
             </span>
-            <Button asChild variant="outline" size="sm" className={linkClass}>
+            <Button asChild variant="outline" className={linkClass}>
               <Link
                 to={pageLink(data.page + 1)}
                 preventScrollReset
@@ -141,12 +140,11 @@ function ApplicationsTableView({ onAdd }: { onAdd: (status: ApplicationStatus) =
   let content;
   if (list.isError) {
     content = (
-      <Alert title="Your applications didn’t load">
-        <p>{isApiError(list.error) ? list.error.detail : 'Something went wrong.'}</p>
-        <Button variant="outline" size="sm" className="mt-3" onClick={() => void list.refetch()}>
-          <RotateCcw /> Try again
-        </Button>
-      </Alert>
+      <LoadError
+        title="Your applications didn’t load"
+        error={list.error}
+        onRetry={() => void list.refetch()}
+      />
     );
   } else if (!list.data) {
     content = <TableSkeleton />;
@@ -195,7 +193,7 @@ function ApplicationsTableView({ onAdd }: { onAdd: (status: ApplicationStatus) =
 
   const nothingYet = list.data?.total === 0 && !filtered; // no filters to offer
   return (
-    <div className="grid gap-4">
+    <div className="grid gap-2">
       {!nothingYet && <TableToolbar params={params} update={update} />}
       {content}
     </div>

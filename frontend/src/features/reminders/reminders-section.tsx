@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import { Plus, RotateCcw } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useState } from 'react';
 
 import { ConfirmDialog } from '@/components/confirm-dialog';
-import { Alert } from '@/components/ui/alert';
+import { LoadError } from '@/components/load-error';
 import { Button } from '@/components/ui/button';
+import { Loading } from '@/components/loading';
 import { Skeleton } from '@/components/ui/skeleton';
 import { isApiError } from '@/lib/api/errors';
 import type { Reminder } from '@/types/reminder';
@@ -45,20 +46,18 @@ function RemindersSection({ applicationId, company }: { applicationId: string; c
 
   let content;
   if (reminders.isPending) {
-    content = <Skeleton className="h-12 w-full" />;
+    content = (
+      <Loading label="Loading follow-ups">
+        <Skeleton className="h-12 w-full" />
+      </Loading>
+    );
   } else if (reminders.isError) {
     content = (
-      <Alert title="Follow-ups didn’t load">
-        <p>{errorText(reminders.error)}</p>
-        <Button
-          variant="outline"
-          size="sm"
-          className="mt-3"
-          onClick={() => void reminders.refetch()}
-        >
-          <RotateCcw /> Try again
-        </Button>
-      </Alert>
+      <LoadError
+        title="Follow-ups didn’t load"
+        error={reminders.error}
+        onRetry={() => void reminders.refetch()}
+      />
     );
   } else {
     const open = reminders.data.filter((r) => !r.done_at).sort((a, b) => compareDue(a, b));
@@ -91,13 +90,13 @@ function RemindersSection({ applicationId, company }: { applicationId: string; c
   }
 
   return (
-    <section aria-labelledby="followups-heading" className="grid gap-4">
-      <div className="flex items-center justify-between gap-2">
-        <h2 id="followups-heading" className="font-display text-xl font-semibold">
+    <section aria-labelledby="followups-heading" className="grid gap-3">
+      <div className="flex items-center justify-between gap-2 border-b border-rule pb-1">
+        <h2 id="followups-heading" className="kicker text-[0.8125rem] font-bold text-foreground">
           Follow-ups
         </h2>
         <Button
-          variant="outline"
+          variant="ghost"
           size="sm"
           onClick={() => setForm({ type: 'create', applicationId, company })}
         >

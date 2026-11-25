@@ -2,6 +2,7 @@ import { cn } from '@/lib/utils';
 import type { AnalyticsSources } from '@/types/analytics';
 
 import { BarRow } from './bar-row';
+import { SectionHeading } from './section-heading';
 import { formatRate, isSmallSample, MIN_SAMPLE, share } from './rates';
 
 const NOT_SET = 'Not set';
@@ -18,17 +19,14 @@ function Sources({ sources, stale = false }: { sources: AnalyticsSources; stale?
 
   return (
     <figure aria-labelledby="sources-heading" className="grid content-start gap-3">
-      <figcaption className="grid gap-1">
-        <h2 id="sources-heading" className="font-display text-2xl font-semibold">
-          Sources
-        </h2>
-        <p className="text-sm text-muted-foreground">
+      <figcaption>
+        <SectionHeading id="sources-heading" title="Sources">
           Where you found the roles you applied for, and how many reached an interview.
-        </p>
+        </SectionHeading>
       </figcaption>
 
       {rows.length === 0 ? (
-        <p className="rounded-md border border-dashed px-4 py-10 text-center text-sm text-muted-foreground">
+        <p className="border border-dashed border-border-quiet px-4 py-10 text-center text-sm text-muted-foreground">
           Nothing applied for in this period yet. Add a source to each application to see which ones
           work best.
         </p>

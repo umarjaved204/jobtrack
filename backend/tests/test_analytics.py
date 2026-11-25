@@ -59,6 +59,15 @@ def test_an_empty_account_has_zero_counts_and_null_rates(
         "interview_rate": None,
         "offer_rate": None,
         "wishlist": 0,
+        "by_status": {
+            "wishlist": 0,
+            "applied": 0,
+            "screening": 0,
+            "interview": 0,
+            "offer": 0,
+            "rejected": 0,
+            "withdrawn": 0,
+        },
     }
     assert get(client, ayesha, "funnel")["stages"] == [
         {"stage": "applied", "count": 0, "rate_from_previous": None},
@@ -83,7 +92,7 @@ def test_stages_come_from_history_not_the_current_status(
     move(client, ayesha, offer, "interview", "offer")
 
     summary = get(client, ayesha, "summary", **OCT)
-    assert summary | {"interview_rate": None, "offer_rate": None} == {
+    assert summary | {"interview_rate": None, "offer_rate": None, "by_status": None} == {
         "applied": 3,
         "active": 2,  # the rejected one isn't active any more
         "interviewed": 2,
@@ -91,9 +100,41 @@ def test_stages_come_from_history_not_the_current_status(
         "interview_rate": None,
         "offer_rate": None,
         "wishlist": 0,
+        "by_status": None,
     }
     assert summary["interview_rate"] == pytest.approx(2 / 3)
     assert summary["offer_rate"] == pytest.approx(1 / 3)
+
+
+def test_the_status_breakdown_counts_the_applied_cohort_by_current_status(
+    client: TestClient, ayesha: Headers
+) -> None:
+    for day, path in [
+        ("05", ["interview", "rejected"]),
+        ("06", ["rejected"]),
+        ("07", ["withdrawn"]),
+        ("08", ["screening"]),
+    ]:
+        move(
+            client,
+            ayesha,
+            create(client, ayesha, status="applied", applied_on=f"2026-10-{day}"),
+            *path,
+        )
+    create(client, ayesha, status="rejected", applied_on="2026-09-30")  # outside the range
+    move(client, ayesha, create(client, ayesha, status="wishlist"), "withdrawn")  # never applied
+
+    summary = get(client, ayesha, "summary", **OCT)
+    assert summary["by_status"] == {
+        "wishlist": 0,
+        "applied": 0,
+        "screening": 1,
+        "interview": 0,
+        "offer": 0,
+        "rejected": 2,
+        "withdrawn": 1,
+    }
+    assert sum(summary["by_status"].values()) == summary["applied"]
 
 
 def test_skipped_stages_count_as_reached(client: TestClient, ayesha: Headers) -> None:
@@ -189,7 +230,7 @@ def test_an_inverted_range_is_rejected_on_the_to_field(client: TestClient, ayesh
 
 
 def test_analytics_require_authentication(client: TestClient) -> None:
-    for endpoint in ("summary", "funnel", "sources", "timeseries"):
+    for endpoint in ("summary", "funnel", "sources", "timeseries", "moves"):
         assert client.get(f"{ANALYTICS}/{endpoint}").status_code == 401
 
 
@@ -267,3 +308,58 @@ def test_an_open_range_follows_the_data(client: TestClient, ayesha: Headers) -> 
 
     points = get(client, ayesha, "timeseries")["points"]
     assert [p["start"] for p in points] == ["2026-10-05", "2026-10-12", "2026-10-19"]
+
+
+# --------------------------------------------------------------------------- moves
+
+
+def moves(client: TestClient, headers: Headers, **params: str) -> list[dict[str, Any]]:
+    result: list[dict[str, Any]] = get(client, headers, "moves", **params)["moves"]
+    return result
+
+
+def test_moves_are_the_latest_status_changes_newest_first(
+    client: TestClient, ayesha: Headers
+) -> None:
+    careem = create(client, ayesha, company="Careem", status="applied")
+    move(client, ayesha, careem, "screening", "interview")
+    create(client, ayesha, company="Arbisoft", status="applied")  # created, never moved
+    systems = create(client, ayesha, company="Systems Ltd", role_title="Data Engineer")
+    move(client, ayesha, systems, "applied")
+
+    latest = moves(client, ayesha)
+    assert [(m["company"], m["from_status"], m["to_status"]) for m in latest] == [
+        ("Systems Ltd", "wishlist", "applied"),
+        ("Careem", "screening", "interview"),
+        ("Careem", "applied", "screening"),
+    ]
+    assert latest[0]["application_id"] == systems
+    assert latest[0]["role_title"] == "Data Engineer"
+    assert latest[0]["moved_at"].endswith("Z") or latest[0]["moved_at"].endswith("+00:00")
+
+
+def test_moves_only_include_the_users_own_applications(
+    client: TestClient, ayesha: Headers, register: Callable[..., dict[str, Any]]
+) -> None:
+    bilal = auth_header(register(email="bilal.ahmed@mailbox-ok.com")["access_token"])
+    move(client, bilal, create(client, bilal, company="Bilal's pick"), "applied", "screening")
+    move(client, ayesha, create(client, ayesha, company="Careem"), "applied")
+
+    assert [m["company"] for m in moves(client, ayesha)] == ["Careem"]
+    assert [m["company"] for m in moves(client, bilal)] == ["Bilal's pick", "Bilal's pick"]
+
+
+def test_moves_default_to_5_and_take_a_limit_up_to_20(client: TestClient, ayesha: Headers) -> None:
+    app_id = create(client, ayesha, status="applied")
+    move(client, ayesha, app_id, *["screening", "applied"] * 4)  # 8 moves
+
+    assert len(moves(client, ayesha)) == 5
+    two = moves(client, ayesha, limit="2")
+    assert [(m["from_status"], m["to_status"]) for m in two] == [
+        ("screening", "applied"),
+        ("applied", "screening"),
+    ]
+    assert len(moves(client, ayesha, limit="20")) == 8
+    for bad in ("0", "21"):
+        response = client.get(f"{ANALYTICS}/moves", headers=ayesha, params={"limit": bad})
+        assert response.status_code == 422, bad

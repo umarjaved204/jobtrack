@@ -51,12 +51,15 @@ function FilterMenu({
       <PopoverTrigger asChild>
         <Button
           variant="outline"
-          size="sm"
-          className={cn('bg-card', selected.length > 0 && 'border-foreground')}
+          // Control edge in --input; an active filter is outlined in ink.
+          className={cn(
+            'border-input bg-card font-medium',
+            selected.length > 0 && 'border-foreground',
+          )}
         >
           {label}
           {selected.length > 0 && (
-            <span className="rounded-sm bg-primary-tint px-1 font-mono text-xs text-primary-text">
+            <span className="bg-primary-tint px-1 figures text-xs text-primary-text">
               {selected.length}
               <span className="sr-only"> selected</span>
             </span>

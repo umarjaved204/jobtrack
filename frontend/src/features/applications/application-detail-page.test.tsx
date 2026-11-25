@@ -125,18 +125,32 @@ describe('application detail page', () => {
     expect(screen.getByText('Staff Frontend Engineer')).toBeVisible();
   });
 
+  it('tracks the stages reached, dated, with the rest marked not reached', async () => {
+    setup(); // Monzo: applied on 2 Nov 2026, still at Applied
+    await openMonzo();
+
+    const stages = within(screen.getByRole('list', { name: 'Stages reached' })).getAllByRole(
+      'listitem',
+    );
+    expect(stages).toHaveLength(4);
+    expect(stages[0]).toHaveTextContent(/^Applied\s*reached 2 Nov$/);
+    // (The step number before it is hidden from assistive tech.)
+    expect(stages[1]).toHaveTextContent(/Screening\s*–\s*not reached$/);
+    expect(stages[3]).toHaveTextContent(/Offer/);
+  });
+
   it('deletes only after confirming, then returns to the list with a toast', async () => {
     setup();
     const user = userEvent.setup();
     const app = await openMonzo();
 
-    await user.click(screen.getByRole('button', { name: 'Delete' }));
+    await user.click(screen.getByRole('button', { name: 'Delete this application…' }));
     let confirm = await screen.findByRole('alertdialog', { name: 'Delete Monzo?' });
     expect(within(confirm).getByRole('button', { name: 'Cancel' })).toHaveFocus();
     await user.click(within(confirm).getByRole('button', { name: 'Cancel' }));
     expect(backend.calls).not.toContain('DELETE /applications');
 
-    await user.click(screen.getByRole('button', { name: 'Delete' }));
+    await user.click(screen.getByRole('button', { name: 'Delete this application…' }));
     confirm = await screen.findByRole('alertdialog', { name: 'Delete Monzo?' });
     await user.click(within(confirm).getByRole('button', { name: 'Delete application' }));
 
@@ -156,7 +170,7 @@ describe('application detail page', () => {
     const user = userEvent.setup();
     await openMonzo();
 
-    await user.click(screen.getByRole('button', { name: 'Delete' }));
+    await user.click(screen.getByRole('button', { name: 'Delete this application…' }));
     const confirm = await screen.findByRole('alertdialog');
     await user.click(within(confirm).getByRole('button', { name: 'Delete application' }));
 
@@ -171,10 +185,11 @@ describe('application detail page', () => {
     setup();
     renderApp('/applications/does-not-exist');
     await findPageHeading('Application not found');
-    expect(screen.getByRole('link', { name: 'All applications' })).toHaveAttribute(
-      'href',
-      '/applications',
-    );
+    expect(
+      within(screen.getByRole('navigation', { name: 'Breadcrumb' })).getByRole('link', {
+        name: 'Applications',
+      }),
+    ).toHaveAttribute('href', '/applications');
   });
 
   it('goes back to the filtered table it was opened from', async () => {
@@ -185,7 +200,11 @@ describe('application detail page', () => {
 
     await user.click(await screen.findByRole('link', { name: 'Monzo' }));
     await findPageHeading('Monzo');
-    await user.click(screen.getByRole('link', { name: 'All applications' }));
+    await user.click(
+      within(screen.getByRole('navigation', { name: 'Breadcrumb' })).getByRole('link', {
+        name: 'Applications',
+      }),
+    );
 
     await screen.findByRole('table');
     expect(app.location()).toBe('/applications?view=table&status=applied');

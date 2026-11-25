@@ -129,7 +129,7 @@ function EventForm({
               control={form.control}
               name="kind"
               render={({ field: f }) => (
-                <Select value={f.value} onValueChange={f.onChange}>
+                <Select name={f.name} value={f.value} onValueChange={f.onChange}>
                   <SelectTrigger {...control} onBlur={f.onBlur} ref={f.ref}>
                     <SelectValue />
                   </SelectTrigger>
@@ -190,7 +190,12 @@ function EventForm({
             control={form.control}
             name="application_id"
             render={({ field: f }) => (
-              <Select value={f.value} onValueChange={f.onChange} disabled={board.isPending}>
+              <Select
+                name={f.name}
+                value={f.value}
+                onValueChange={f.onChange}
+                disabled={board.isPending}
+              >
                 <SelectTrigger {...control} onBlur={f.onBlur} ref={f.ref}>
                   <SelectValue
                     placeholder={board.isPending ? 'Loading applications…' : undefined}

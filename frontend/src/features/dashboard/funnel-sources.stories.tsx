@@ -31,6 +31,11 @@ type Story = StoryObj<typeof meta>;
 
 export const Pipeline: Story = {};
 
+/** With the summary's Rejected and Withdrawn totals under the bars. */
+export const PipelineWithOutcomes: Story = {
+  args: { outcomes: { rejected: 13, withdrawn: 5 } },
+};
+
 export const PipelineEmpty: Story = {
   args: {
     funnel: {

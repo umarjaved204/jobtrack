@@ -304,6 +304,21 @@ describe('session: sign-out', () => {
     expect(onB).toHaveBeenCalledWith('logout');
   });
 
+  it('signs other tabs out when the account was deleted', () => {
+    const hub = createChannelHub();
+    const tabA = createSessionManager(makeDeps({ channel: hub() }).deps);
+    const tabB = createSessionManager(makeDeps({ channel: hub() }).deps);
+    const onB = vi.fn();
+    tabB.onSignedOut(onB);
+    tabA.start(authBody('at-a'));
+    tabB.start(authBody('at-b'));
+
+    tabA.end('deleted');
+
+    expect(tabB.getAccessToken()).toBeNull();
+    expect(onB).toHaveBeenCalledWith('deleted');
+  });
+
   it('ignores a broadcast in a tab that was not signed in', () => {
     const hub = createChannelHub();
     const tabA = createSessionManager(makeDeps({ channel: hub() }).deps);

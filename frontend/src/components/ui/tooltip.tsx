@@ -41,8 +41,8 @@ function TooltipContent({
         data-slot="tooltip-content"
         sideOffset={sideOffset}
         className={cn(
-          'z-50 w-fit max-w-xs origin-(--radix-tooltip-content-transform-origin) rounded-sm bg-foreground px-2.5 py-1.5',
-          'text-xs font-medium text-balance text-background shadow-md',
+          'z-50 w-fit max-w-xs origin-(--radix-tooltip-content-transform-origin) bg-foreground px-2.5 py-1.5',
+          'text-xs font-medium text-balance text-background',
           'animate-pop-in data-[state=closed]:animate-pop-out',
           className,
         )}

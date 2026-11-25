@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>JobTrack — Command palette</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..500&amp;family=Instrument+Sans:wght@400..700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:#F3EDE2}
+:focus-visible{outline:2px solid #2B4BDB;outline-offset:2px}
+</style>
+</helmet>
+<div style="position: relative; font-family: 'Instrument Sans', system-ui, sans-serif; color: #16130F; background: #F3EDE2; min-height: 900px; overflow: hidden">
+<div aria-hidden="true"><dc-import name="Masthead" active="Dashboard" hint-size="100%,236px"></dc-import></div>
+<div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(22, 19, 15, 0.42)"></div>
+
+<div role="dialog" aria-modal="true" aria-label="Command palette" style="position: absolute; left: 50%; top: 120px; transform: translateX(-50%); width: min(680px, calc(100% - 32px)); background: #FBF8F2; border: 1px solid #16130F; box-shadow: 10px 10px 0 #16130F">
+<div style="display: flex; align-items: center; gap: 12px; padding: 0 18px; border-bottom: 1px solid #16130F">
+<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16130F" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+<input type="text" role="combobox" aria-expanded="true" aria-controls="pal-list" aria-activedescendant="opt-0" aria-label="Search or run a command" value="north" style="flex: 1; min-height: 64px; border: 0; background: transparent; font: 400 24px Fraunces, serif; color: #16130F; outline: none">
+<kbd style="font-family: 'JetBrains Mono', monospace; font-size: 12px; padding: 2px 6px; border: 1px solid #CFC4B2; color: #4A433A">Esc</kbd>
+</div>
+<div id="pal-list" role="listbox" aria-label="Results" style="padding: 8px 0; max-height: 520px; overflow: auto">
+<sc-for list="{{ groups }}" as="g" hint-placeholder-count="3">
+<div role="group" aria-label="{{ g.label }}" style="padding: 4px 0 8px">
+<p aria-hidden="true" style="margin: 0; padding: 8px 18px 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.16em; color: #4A433A">{{ g.upper }}</p>
+<sc-for list="{{ g.items }}" as="it" hint-placeholder-count="2">
+<div role="option" id="{{ it.id }}" aria-selected="{{ it.sel }}" style="display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 18px; background: {{ it.bg }}; color: {{ it.fg }}">
+<span aria-hidden="true" style="width: 28px; height: 28px; display: grid; place-items: center; border: 1px solid {{ it.ic }}; font-family: Fraunces, serif; font-size: 13px; font-weight: 600">{{ it.mark }}</span>
+<span style="flex: 1; display: flex; flex-direction: column">
+<span style="font-size: 16px; font-weight: 600">{{ it.title }}</span>
+<span style="font-size: 13px; opacity: 0.8">{{ it.sub }}</span>
+</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; opacity: 0.8">{{ it.hint }}</span>
+</div>
+</sc-for>
+</div>
+</sc-for>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 18px; padding: 12px 18px; border-top: 1px solid #D6CCBB; font-size: 13px; color: #4A433A">
+<span><kbd style="font-family: 'JetBrains Mono', monospace">↑ ↓</kbd> move</span>
+<span><kbd style="font-family: 'JetBrains Mono', monospace">Enter</kbd> open</span>
+<span><kbd style="font-family: 'JetBrains Mono', monospace">Esc</kbd> close</span>
+<span style="margin-left: auto">Searches applications, pages and actions</span>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var n = 0;
+    function item(mark, title, sub, hint, sel) {
+      var id = 'opt-' + (n++);
+      return { id: id, mark: mark, title: title, sub: sub, hint: hint, sel: sel ? 'true' : 'false', bg: sel ? '#16130F' : 'transparent', fg: sel ? '#F3EDE2' : '#16130F', ic: sel ? '#F3EDE2' : '#CFC4B2' };
+    }
+    var groups = [
+      { label: 'Applications', items: [
+        item('NH', 'Northwind Health — Backend Engineer', 'Interview · panel Tue, Nov 24 at 10:30', 'Enter', true),
+        item('NH', 'Northwind Health — contacts', 'Sana Mir, Omar Farooq', '', false)
+      ] },
+      { label: 'Actions', items: [
+        item('+', 'Add a note to Northwind Health', 'Goes on its chronology', '', false),
+        item('→', 'Move Northwind Health to…', 'Change its status', '', false),
+        item('M', 'Match a job description for Northwind Health', 'Opens Match with it linked', '', false)
+      ] },
+      { label: 'Go to', items: [
+        item('D', 'Dashboard', 'Page', 'G D', false),
+        item('C', 'Calendar', 'Page', 'G C', false)
+      ] }
+    ];
+    return { groups: groups.map(function (g) { g.upper = g.label.toUpperCase(); return g; }) };
+  }
+}
+</script>
+</body>
+</html>

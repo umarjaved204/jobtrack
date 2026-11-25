@@ -1,5 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 
+import { Loading } from '@/components/loading';
+
 import { Card, CardContent, CardHeader } from './card';
 import { Separator } from './separator';
 import { Skeleton } from './skeleton';
@@ -12,22 +14,25 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** Loading state for an application card: same footprint as the real thing. */
+/** Loading state for an application card: same footprint as the real thing. `Loading`
+ * marks the region busy and names it with visually hidden text. */
 export const LoadingCard: Story = {
   render: () => (
-    <Card className="max-w-sm" aria-busy="true" aria-label="Loading application">
-      <CardHeader>
-        <Skeleton className="h-6 w-3/4" />
-        <Skeleton className="h-4 w-1/2" />
-      </CardHeader>
-      <CardContent className="grid gap-3">
-        <div className="flex gap-2">
-          <Skeleton className="h-5 w-20" />
-          <Skeleton className="h-5 w-16" />
-        </div>
-        <Skeleton className="h-4 w-2/3" />
-      </CardContent>
-    </Card>
+    <Loading label="Loading the application">
+      <Card className="max-w-sm">
+        <CardHeader>
+          <Skeleton className="h-6 w-3/4" />
+          <Skeleton className="h-4 w-1/2" />
+        </CardHeader>
+        <CardContent className="grid gap-3">
+          <div className="flex gap-2">
+            <Skeleton className="h-5 w-20" />
+            <Skeleton className="h-5 w-16" />
+          </div>
+          <Skeleton className="h-4 w-2/3" />
+        </CardContent>
+      </Card>
+    </Loading>
   ),
 };
 

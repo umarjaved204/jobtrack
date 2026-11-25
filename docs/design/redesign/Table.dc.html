@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>JobTrack — Applications table</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..500&amp;family=Instrument+Sans:wght@400..700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:#F3EDE2}
+a{color:#B8321F}a:hover{color:#8E2414}
+:focus-visible{outline:2px solid #2B4BDB;outline-offset:2px}
+</style>
+</helmet>
+<div style="font-family: 'Instrument Sans', system-ui, sans-serif; color: #16130F; background: #F3EDE2; min-height: 100%">
+<dc-import name="Masthead" active="Applications" hint-size="100%,236px"></dc-import>
+
+<main style="max-width: 1296px; margin: 0 auto; padding: 0 clamp(20px, 5vw, 72px) 64px">
+<section style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 24px; padding: 40px 0 24px">
+<div style="display: flex; flex-direction: column; gap: 10px">
+<p style="margin: 0; font-size: 12px; letter-spacing: 0.18em; font-weight: 600; color: #B8321F">APPLICATIONS</p>
+<h1 style="margin: 0; font-family: Fraunces, serif; font-weight: 600; font-size: clamp(48px, 6vw, 80px); line-height: 0.95; letter-spacing: -0.02em">The ledger</h1>
+<p style="margin: 0; font-size: 19px; color: #4A433A">Every application, searchable and sortable. Filters live in the address bar, so a view can be bookmarked or shared.</p>
+</div>
+<div role="group" aria-label="View" style="display: flex; border: 1px solid #16130F">
+<a href="Board.dc.html" style="display: inline-flex; align-items: center; min-height: 42px; padding: 0 16px; color: #16130F; font-weight: 600; font-size: 14px; text-decoration: none">Board</a>
+<span aria-current="page" style="display: inline-flex; align-items: center; min-height: 42px; padding: 0 16px; background: #16130F; color: #F3EDE2; font-weight: 600; font-size: 14px">Table</span>
+</div>
+</section>
+
+<!-- Filter bar -->
+<section aria-label="Filters" style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 14px 0; border-top: 3px solid #16130F; border-bottom: 1px solid #D6CCBB">
+<label style="display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px; border: 1px solid #CFC4B2; background: #FBF8F2; flex: 1 1 280px; max-width: 380px">
+<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4A433A" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+<span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Search applications</span>
+<input type="search" value="engineer" style="border: 0; background: transparent; font: 15px 'Instrument Sans', sans-serif; color: #16130F; flex: 1; outline: none">
+</label>
+<sc-for list="{{ filters }}" as="f" hint-placeholder-count="4">
+<button type="button" aria-haspopup="listbox" style="display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border: 1px solid {{ f.bd }}; background: {{ f.bg }}; font: 500 14px 'Instrument Sans', sans-serif; color: #16130F; cursor: pointer"><span style="color: #4A433A">{{ f.k }}</span> <strong>{{ f.v }}</strong>
+<svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"></path></svg></button>
+</sc-for>
+<button type="button" style="min-height: 44px; padding: 0 8px; background: transparent; border: 0; font: 600 14px 'Instrument Sans', sans-serif; color: #B8321F; text-decoration: underline; cursor: pointer">Clear filters</button>
+<span style="margin-left: auto; font-size: 14px; color: #4A433A" aria-live="polite"><strong style="color: #16130F">14</strong> of 34 applications</span>
+</section>
+
+<div style="overflow-x: auto; margin-top: 8px">
+<table style="width: 100%; border-collapse: collapse; min-width: 1040px; font-size: 15px">
+<caption style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Applications, sorted by date applied, newest first</caption>
+<thead>
+<tr style="text-align: left; font-size: 12px; letter-spacing: 0.12em; color: #4A433A; border-bottom: 1px solid #16130F">
+<th scope="col" style="padding: 12px 12px 12px 0; font-weight: 600"><button type="button" style="font: inherit; letter-spacing: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer">COMPANY</button></th>
+<th scope="col" style="padding: 12px; font-weight: 600">ROLE</th>
+<th scope="col" style="padding: 12px; font-weight: 600">STATUS</th>
+<th scope="col" style="padding: 12px; font-weight: 600">SOURCE</th>
+<th scope="col" aria-sort="descending" style="padding: 12px; font-weight: 700; color: #16130F"><button type="button" style="font: inherit; letter-spacing: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer">APPLIED ↓</button></th>
+<th scope="col" style="padding: 12px; font-weight: 600">NEXT</th>
+<th scope="col" style="padding: 12px; font-weight: 600">TAGS</th>
+</tr>
+</thead>
+<tbody>
+<sc-for list="{{ rows }}" as="r" hint-placeholder-count="10">
+<tr style="border-bottom: 1px solid #D6CCBB; background: {{ r.rowBg }}">
+<td style="padding: 12px 12px 12px 0">
+<div style="display: flex; align-items: center; gap: 10px">
+<span aria-hidden="true" style="width: 30px; height: 30px; display: grid; place-items: center; background: #E6DED0; font-family: Fraunces, serif; font-weight: 600; font-size: 13px">{{ r.mono }}</span>
+<a href="Detail.dc.html" style="font-weight: 700; color: #16130F; text-decoration: none">{{ r.company }}</a>
+</div>
+</td>
+<td style="padding: 12px; font-family: Fraunces, serif; font-size: 17px">{{ r.role }}<span style="display: block; font-family: 'Instrument Sans', sans-serif; font-size: 13px; color: #4A433A">{{ r.where }}</span></td>
+<td style="padding: 12px"><span style="display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; font-size: 13px; font-weight: 600; color: {{ r.fg }}; background: {{ r.bg }}; white-space: nowrap"><span aria-hidden="true" style="width: 7px; height: 7px; background: {{ r.fg }}"></span>{{ r.status }}</span></td>
+<td style="padding: 12px; color: #4A433A">{{ r.source }}</td>
+<td style="padding: 12px; font-family: 'JetBrains Mono', monospace; font-size: 13px; white-space: nowrap">{{ r.applied }}</td>
+<td style="padding: 12px; font-size: 14px">{{ r.next }}</td>
+<td style="padding: 12px"><div style="display: flex; flex-wrap: wrap; gap: 4px"><sc-for list="{{ r.tags }}" as="t" hint-placeholder-count="1"><span style="font-size: 12px; padding: 2px 7px; border: 1px solid #CFC4B2; color: #4A433A">{{ t }}</span></sc-for></div></td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+
+<nav aria-label="Pages" style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 0; border-bottom: 1px solid #16130F">
+<span style="font-size: 14px; color: #4A433A">Showing 1–10 of 14</span>
+<div style="display: flex; align-items: center; gap: 6px">
+<button type="button" disabled="disabled" style="min-height: 40px; padding: 0 12px; border: 1px solid #CFC4B2; background: transparent; font: 600 14px 'Instrument Sans', sans-serif; color: #8A8073">← Previous</button>
+<span aria-current="page" style="min-width: 40px; min-height: 40px; display: grid; place-items: center; background: #16130F; color: #F3EDE2; font-weight: 700; font-size: 14px">1</span>
+<button type="button" style="min-width: 40px; min-height: 40px; border: 1px solid #CFC4B2; background: transparent; font: 600 14px 'Instrument Sans', sans-serif; color: #16130F; cursor: pointer">2</button>
+<button type="button" style="min-height: 40px; padding: 0 12px; border: 1px solid #16130F; background: transparent; font: 600 14px 'Instrument Sans', sans-serif; color: #16130F; cursor: pointer">Next →</button>
+</div>
+<label style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #4A433A">Rows per page
+<select style="min-height: 40px; padding: 0 8px; border: 1px solid #CFC4B2; background: #FBF8F2; font: 14px 'Instrument Sans', sans-serif; color: #16130F"><option>10</option><option>25</option><option>50</option></select>
+</label>
+</nav>
+
+<footer style="margin-top: 48px; border-top: 1px solid #16130F; padding-top: 14px; font-size: 13px; color: #4A433A">JobTrack · Set in Fraunces &amp; Instrument Sans</footer>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1200}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var S = {
+      Wishlist: ['#5C5348', '#E6DED0'], Applied: ['#2440C0', '#DCE2F7'], Screening: ['#0E6468', '#D3E8E6'],
+      Interview: ['#7A4F00', '#F1E2C2'], Offer: ['#2E6B2F', '#DCEBD5'], Rejected: ['#9E2A1A', '#F2D9D2'], Withdrawn: ['#55514B', '#E2DED8']
+    };
+    var data = [
+      ['Kestrel Logistics', 'Python Developer', 'Karachi · On-site', 'Applied', 'LinkedIn', 'Nov 21, 2026', '—', ['Django']],
+      ['Halden Robotics', 'ML Engineer', 'Remote', 'Interview', 'Company site', 'Nov 18, 2026', '◆ Take-home due Nov 25', ['PyTorch']],
+      ['Tessera AI', 'ML Engineer Intern', 'Lahore · Remote', 'Applied', 'Company site', 'Nov 16, 2026', '—', ['NLP', 'Intern']],
+      ['Margalla Systems', 'AI Engineer', 'Islamabad · Hybrid', 'Screening', 'Referral', 'Nov 10, 2026', '—', ['LLMs']],
+      ['Ravi Labs', 'Backend Engineer', 'Lahore · Hybrid', 'Applied', 'LinkedIn', 'Nov 9, 2026', '—', ['Go']],
+      ['Northwind Health', 'Backend Engineer', 'Islamabad · Hybrid', 'Interview', 'Referral', 'Nov 6, 2026', '● Interview Nov 24, 10:30', ['FastAPI']],
+      ['Pinecrest Software', 'Software Engineer I', 'Islamabad · On-site', 'Screening', 'Company site', 'Nov 4, 2026', '—', []],
+      ['Sable Pay', 'Software Engineer', 'Karachi · Hybrid', 'Offer', 'Recruiter', 'Oct 27, 2026', '■ Reply by Dec 2', ['Fintech']],
+      ['Brightwell Bank', 'AI Engineer', 'Islamabad · On-site', 'Interview', 'Company site', 'Oct 24, 2026', '● Onsite Nov 30, 14:00', ['LLMs']],
+      ['Fernhill Studio', 'Full-stack Engineer', 'Remote', 'Interview', 'LinkedIn', 'Oct 22, 2026', '✓ Thank-you note · overdue', ['React']]
+    ];
+    var f = [['Status', 'Applied +3'], ['Source', 'Any'], ['Tags', 'Any'], ['Applied', 'Last 90 days']];
+    return {
+      filters: f.map(function (x) { var on = x[1] !== 'Any'; return { k: x[0], v: x[1], bd: on ? '#16130F' : '#CFC4B2', bg: on ? '#F8F4EC' : '#FBF8F2' }; }),
+      rows: data.map(function (d, i) {
+        return {
+          company: d[0], mono: d[0].split(' ').map(function (w) { return w[0]; }).join('').slice(0, 2), role: d[1], where: d[2], status: d[3],
+          fg: S[d[3]][0], bg: S[d[3]][1], source: d[4], applied: d[5], next: d[6], tags: d[7], rowBg: i === 5 ? '#EDE6DA' : 'transparent'
+        };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -19,6 +19,7 @@ import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import { LiveRegion } from '@/components/live-region';
+import { useMediaQuery } from '@/hooks/use-media-query';
 import { isApiError } from '@/lib/api/errors';
 import {
   type Application,
@@ -32,6 +33,7 @@ import { useMoveApplication } from './api';
 import type { MoveInput } from './board';
 import { BoardCard, BoardCardPreview } from './board-card';
 import { BoardColumn } from './board-column';
+import { BoardColumnNav } from './board-column-nav';
 import {
   announce,
   cardName,
@@ -190,6 +192,38 @@ function KanbanBoard({
   const active = drag
     ? applicationStatuses.flatMap((s) => columns[s]).find((a) => a.id === drag.activeId)
     : undefined;
+  const dropAt = drag ? placement(columns, drag.activeId) : null;
+
+  // Phones show one column at a time: chips above the board jump between them.
+  const wide = useMediaQuery('(min-width: 40rem)');
+  const scroller = useRef<HTMLDivElement>(null);
+  const [inView, setInView] = useState<ApplicationStatus>('wishlist');
+  const columnElement = (status: ApplicationStatus) =>
+    scroller.current?.querySelector<HTMLElement>(`[data-column="${status}"]`) ?? null;
+  const onBoardScroll = () => {
+    const board = scroller.current;
+    if (!board || wide) return;
+    // The column whose left edge is nearest the snap point (scroll-padding) is the one in view.
+    const snap = board.scrollLeft + (parseFloat(getComputedStyle(board).scrollPaddingLeft) || 0);
+    let nearest: ApplicationStatus = applicationStatuses[0];
+    let distance = Infinity;
+    for (const status of applicationStatuses) {
+      const d = Math.abs((columnElement(status)?.offsetLeft ?? 0) - snap);
+      if (d < distance) [nearest, distance] = [status, d];
+    }
+    setInView(nearest);
+  };
+  const jumpTo = (status: ApplicationStatus) => {
+    setInView(status);
+    columnElement(status)?.scrollIntoView({
+      behavior: reduceMotion ? 'auto' : 'smooth',
+      inline: 'start',
+      block: 'nearest',
+    });
+  };
+  const counts = Object.fromEntries(
+    applicationStatuses.map((s) => [s, columns[s].length]),
+  ) as Record<ApplicationStatus, number>;
 
   return (
     <DndContext
@@ -204,10 +238,27 @@ function KanbanBoard({
         screenReaderInstructions: { draggable: SCREEN_READER_INSTRUCTIONS },
       }}
     >
+      {wide ? (
+        <p className="mb-4 text-[0.8125rem] text-muted-foreground">
+          Keyboard: focus a card’s handle, press Space to pick it up, arrow keys to move, Space to
+          drop, Esc to cancel. Or use its Move to… menu.
+        </p>
+      ) : (
+        <>
+          <p className="mb-3 text-[0.8125rem] text-muted-foreground">
+            Swipe for the next column. Press and hold a card to drag it, or use its Move to… menu.
+          </p>
+          <BoardColumnNav counts={counts} current={inView} onJump={jumpTo} />
+        </>
+      )}
+      {/* `relative`: absolutely positioned descendants (sr-only text in far columns) must be
+          clipped by this scroller, not stretch the page sideways on phones. */}
       <div
+        ref={scroller}
+        onScroll={onBoardScroll}
         role="region"
         aria-label="Pipeline board"
-        className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain px-4 pb-4 sm:mx-0 sm:px-0"
+        className="relative -mx-5 flex snap-x snap-mandatory scroll-px-5 overflow-x-auto overscroll-x-contain border-t-[3px] border-rule px-5 pb-2 sm:mx-0 sm:scroll-px-0 sm:px-0"
       >
         {applicationStatuses.map((status) => (
           <BoardColumn
@@ -227,6 +278,11 @@ function KanbanBoard({
                     focusAfterMove.status === application.status
                   }
                   onHandleFocused={clearFocusRequest}
+                  dropLabel={
+                    dropAt && drag?.activeId === application.id
+                      ? `Drop here · position ${dropAt.index} of ${dropAt.total}`
+                      : undefined
+                  }
                 />
               </li>
             ))}

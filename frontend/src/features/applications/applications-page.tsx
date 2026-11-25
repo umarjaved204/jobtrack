@@ -1,18 +1,19 @@
 import { useQuery } from '@tanstack/react-query';
-import { Plus, RotateCcw, SquareKanban, Table2 } from 'lucide-react';
+import { Plus, SquareKanban, Table2 } from 'lucide-react';
 import { useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
 
 import { EmptyState } from '@/components/empty-state';
+import { Loading } from '@/components/loading';
 import { PageHeader } from '@/components/page-header';
-import { Alert } from '@/components/ui/alert';
+import { LoadError } from '@/components/load-error';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { isApiError } from '@/lib/api/errors';
 import { cn } from '@/lib/utils';
 import type { ApplicationStatus } from '@/types/application';
 
 import { boardQuery } from './api';
+import { wantsAddApplication } from './add-application-state';
 import { ApplicationFormSheet } from './application-form-sheet';
 import { ApplicationsTableView } from './applications-table-view';
 import { KanbanBoard } from './kanban-board';
@@ -26,19 +27,16 @@ import { useTableParams } from './use-table-params';
 
 function BoardSkeleton() {
   return (
-    <div aria-busy="true" aria-label="Loading your board" className="flex gap-3 overflow-hidden">
+    <Loading label="Loading your board" className="flex gap-3 overflow-hidden">
       {[3, 2, 1, 2].map((cards, i) => (
-        <div
-          key={i}
-          className="grid w-72 shrink-0 content-start gap-2 rounded-lg bg-paper-sunken/60 p-2"
-        >
+        <div key={i} className="grid w-72 shrink-0 content-start gap-2 bg-paper-sunken/60 p-2">
           <Skeleton className="m-1 h-5 w-24" />
           {Array.from({ length: cards }, (_, j) => (
-            <Skeleton key={j} className="h-20 w-full rounded-md" />
+            <Skeleton key={j} className="h-20 w-full" />
           ))}
         </div>
       ))}
-    </div>
+    </Loading>
   );
 }
 
@@ -81,12 +79,11 @@ function BoardView({ onAdd }: { onAdd: (status: ApplicationStatus) => void }) {
     content = <BoardSkeleton />;
   } else if (board.isError) {
     content = (
-      <Alert title="Your board didn’t load">
-        <p>{isApiError(board.error) ? board.error.detail : 'Something went wrong.'}</p>
-        <Button variant="outline" size="sm" className="mt-3" onClick={() => void board.refetch()}>
-          <RotateCcw /> Try again
-        </Button>
-      </Alert>
+      <LoadError
+        title="Your board didn’t load"
+        error={board.error}
+        onRetry={() => void board.refetch()}
+      />
     );
   } else if (total === 0) {
     content = (
@@ -116,6 +113,22 @@ function ApplicationsPage() {
     status: 'wishlist',
   });
   const openForm = (status: ApplicationStatus) => setForm({ open: true, status });
+  // "Add an application" from the ⌘K palette arrives as navigation state. Read while
+  // rendering (no effect, no flash); closing the form clears it, so Back won't reopen it.
+  const location = useLocation();
+  const navigate = useNavigate();
+  const addRequested = wantsAddApplication(location.state);
+  const formOpen = form.open || addRequested;
+  const formStatus = addRequested && !form.open ? 'wishlist' : form.status;
+  const onFormOpenChange = (open: boolean) => {
+    setForm((f) => ({ ...f, open }));
+    if (!open && addRequested) {
+      void navigate(
+        { search: location.search, hash: location.hash },
+        { replace: true, state: null, preventScrollReset: true },
+      );
+    }
+  };
 
   return (
     <>
@@ -140,9 +153,9 @@ function ApplicationsPage() {
         )}
       </div>
       <ApplicationFormSheet
-        open={form.open}
-        onOpenChange={(open) => setForm((f) => ({ ...f, open }))}
-        mode={{ type: 'create', status: form.status }}
+        open={formOpen}
+        onOpenChange={onFormOpenChange}
+        mode={{ type: 'create', status: formStatus }}
       />
     </>
   );

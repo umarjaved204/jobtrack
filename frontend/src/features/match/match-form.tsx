@@ -72,15 +72,28 @@ function MatchForm({ resumes, applications, running, error, onRun, initial }: Ma
   }, [error, form]);
 
   return (
-    <form noValidate onSubmit={form.handleSubmit(onRun)} className="grid gap-5">
-      <div className="grid gap-5 sm:grid-cols-2">
+    <form
+      noValidate
+      aria-labelledby="match-inputs"
+      onSubmit={form.handleSubmit(onRun)}
+      className="grid gap-5"
+    >
+      <h2 id="match-inputs" className="kicker">
+        The inputs
+      </h2>
+      <div className="grid gap-5">
         <Controller
           control={form.control}
           name="resume_id"
           render={({ field }) => (
             <FormField label="Resume" error={errors.resume_id?.message}>
               {(control) => (
-                <Select value={field.value} onValueChange={field.onChange} disabled={running}>
+                <Select
+                  name={field.name}
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  disabled={running}
+                >
                   <SelectTrigger {...control} onBlur={field.onBlur} ref={field.ref}>
                     <SelectValue placeholder="Pick a version" />
                   </SelectTrigger>
@@ -113,6 +126,7 @@ function MatchForm({ resumes, applications, running, error, onRun, initial }: Ma
             >
               {(control) => (
                 <Select
+                  name={field.name}
                   value={field.value}
                   onValueChange={field.onChange}
                   disabled={running || applications === undefined}
@@ -139,14 +153,17 @@ function MatchForm({ resumes, applications, running, error, onRun, initial }: Ma
       <FormField
         label="Job description"
         description={
-          <span className={cn('figures', over && 'font-medium text-destructive')}>
-            {formatCount(count)} of {formatCount(MAX_JD_CHARS)} characters
+          <span className="flex flex-wrap justify-between gap-x-4">
+            <span>English adverts only.</span>{' '}
+            <span className={cn('figures', over && 'font-medium text-destructive')}>
+              {formatCount(count)} of {formatCount(MAX_JD_CHARS)} characters
+            </span>
           </span>
         }
         error={errors.jd_text?.message}
       >
         <Textarea
-          rows={14}
+          rows={12}
           readOnly={running}
           placeholder="Paste the whole advert: the role, requirements and nice-to-haves."
           className="max-h-[60vh] min-h-64 leading-relaxed"
@@ -154,11 +171,9 @@ function MatchForm({ resumes, applications, running, error, onRun, initial }: Ma
         />
       </FormField>
 
-      <div>
-        <Button type="submit" size="lg" disabled={running}>
-          {running ? 'Matching…' : 'Match'}
-        </Button>
-      </div>
+      <Button type="submit" size="lg" disabled={running}>
+        {running ? 'Scoring…' : 'Score this match'}
+      </Button>
     </form>
   );
 }

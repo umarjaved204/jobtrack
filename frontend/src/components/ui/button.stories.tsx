@@ -11,7 +11,7 @@ const meta = {
   argTypes: {
     variant: {
       control: 'select',
-      options: ['default', 'destructive', 'outline', 'secondary', 'ghost', 'link'],
+      options: ['default', 'ink', 'destructive', 'outline', 'secondary', 'ghost', 'link'],
     },
     size: {
       control: 'select',
@@ -30,6 +30,9 @@ export const Variants: Story = {
     <div className="flex flex-wrap items-center gap-3">
       <Button {...args}>
         <Plus /> Add application
+      </Button>
+      <Button {...args} variant="ink">
+        Run match
       </Button>
       <Button {...args} variant="outline">
         <Download /> Export CSV

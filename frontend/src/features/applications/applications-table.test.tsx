@@ -44,6 +44,8 @@ const companies = () =>
     .map((link) => link.textContent);
 const listCalls = () => backend.calls.filter((c) => c === 'GET /applications').length;
 const query = (location: string) => new URL(location, 'http://x').searchParams;
+/** The "Showing x to y" line; the shell has live regions of its own outside <main>. */
+const pageSummary = () => within(screen.getByRole('main')).getByRole('status');
 
 describe('applications table', () => {
   it('switches between board and table, each with its own URL', async () => {
@@ -98,11 +100,9 @@ describe('applications table', () => {
     const user = userEvent.setup();
     const app = await openTable('/applications?view=table&page_size=10');
 
-    expect(screen.getByRole('status')).toHaveTextContent('Showing 1 to 10 of 25 applications');
+    expect(pageSummary()).toHaveTextContent('Showing 1 to 10 of 25 applications');
     await user.click(screen.getByRole('link', { name: 'Next' }));
-    await waitFor(() =>
-      expect(screen.getByRole('status')).toHaveTextContent('Showing 11 to 20 of 25'),
-    );
+    await waitFor(() => expect(pageSummary()).toHaveTextContent('Showing 11 to 20 of 25'));
     expect(query(app.location()).get('page')).toBe('2');
     expect(screen.getByRole('link', { name: 'Previous' })).not.toHaveAttribute('aria-disabled');
 
@@ -110,9 +110,7 @@ describe('applications table', () => {
     await user.click(await screen.findByRole('option', { name: /Interview/ }));
     await waitFor(() => expect(query(app.location()).getAll('status')).toEqual(['interview']));
     expect(query(app.location()).get('page')).toBeNull();
-    await waitFor(() =>
-      expect(screen.getByRole('status')).toHaveTextContent('Showing 1 to 10 of 12'),
-    );
+    await waitFor(() => expect(pageSummary()).toHaveTextContent('Showing 1 to 10 of 12'));
   });
 
   it('sorts from a column header and says so with aria-sort', async () => {
@@ -162,9 +160,7 @@ describe('applications table', () => {
     const app = await openTable('/applications?view=table&page_size=10&page=9');
 
     await waitFor(() => expect(query(app.location()).get('page')).toBe('3'));
-    await waitFor(() =>
-      expect(screen.getByRole('status')).toHaveTextContent('Showing 21 to 25 of 25'),
-    );
+    await waitFor(() => expect(pageSummary()).toHaveTextContent('Showing 21 to 25 of 25'));
   });
 
   it('invites you to add the first application when there are none', async () => {
