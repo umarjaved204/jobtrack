@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 
 import { Wordmark } from '@/components/wordmark';
-import { dateline } from '@/lib/dates';
+import { dateline } from '@/lib/dateline';
 
 /**
  * The masthead for signed-out pages (landing, sign in, sign up): date line and controls,

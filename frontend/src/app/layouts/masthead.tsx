@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/sheet';
 import { addApplicationState } from '@/features/applications/add-application-state';
 import { applicationsListQuery } from '@/features/applications/api';
-import { dateline } from '@/lib/dates';
+import { dateline } from '@/lib/dateline';
 import { cn } from '@/lib/utils';
 
 /**
