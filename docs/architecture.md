@@ -387,6 +387,35 @@ cosine), `sections_detected` and the versions. `GET /match` lists results newest
 without the JD text, showing an excerpt (the JD's first line, at most 120 characters)
 instead.
 
+## Data export
+
+`GET /api/v1/export?format=json|csv` (Settings → Your data) downloads everything the user
+has entered. `format` is required; anything else is a 422. Code:
+`app/services/export.py`, shapes in `app/schemas/export.py`.
+
+**What's in it:** the profile (email, name, theme, accent), applications with their tag
+names, contacts and timeline (status changes and notes), tags, resume versions with their
+full text, reminders and calendar events. Every query filters by the user, contacts and
+the timeline through their application. **Not in it:** match results (derived from a
+resume and an advert; deleted from Settings), refresh tokens and the password hash, and the
+kanban `position` (an ordering detail).
+
+**JSON** is one document: `format_version` (1; bumped when a field is renamed or removed,
+not when one is added), `exported_at`, `user`, then one list per table, with contacts and
+the timeline nested under each application. Instants are UTC with a `Z`; date-only values
+(`applied_on`, `due_on`, ...) stay `YYYY-MM-DD`.
+
+**CSV** is a zip with one file per table (`applications`, `contacts`, `timeline`, `tags`,
+`resume_versions`, `reminders`, `calendar_events`), linked by ids; an application's tags
+are one cell joined with `; `. Each file is UTF-8 with a BOM so Excel reads accents and
+typographic quotes, and has a header row even when empty. Text cells starting with
+`= + - @`, a tab or a carriage return get a leading `'` so a spreadsheet won't run them as a
+formula (OWASP's CSV injection advice); the JSON keeps the text exactly as stored.
+
+Responses are `Content-Disposition: attachment` (`jobtrack-export-YYYY-MM-DD.json|zip`) and
+`Cache-Control: no-store`. The browser fetches them with `api.download` (the bearer token
+can't ride on a plain link) and saves the Blob with `saveFile` (`src/lib/save-file.ts`).
+
 ## Health checks
 
 - `GET /api/v1/health`: liveness, process only (used by Docker healthchecks).

@@ -15,7 +15,9 @@
 - **Calendar**: interviews and deadlines in one place
 - **Resume versions**: paste your resume or import it from a PDF or Word file (read in your browser, never uploaded), and see which version went to which application
 - **AI match**: paste a job description to get a match score, missing skills and keywords to add, against one of your resume versions. The embedding model runs in your browser, the score is calibrated on labelled pairs, and each application shows its latest match
-- **Settings**: light/dark theme, accent color, CSV/JSON export, delete match history
+- **Settings**: your name, light/dark theme and accent (saved to your account), data export (one JSON file or a zip of CSVs), delete match history, delete your account
+- **Command palette** (Ctrl+K / ⌘K): search applications, jump to a page or run an action from anywhere
+- **Design**: an editorial “broadsheet” look in light and night editions, built on WCAG AA-tested tokens; keyboard and screen-reader friendly, checked with axe on every main screen
 
 ## Tech stack
 
@@ -88,6 +90,9 @@ so start it first: `docker compose up -d db`.
 cd backend && uv run ruff check . && uv run ruff format --check . && uv run mypy app tests scripts && uv run pytest
 # frontend
 cd frontend && pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm build-storybook
+# with the app running and the demo data seeded: an axe scan of every main screen, and
+# before/after screenshots at 1440 and 390 px in both themes (frontend/screenshots/, git-ignored)
+cd frontend && pnpm a11y && pnpm screenshots <label>
 # git hooks (once)
 cd backend && uv run pre-commit install
 ```
@@ -109,6 +114,12 @@ Mobile uses Lighthouse's simulated slow phone and network. What changed: the lan
 renders without waiting for the session check, the signed-in app shell is a lazy chunk (main
 bundle 182 → 130 KB gzip), the headline font is preloaded, and `robots.txt` and a favicon exist.
 
+**After the Phase 10 redesign** (same method, dev container stopped): `/` mobile is 71
+(LCP 4.98 s, TBT 415 ms), accessibility 100, best practices 96, SEO 100, CLS 0. The new landing
+page is heavier and is rendered by JavaScript, so nothing paints until the main bundle has
+run; prerendering it is planned with the deploy (Phase 13). `pnpm a11y` (axe, WCAG 2.2 AA)
+reports no violations on any main screen at either width or in either theme.
+
 **Why Best practices stays at 96:** an anonymous visitor's session check
 (`POST /api/v1/auth/refresh`) correctly returns `401`, and browsers log every 4xx as a console
 error. The refresh cookie is httpOnly, so the app must ask the server whether a session exists.
@@ -129,7 +140,7 @@ This is intentional; see [ADR 0002](docs/adr/0002-authentication.md).
 | 8  | Resume versions (archived once used, text frozen), follow-up reminders (all-day or timed, zone-aware), calendar with an accessible month grid and a merged feed; interviews, assessments, deadlines and reminders join the dashboard’s “Coming up” | ✅ |
 | 9  | AI match: skills taxonomy and section-aware requirements, embeddings in the browser (Web Worker, multi-threaded through cross-origin isolation, vectors cached in IndexedDB), calibrated and versioned scores, match history, latest match on each application, delete history | ✅ |
 | 9b | Resume file import: PDF (pdf.js) and Word .docx (mammoth) read in the browser, never uploaded; lines rebuilt from PDF text positions, bullets and hyphenation cleaned up, file type checked from its first bytes; the text is reviewed before saving | ✅ |
-| 10 | Polish: signature animations (incl. spring-physics Kanban drag), ⌘K palette, a11y, responsive | ⏳ |
+| 10 | Redesign to the “broadsheet” mockups (every page, light and night), offer ink-stamp celebration, animated funnel, ⌘K palette; Settings (name, theme and accent, data export as JSON or CSV, delete account); empty, loading and error states; accessibility (axe scan, dialogs return focus, names that match the visible text) and phone layouts | ✅ |
 | 11 | Test suite expansion + full CI, incl. Playwright for the Kanban drag paths jsdom can't run (below) | ⏳ |
 | 12 | Email verification + password reset (non-blocking verify banner; reset never reveals if an account exists) | ⏳ |
 | 13 | Deploy, demo data, screenshots, write-up | ⏳ |
@@ -143,7 +154,11 @@ This is intentional; see [ADR 0002](docs/adr/0002-authentication.md).
 - **Time zones**: times are entered and shown in the browser’s zone and stored in UTC; there’s no per-user zone setting. All-day reminders and apply-by dates are plain dates and never shift between zones.
 - **Resumes** are plain text (up to 50,000 characters), pasted or imported from a PDF or .docx file up to 5 MB. Scanned PDFs (no text layer: no OCR), password-protected files and old .doc files are refused with a message asking to paste the text. Text in columns or tables may come out in the wrong order, which is why the imported text is shown for review before saving.
 - **AI match** is English-only and estimates overlap; it doesn't predict how an employer or an ATS ranks a resume. Its calibration rests on 36 labelled pairs written by one person. Phone-class performance is unmeasured until a real device is tried (CPU throttling doesn't reach Web Workers). See ADR 0004.
-- **Data export** (Settings, Phase 10) must include resume versions, reminders and calendar events, not only applications.
+- **Data export** leaves out match results (they're derived from a resume and an advert, and can be deleted in Settings). The format is in [docs/architecture.md](docs/architecture.md#data-export).
+- **Landing page performance**: the redesigned landing page scores 71 on mobile Lighthouse (85 before), because it is rendered by JavaScript. Prerendering it to static HTML at build time is planned with the deploy.
+- **Email address** is shown in Settings but can't be changed yet: changing it needs the verification flow from Phase 12.
+- **Command palette** searches applications, pages and actions; per-application actions (add a note, move, match) from the mockup are left for later.
+- **Settings side nav** links to each section but doesn't highlight the one in view.
 - **Reminder lists aren’t paginated**: a personal account’s reminders stay small, and the views use open reminders or one application’s.
 - **Exits by stage** (later): the dashboard shows how many applications were rejected or withdrawn, not after which stage. The timeline has the data (the last stage before the exit); it needs its own analytics field and a decision on how to show it.
 - **Dashboard bundle**: Recharts makes the lazy `/dashboard` chunk ~116 KB gzip (the main bundle is unaffected). If first paint matters later, the chart can become its own lazy chunk so the figures show first.
