@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { EmptyState } from '@/components/empty-state';
+import { Loading } from '@/components/loading';
 import { PageHeader } from '@/components/page-header';
 import { LoadError } from '@/components/load-error';
 import { Badge } from '@/components/ui/badge';
@@ -228,11 +229,11 @@ function VersionView({ summary, actions }: { summary: ResumeSummary; actions: Ac
       </header>
 
       {resume.isPending && (
-        <div aria-busy="true" aria-label="Loading the resume text" className="grid gap-2">
+        <Loading label="Loading the resume text" className="grid gap-2">
           <Skeleton className="h-4 w-3/4" />
           <Skeleton className="h-4 w-2/3" />
           <Skeleton className="h-4 w-5/6" />
-        </div>
+        </Loading>
       )}
       {resume.isError && (
         <LoadError
@@ -295,10 +296,10 @@ function ResumesPage() {
   let content;
   if (resumes.isPending) {
     content = (
-      <div aria-busy="true" aria-label="Loading resume versions" className="mt-8 grid gap-3">
+      <Loading label="Loading resume versions" className="mt-8 grid gap-3">
         <Skeleton className="h-16 w-full max-w-80" />
         <Skeleton className="h-16 w-full max-w-80" />
-      </div>
+      </Loading>
     );
   } else if (resumes.isError) {
     content = (

@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 
 import { EmptyState } from '@/components/empty-state';
+import { Loading } from '@/components/loading';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -82,10 +83,10 @@ function useComingUpSources(
 
 function SectionSkeleton({ label, height }: { label: string; height: string }) {
   return (
-    <div aria-busy="true" aria-label={`Loading ${label}`} className="grid content-start gap-3">
+    <Loading label={`Loading ${label}`} className="grid content-start gap-3">
       <Skeleton className="h-7 w-48" />
       <Skeleton className={`${height} w-full`} />
-    </div>
+    </Loading>
   );
 }
 

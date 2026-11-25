@@ -7,6 +7,7 @@ import { EmptyState } from '@/components/empty-state';
 import { PageHeader } from '@/components/page-header';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Loading } from '@/components/loading';
 import { Skeleton } from '@/components/ui/skeleton';
 import { applicationQuery, applicationsListQuery } from '@/features/applications/api';
 import { LoadError } from '@/components/load-error';
@@ -56,7 +57,7 @@ function MatchPage() {
 function MatchBody() {
   const config = useQuery(matchConfigQuery());
 
-  if (config.isPending) return <Skeleton className="h-96" />;
+  if (config.isPending) return <MatchSkeleton />;
   if (config.isError) {
     return (
       <LoadError
@@ -106,7 +107,7 @@ function MatchWorkspace({ config }: { config: MatchConfig }) {
   }
   // The form reads its starting values once, so it waits for the linked application.
   if (resumes.isPending || (linkedId !== null && linked.isPending)) {
-    return <Skeleton className="h-96" />;
+    return <MatchSkeleton />;
   }
   if (resumes.isError) {
     return (
@@ -193,6 +194,28 @@ function MatchWorkspace({ config }: { config: MatchConfig }) {
         }}
       />
     </div>
+  );
+}
+
+/** The page's shape while matching's settings and the resumes load. */
+function MatchSkeleton() {
+  return (
+    <Loading
+      label="Loading the match form"
+      className="flex flex-wrap gap-12 border-t-[3px] border-rule pt-7"
+    >
+      <div className="grid flex-[1_1_22rem] content-start gap-5">
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-11 w-full" />
+        <Skeleton className="h-11 w-full" />
+        <Skeleton className="h-64 w-full" />
+        <Skeleton className="h-12 w-full" />
+      </div>
+      <div className="grid min-w-0 flex-[999_1_36rem] content-start gap-5">
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-40 w-full" />
+      </div>
+    </Loading>
   );
 }
 

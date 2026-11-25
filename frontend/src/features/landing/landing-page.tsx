@@ -5,6 +5,7 @@ import { PublicMasthead } from '@/components/public-masthead';
 import { SkipLink } from '@/components/skip-link';
 import { ThemeMenu } from '@/components/theme-menu';
 import { Button } from '@/components/ui/button';
+import { Loading } from '@/components/loading';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCurrentUser } from '@/features/auth/hooks';
 import type { User } from '@/types/auth';
@@ -173,7 +174,13 @@ function SignInCard() {
       <h2 id="signin-heading" className="font-display text-[2.125rem] font-semibold">
         Sign in
       </h2>
-      <Suspense fallback={<Skeleton className="h-64" />}>
+      <Suspense
+        fallback={
+          <Loading label="Loading the sign-in form">
+            <Skeleton className="h-64" />
+          </Loading>
+        }
+      >
         <LoginForm next="/dashboard" />
       </Suspense>
       <p className="text-sm">

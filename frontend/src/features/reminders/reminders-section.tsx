@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { LoadError } from '@/components/load-error';
 import { Button } from '@/components/ui/button';
+import { Loading } from '@/components/loading';
 import { Skeleton } from '@/components/ui/skeleton';
 import { isApiError } from '@/lib/api/errors';
 import type { Reminder } from '@/types/reminder';
@@ -45,7 +46,11 @@ function RemindersSection({ applicationId, company }: { applicationId: string; c
 
   let content;
   if (reminders.isPending) {
-    content = <Skeleton className="h-12 w-full" />;
+    content = (
+      <Loading label="Loading follow-ups">
+        <Skeleton className="h-12 w-full" />
+      </Loading>
+    );
   } else if (reminders.isError) {
     content = (
       <LoadError

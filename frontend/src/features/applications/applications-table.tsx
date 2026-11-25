@@ -4,6 +4,7 @@ import { Link, useLocation } from 'react-router';
 
 import { StatusBadge } from '@/components/status-badge';
 import { TagChip } from '@/components/tag-chip';
+import { Loading } from '@/components/loading';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDateOnly } from '@/lib/dates';
 import { cn } from '@/lib/utils';
@@ -199,12 +200,12 @@ function ApplicationsTable({ applications, sort, onSort, stale, caption }: Appli
 
 function TableSkeleton({ rows = 6 }: { rows?: number }) {
   return (
-    <div aria-busy="true" aria-label="Loading applications" className="grid gap-px">
+    <Loading label="Loading applications" className="grid gap-px">
       <Skeleton className="mb-2 h-6 w-full" />
       {Array.from({ length: rows }, (_, i) => (
         <Skeleton key={i} className="h-16 w-full" />
       ))}
-    </div>
+    </Loading>
   );
 }
 

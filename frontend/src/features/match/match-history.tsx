@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 
 import { Button } from '@/components/ui/button';
+import { Loading } from '@/components/loading';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LoadError } from '@/components/load-error';
 import { cn } from '@/lib/utils';
@@ -23,7 +24,18 @@ function MatchHistory({ className }: Readonly<{ className?: string }>) {
 
   let body;
   if (history.isPending) {
-    body = <Skeleton className="h-40" />;
+    body = (
+      <Loading label="Loading earlier matches" className="grid">
+        {Array.from({ length: 3 }, (_, i) => (
+          <div key={i} className="flex items-center gap-6 border-t py-3.5">
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-4 flex-1" />
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-6 w-16" />
+          </div>
+        ))}
+      </Loading>
+    );
   } else if (history.isError) {
     body = (
       <LoadError

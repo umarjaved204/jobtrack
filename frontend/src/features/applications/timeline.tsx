@@ -10,6 +10,7 @@ import { LoadError } from '@/components/load-error';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { FormField } from '@/components/ui/form-field';
+import { Loading } from '@/components/loading';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { applyServerError } from '@/features/auth/form-errors';
@@ -134,10 +135,10 @@ function Timeline({ applicationId }: { applicationId: string }) {
       </h2>
       <NoteForm applicationId={applicationId} />
       {events.isPending ? (
-        <div aria-busy="true" aria-label="Loading the timeline" className="grid gap-4">
+        <Loading label="Loading the timeline" className="grid gap-4">
           <Skeleton className="h-10 w-2/3" />
           <Skeleton className="h-10 w-1/2" />
-        </div>
+        </Loading>
       ) : events.isError ? (
         <LoadError
           title="The timeline didn’t load"

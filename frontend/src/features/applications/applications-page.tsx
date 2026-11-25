@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
 
 import { EmptyState } from '@/components/empty-state';
+import { Loading } from '@/components/loading';
 import { PageHeader } from '@/components/page-header';
 import { LoadError } from '@/components/load-error';
 import { Button } from '@/components/ui/button';
@@ -26,19 +27,16 @@ import { useTableParams } from './use-table-params';
 
 function BoardSkeleton() {
   return (
-    <div aria-busy="true" aria-label="Loading your board" className="flex gap-3 overflow-hidden">
+    <Loading label="Loading your board" className="flex gap-3 overflow-hidden">
       {[3, 2, 1, 2].map((cards, i) => (
-        <div
-          key={i}
-          className="grid w-72 shrink-0 content-start gap-2 rounded-lg bg-paper-sunken/60 p-2"
-        >
+        <div key={i} className="grid w-72 shrink-0 content-start gap-2 bg-paper-sunken/60 p-2">
           <Skeleton className="m-1 h-5 w-24" />
           {Array.from({ length: cards }, (_, j) => (
-            <Skeleton key={j} className="h-20 w-full rounded-md" />
+            <Skeleton key={j} className="h-20 w-full" />
           ))}
         </div>
       ))}
-    </div>
+    </Loading>
   );
 }
 

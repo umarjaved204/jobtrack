@@ -5,6 +5,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
 
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { Loading } from '@/components/loading';
 import { PageHeader } from '@/components/page-header';
 import { TagChip } from '@/components/tag-chip';
 import { LoadError } from '@/components/load-error';
@@ -79,7 +80,13 @@ function applyByHint(deadline: string): string {
 /** The version sent, linking to it on the Resumes page. */
 function ResumeSent({ id }: { id: string }) {
   const resumes = useQuery(resumesQuery());
-  if (resumes.isPending) return <Skeleton className="h-4 w-40" />;
+  if (resumes.isPending) {
+    return (
+      <Loading label="Loading the resume version">
+        <Skeleton className="h-4 w-40" />
+      </Loading>
+    );
+  }
   const resume = resumes.data?.find((r) => r.id === id);
   if (!resume) return <span className="text-muted-foreground">Unavailable</span>;
   return (
@@ -351,10 +358,10 @@ function ApplicationDetailPage() {
         )}
       </nav>
       {application.isPending && (
-        <div aria-busy="true" aria-label="Loading the application" className="grid gap-3">
+        <Loading label="Loading the application" className="grid gap-3">
           <Skeleton className="h-14 w-72" />
           <Skeleton className="h-6 w-56" />
-        </div>
+        </Loading>
       )}
       {application.isError && (
         <>

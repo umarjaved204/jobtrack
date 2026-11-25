@@ -5,6 +5,7 @@ import { useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { Loading } from '@/components/loading';
 import { PageHeader } from '@/components/page-header';
 import { LoadError } from '@/components/load-error';
 import { Button } from '@/components/ui/button';
@@ -113,10 +114,10 @@ function CalendarPage() {
   let body;
   if (feed.isPending) {
     body = (
-      <div aria-busy="true" aria-label="Loading the calendar" className="mt-6 grid gap-2">
+      <Loading label="Loading the calendar" className="mt-6 grid gap-2">
         <Skeleton className="h-8 w-full" />
         <Skeleton className="h-96 w-full" />
-      </div>
+      </Loading>
     );
   } else if (feed.isError) {
     body = (

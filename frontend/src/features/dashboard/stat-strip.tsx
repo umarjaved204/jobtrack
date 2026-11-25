@@ -1,6 +1,7 @@
 import type * as React from 'react';
 import { Link } from 'react-router';
 
+import { Loading } from '@/components/loading';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import type { AnalyticsSummary, Rate } from '@/types/analytics';
@@ -123,9 +124,8 @@ function StatStrip({ summary: s, cause, rangeLabel }: StatStripProps) {
 
 function StatStripSkeleton() {
   return (
-    <div
-      aria-busy="true"
-      aria-label="Loading key figures"
+    <Loading
+      label="Loading key figures"
       className="grid grid-cols-2 border-t-[3px] border-b border-rule lg:grid-cols-4"
     >
       {Array.from({ length: 4 }, (_, i) => (
@@ -135,7 +135,7 @@ function StatStripSkeleton() {
           <Skeleton className="h-4 w-40 max-w-full" />
         </div>
       ))}
-    </div>
+    </Loading>
   );
 }
 

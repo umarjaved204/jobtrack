@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/dialog';
 import { FormField } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
+import { Loading } from '@/components/loading';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { applyServerError } from '@/features/auth/form-errors';
@@ -205,7 +206,11 @@ function ContactsSection({ applicationId }: { applicationId: string }) {
 
   let content;
   if (contacts.isPending) {
-    content = <Skeleton className="h-16 w-full" />;
+    content = (
+      <Loading label="Loading contacts">
+        <Skeleton className="h-16 w-full" />
+      </Loading>
+    );
   } else if (contacts.isError) {
     content = (
       <LoadError

@@ -50,7 +50,7 @@ async function open(path = '/resumes') {
   const app = renderApp(path);
   await findPageHeading('Resume versions');
   await waitFor(() =>
-    expect(screen.queryByLabelText('Loading resume versions')).not.toBeInTheDocument(),
+    expect(screen.queryByText('Loading resume versions')).not.toBeInTheDocument(),
   );
   return { user, app };
 }
