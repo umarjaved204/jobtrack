@@ -12,12 +12,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { type AccentColor, accentColors } from '@/lib/palette';
 import { useThemePreference } from '@/features/auth/hooks';
-import { type Theme, themes } from '@/lib/theme';
+import { type Theme, THEME_NAMES, themes } from '@/lib/theme';
 
 const themeMeta: Record<Theme, { label: string; icon: typeof Sun }> = {
-  light: { label: 'Broadsheet (light)', icon: Sun },
-  dark: { label: 'Night edition (dark)', icon: Moon },
-  system: { label: 'Match system', icon: Monitor },
+  light: { label: `${THEME_NAMES.light} (light)`, icon: Sun },
+  dark: { label: `${THEME_NAMES.dark} (dark)`, icon: Moon },
+  system: { label: THEME_NAMES.system, icon: Monitor },
 };
 
 /** Appearance menu: light / dark / system plus the accent colour (saved to the profile). */

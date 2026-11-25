@@ -41,6 +41,13 @@ function writeStorage(key: string, value: string) {
  */
 export const THEME_COLORS = { light: '#f3ede2', dark: '#12100e' } as const;
 
+/** What each theme is called in the appearance menu and in Settings. */
+export const THEME_NAMES: Record<Theme, string> = {
+  light: 'Broadsheet',
+  dark: 'Night edition',
+  system: 'Match system',
+};
+
 const darkQuery = () => window.matchMedia('(prefers-color-scheme: dark)');
 
 /** Whether `theme` renders dark right now (`system` follows the OS). */
