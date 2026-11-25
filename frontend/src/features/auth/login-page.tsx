@@ -10,14 +10,19 @@ import { LoginForm } from './login-form';
 function LoginPage() {
   const [params] = useSearchParams();
   const next = safeNextPath(params.get('next'));
-  const expired = params.get('reason') === 'expired';
+  const reason = params.get('reason');
 
   return (
     <>
       <AuthPageHeader title="Sign in" description="Pick up your search where you left it." />
-      {expired && (
+      {reason === 'expired' && (
         <Alert tone="info" className="mt-6">
           Your session expired. Sign in again to carry on.
+        </Alert>
+      )}
+      {reason === 'deleted' && (
+        <Alert tone="info" className="mt-6">
+          Your account and everything in it have been deleted.
         </Alert>
       )}
       <div className="mt-8">

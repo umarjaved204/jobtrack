@@ -1,5 +1,6 @@
 import { PageHeader } from '@/components/page-header';
 
+import { AccountSection } from './account-section';
 import { AppearanceSection } from './appearance-section';
 import { ExportSection } from './export-section';
 import { MatchHistorySection } from './match-history-section';
@@ -19,6 +20,7 @@ function SettingsPage() {
         <AppearanceSection />
         <ExportSection />
         <MatchHistorySection />
+        <AccountSection />
       </div>
     </>
   );

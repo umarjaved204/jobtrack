@@ -29,7 +29,9 @@ export const RACE_RETRY_DELAY_MS = 400;
 /** Refresh this long before the access token expires (capped at 1/4 of its lifetime). */
 export const MAX_REFRESH_MARGIN_MS = 60_000;
 
-export type SignOutReason = 'logout' | 'expired';
+/** `deleted`: the account itself is gone (DELETE /users/me). */
+export type SignOutReason = 'logout' | 'expired' | 'deleted';
+const SIGN_OUT_REASONS: readonly SignOutReason[] = ['logout', 'expired', 'deleted'];
 type SignOutListener = (reason: SignOutReason) => void;
 type AuthMessage = { type: 'signed-out'; reason: SignOutReason };
 
@@ -66,7 +68,7 @@ const isSignOutMessage = (m: unknown): m is AuthMessage =>
   typeof m === 'object' &&
   m !== null &&
   (m as AuthMessage).type === 'signed-out' &&
-  ((m as AuthMessage).reason === 'logout' || (m as AuthMessage).reason === 'expired');
+  SIGN_OUT_REASONS.includes((m as AuthMessage).reason);
 
 export function createSessionManager(deps: SessionDeps) {
   let current: { accessToken: string; refreshAt: number } | null = null;

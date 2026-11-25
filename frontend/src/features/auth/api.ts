@@ -72,6 +72,16 @@ export async function signOut() {
   }
 }
 
+/**
+ * Permanently deletes the account (the server cascades every row and clears the refresh
+ * cookie), then ends the session: the sign-out handler clears cached data, this browser's
+ * match vectors and other tabs, and shows the login page.
+ */
+export async function deleteAccount() {
+  await api.delete('/users/me');
+  session.end('deleted');
+}
+
 export function updateProfile(patch: Partial<Pick<User, 'full_name' | 'theme' | 'accent'>>) {
   return api.patch<User>('/users/me', patch);
 }
