@@ -3,7 +3,6 @@ import { format } from 'date-fns/format';
 import { useState } from 'react';
 import { Link } from 'react-router';
 
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LoadError } from '@/features/dashboard/load-error';
@@ -14,7 +13,7 @@ import { BAND_LABELS, scoreBand } from './score-band';
 
 const PAGE_SIZE = 10;
 
-/** Past matches, newest first, each linking to its full result. */
+/** Earlier matches, newest first, each linking to its full result. */
 function MatchHistory({ className }: Readonly<{ className?: string }>) {
   const [page, setPage] = useState(1);
   const history = useQuery({
@@ -39,39 +38,65 @@ function MatchHistory({ className }: Readonly<{ className?: string }>) {
     const { items, pages } = history.data;
     body = (
       <>
-        <ol className={cn('grid border-t', history.isPlaceholderData && 'opacity-60')}>
-          {items.map((match) => (
-            <li key={match.id} className="border-b">
-              <Link
-                to={`/match/${match.id}`}
-                className="grid grid-cols-[3.5rem_1fr] gap-x-4 px-2 py-3 transition-colors duration-(--duration-fast) hover:bg-muted focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
-              >
-                <span className="row-span-2 figures font-display text-3xl leading-none font-semibold">
-                  {match.score}
-                  <span className="sr-only">
-                    {' '}
-                    out of 100, {BAND_LABELS[scoreBand(match.score)]}.
-                  </span>
-                </span>
-                {/* Real spaces between the parts: the gaps are only visual, and the link's
-                    accessible name would otherwise run them together. */}
-                <span className="truncate font-semibold">{match.jd_excerpt}</span>{' '}
-                <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-                  {match.company && <span>{match.company}</span>} <span>{match.resume_label}</span>{' '}
-                  <time dateTime={match.created_at}>
-                    {format(new Date(match.created_at), 'd MMM yyyy')}
-                  </time>
-                  {!match.is_current && (
-                    <>
-                      {' '}
-                      <Badge variant="outline">Older version</Badge>
-                    </>
-                  )}
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ol>
+        <div className="overflow-x-auto">
+          <table
+            aria-busy={history.isPlaceholderData || undefined}
+            className={cn(
+              'w-full min-w-xl border-collapse text-[0.9375rem] transition-opacity duration-(--duration-fast)',
+              history.isPlaceholderData && 'opacity-60',
+            )}
+          >
+            <thead>
+              <tr className="text-left text-muted-foreground">
+                <th scope="col" className="py-3 pr-3 kicker font-semibold">
+                  Date
+                </th>
+                <th scope="col" className="p-3 kicker font-semibold">
+                  Job
+                </th>
+                <th scope="col" className="p-3 kicker font-semibold">
+                  Resume
+                </th>
+                <th scope="col" className="py-3 pl-3 kicker font-semibold">
+                  Score
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((match) => (
+                <tr key={match.id} className="border-t transition-colors hover:bg-accent">
+                  <td className="py-3 pr-3 align-top text-[0.8125rem] whitespace-nowrap text-muted-foreground">
+                    <time dateTime={match.created_at} className="figures">
+                      {format(new Date(match.created_at), 'd MMM yyyy')}
+                    </time>
+                  </td>
+                  <td className="p-3 align-top">
+                    <Link
+                      to={`/match/${match.id}`}
+                      className="font-semibold underline-offset-4 hover:underline"
+                    >
+                      {match.company
+                        ? [match.company, match.role_title].filter(Boolean).join(' · ')
+                        : match.jd_excerpt}
+                    </Link>
+                    {match.company && (
+                      <p className="truncate text-sm text-muted-foreground">{match.jd_excerpt}</p>
+                    )}
+                  </td>
+                  <td className="p-3 align-top text-muted-foreground">{match.resume_label}</td>
+                  <td className="py-3 pl-3 align-top whitespace-nowrap">
+                    <span className="font-display text-[1.375rem] leading-none font-medium tabular-nums">
+                      {match.score}
+                    </span>{' '}
+                    <span className="text-[0.8125rem] text-muted-foreground">
+                      {match.is_current ? BAND_LABELS[scoreBand(match.score)] : 'Older version'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
         {pages > 1 && (
           <nav aria-label="Match history pages" className="flex items-center gap-3 text-sm">
             <Button
@@ -101,9 +126,20 @@ function MatchHistory({ className }: Readonly<{ className?: string }>) {
 
   return (
     <section aria-labelledby="match-history" className={cn('grid content-start gap-3', className)}>
-      <h2 id="match-history" className="font-display text-2xl font-semibold">
-        Past matches
-      </h2>
+      <header className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 border-b border-rule pb-2.5">
+        <h2 id="match-history" className="font-display text-section font-semibold">
+          Earlier matches
+        </h2>
+        {history.data && history.data.total > 0 && (
+          <p className="text-sm text-muted-foreground">
+            <span className="figures">{history.data.total}</span>{' '}
+            {history.data.total === 1 ? 'result' : 'results'} ·{' '}
+            <Link to="/settings" className="text-primary-text underline underline-offset-2">
+              delete them in Settings
+            </Link>
+          </p>
+        )}
+      </header>
       {body}
     </section>
   );

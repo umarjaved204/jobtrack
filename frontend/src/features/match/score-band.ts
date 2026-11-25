@@ -23,3 +23,9 @@ export const BAND_LABELS: Record<ScoreBand, string> = {
 
 /** 0.666 → "67%". */
 export const percent = (fraction: number) => `${Math.round(fraction * 100)}%`;
+
+/**
+ * The skills' share of the score when the advert names skills (backend
+ * `scoring.SKILLS_WEIGHT`; changing it there bumps the scoring version, so change both).
+ */
+export const SKILLS_WEIGHT = 0.6;

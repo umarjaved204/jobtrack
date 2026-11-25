@@ -27,9 +27,17 @@ describe('MatchResult', () => {
     const article = screen.getByRole('article', { name: 'Match score' });
     expect(article).toHaveTextContent('72 out of 100');
     expect(article).toHaveTextContent('Strong overlap');
-    expect(article).toHaveTextContent('Skills covered67%');
-    expect(article).toHaveTextContent('Wording match80%');
+    expect(article).toHaveTextContent('Skills covered · 60% of score67%');
+    expect(article).toHaveTextContent('Wording match · 40% of score80%');
     expect(article).toHaveTextContent(/isn’t how an employer/);
+  });
+
+  it('marks the score on the band scale', () => {
+    renderResult({ score: 48 });
+    expect(screen.getByRole('img', { name: /This match is 48\./ })).toHaveAccessibleName(
+      'Score bands: little overlap below 35, partial 35 to 64, strong 65 and above. This match is 48.',
+    );
+    expect(screen.getByRole('article')).toHaveTextContent('Partial overlap');
   });
 
   it('lists missing and covered requirements, marking nice-to-haves', () => {
@@ -39,12 +47,15 @@ describe('MatchResult', () => {
         { skills: ['Vue', 'Svelte'], label: 'Vue or Svelte', required: false },
       ],
     });
-    const missing = list(/^Missing \(2\)/);
+    const missing = list(/^Missing from your resume \(2\)/);
     expect(missing.getAllByRole('listitem').map((li) => li.textContent)).toEqual([
       'GraphQL',
-      'Vue or SvelteNice to have',
+      'Vue or Svelte · nice to have',
     ]);
     expect(list(/^Covered \(2\)/).getByText('React')).toBeVisible();
+    expect(screen.getByRole('article')).toHaveTextContent(
+      '2 of 3 required · 0 of 1 nice-to-have (count half)',
+    );
   });
 
   it('says when the advert didn’t separate requirements from nice-to-haves', () => {
@@ -56,15 +67,16 @@ describe('MatchResult', () => {
     renderResult({ skill_coverage: null, matched_skills: [], missing_skills: [] });
     expect(screen.getByText('No skills to compare')).toBeVisible();
     expect(screen.queryByRole('heading', { name: /^Missing/ })).not.toBeInTheDocument();
-    expect(screen.getByRole('article')).toHaveTextContent('Skills covered–');
+    expect(screen.getByRole('article')).toHaveTextContent('Skills covered · 0% of score–');
+    expect(screen.getByRole('article')).toHaveTextContent('Wording match · 100% of score');
   });
 
   it('shows keywords and the closest lines', () => {
     renderResult();
-    expect(list(/Keywords to consider/).getByText('GraphQL')).toBeVisible();
-    const pair = list(/Closest lines/).getByRole('listitem');
-    expect(pair).toHaveTextContent('Advert: React and TypeScript');
-    expect(pair).toHaveTextContent('Your resume: React, TypeScript, Playwright');
+    expect(list(/Words worth using/).getByText('GraphQL')).toBeVisible();
+    const pair = list(/The evidence/).getByRole('listitem');
+    expect(pair).toHaveTextContent('The advertReact and TypeScript');
+    expect(pair).toHaveTextContent('Your resumeReact, TypeScript, Playwright');
   });
 
   it('links the application it was matched for', () => {

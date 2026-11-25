@@ -57,14 +57,14 @@ function setup({
 async function openPage(path = '/match') {
   const user = userEvent.setup();
   renderApp(path);
-  await findPageHeading('Match a job description');
+  await findPageHeading('How well does a resume fit the job?');
   await screen.findByLabelText('Job description'); // the form, once config and resumes load
   return user;
 }
 
 async function fillAndRun(user: ReturnType<typeof userEvent.setup>, jd = JD) {
   await user.type(await screen.findByLabelText('Job description'), jd);
-  await user.click(screen.getByRole('button', { name: 'Match' }));
+  await user.click(screen.getByRole('button', { name: 'Score this match' }));
 }
 
 beforeEach(() => setup());
@@ -85,7 +85,7 @@ describe('match page: running a match', () => {
     expect(runtime.client?.loads).toHaveLength(1);
 
     // Once agreed, the page doesn't ask again.
-    await user.click(screen.getByRole('button', { name: 'Match' }));
+    await user.click(screen.getByRole('button', { name: 'Score this match' }));
     await waitFor(() => expect(backend.matches).toHaveLength(2));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
@@ -186,14 +186,14 @@ describe('match page: running a match', () => {
     await fillAndRun(user);
     expect(await screen.findByRole('article', { name: 'Match score' })).toBeVisible();
     expect(runtime.client?.loads).toEqual([]);
-    expect(screen.queryByText(/runs on your device/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Runs on your device/)).not.toBeInTheDocument();
   });
 });
 
 describe('match page: problems', () => {
   it('checks the job description before sending anything', async () => {
     const user = await openPage();
-    await user.click(screen.getByRole('button', { name: 'Match' }));
+    await user.click(screen.getByRole('button', { name: 'Score this match' }));
     expect(await screen.findByText('Paste the job description')).toBeVisible();
     expect(screen.getByLabelText('Job description')).toHaveAttribute('aria-invalid', 'true');
     expect(backend.calls).not.toContain('POST /match/prepare');
@@ -229,7 +229,7 @@ describe('match page: problems', () => {
   it('says when matching is switched off', async () => {
     setup({ mode: 'off' });
     renderApp('/match');
-    await findPageHeading('Match a job description'); // the page fades in
+    await findPageHeading('How well does a resume fit the job?'); // the page fades in
     expect(await screen.findByRole('heading', { name: 'Matching is switched off' })).toBeVisible();
     expect(screen.queryByLabelText('Job description')).not.toBeInTheDocument();
   });
@@ -237,7 +237,7 @@ describe('match page: problems', () => {
   it('explains when the browser can’t run the model', async () => {
     runtime.unsupported = 'no-simd';
     renderApp('/match');
-    await findPageHeading('Match a job description');
+    await findPageHeading('How well does a resume fit the job?');
     expect(
       await screen.findByRole('heading', { name: 'This browser can’t run the match' }),
     ).toBeVisible();
@@ -247,7 +247,7 @@ describe('match page: problems', () => {
   it('asks for a resume first when there are none to match', async () => {
     setup({ resumes: [makeResume({ archived_at: '2026-10-01T00:00:00Z' })] });
     renderApp('/match');
-    await findPageHeading('Match a job description');
+    await findPageHeading('How well does a resume fit the job?');
     expect(
       await screen.findByRole('heading', { name: 'Add a resume to match against' }),
     ).toBeVisible();
