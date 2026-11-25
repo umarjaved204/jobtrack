@@ -7,7 +7,6 @@ import {
   Lock,
   Pencil,
   Plus,
-  RotateCcw,
   Star,
   Trash2,
 } from 'lucide-react';
@@ -18,7 +17,7 @@ import { toast } from 'sonner';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { EmptyState } from '@/components/empty-state';
 import { PageHeader } from '@/components/page-header';
-import { Alert } from '@/components/ui/alert';
+import { LoadError } from '@/components/load-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -236,17 +235,11 @@ function VersionView({ summary, actions }: { summary: ResumeSummary; actions: Ac
         </div>
       )}
       {resume.isError && (
-        <Alert title="The text didn’t load">
-          <p>{errorText(resume.error)}</p>
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-3"
-            onClick={() => void resume.refetch()}
-          >
-            <RotateCcw /> Try again
-          </Button>
-        </Alert>
+        <LoadError
+          title="The text didn’t load"
+          error={resume.error}
+          onRetry={() => void resume.refetch()}
+        />
       )}
       {resume.data && (
         // The text set like a printed page: card stock, hairline edge, an offset shadow.
@@ -309,12 +302,12 @@ function ResumesPage() {
     );
   } else if (resumes.isError) {
     content = (
-      <Alert title="Resume versions didn’t load" className="mt-8 max-w-xl">
-        <p>{errorText(resumes.error)}</p>
-        <Button variant="outline" size="sm" className="mt-3" onClick={() => void resumes.refetch()}>
-          <RotateCcw /> Try again
-        </Button>
-      </Alert>
+      <LoadError
+        title="Resume versions didn’t load"
+        className="mt-8"
+        error={resumes.error}
+        onRetry={() => void resumes.refetch()}
+      />
     );
   } else if (!selected) {
     content = (

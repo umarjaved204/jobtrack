@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
-import { Plus, RotateCcw } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useState } from 'react';
 
 import { ConfirmDialog } from '@/components/confirm-dialog';
-import { Alert } from '@/components/ui/alert';
+import { LoadError } from '@/components/load-error';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { isApiError } from '@/lib/api/errors';
@@ -48,17 +48,11 @@ function RemindersSection({ applicationId, company }: { applicationId: string; c
     content = <Skeleton className="h-12 w-full" />;
   } else if (reminders.isError) {
     content = (
-      <Alert title="Follow-ups didn’t load">
-        <p>{errorText(reminders.error)}</p>
-        <Button
-          variant="outline"
-          size="sm"
-          className="mt-3"
-          onClick={() => void reminders.refetch()}
-        >
-          <RotateCcw /> Try again
-        </Button>
-      </Alert>
+      <LoadError
+        title="Follow-ups didn’t load"
+        error={reminders.error}
+        onRetry={() => void reminders.refetch()}
+      />
     );
   } else {
     const open = reminders.data.filter((r) => !r.done_at).sort((a, b) => compareDue(a, b));

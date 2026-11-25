@@ -1,10 +1,11 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery } from '@tanstack/react-query';
-import { Mail, Pencil, Phone, Plus, RotateCcw, Trash2, UserRound } from 'lucide-react';
+import { Mail, Pencil, Phone, Plus, Trash2, UserRound } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { LoadError } from '@/components/load-error';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
@@ -207,17 +208,11 @@ function ContactsSection({ applicationId }: { applicationId: string }) {
     content = <Skeleton className="h-16 w-full" />;
   } else if (contacts.isError) {
     content = (
-      <Alert title="Contacts didn’t load">
-        <p>{isApiError(contacts.error) ? contacts.error.detail : 'Something went wrong.'}</p>
-        <Button
-          variant="outline"
-          size="sm"
-          className="mt-3"
-          onClick={() => void contacts.refetch()}
-        >
-          <RotateCcw /> Try again
-        </Button>
-      </Alert>
+      <LoadError
+        title="Contacts didn’t load"
+        error={contacts.error}
+        onRetry={() => void contacts.refetch()}
+      />
     );
   } else if (contacts.data.length === 0) {
     content = (

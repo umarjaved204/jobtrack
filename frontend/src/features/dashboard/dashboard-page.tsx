@@ -23,7 +23,7 @@ import { type ComingUpSources, LOOKAHEAD_DAYS } from './coming-up';
 import { ComingUpPanel } from './coming-up-panel';
 import { Funnel } from './funnel';
 import { LatestMoves } from './latest-moves';
-import { LoadError } from './load-error';
+import { LoadError } from '@/components/load-error';
 import { rangeLabels, useDashboardRange } from './range';
 import { RangePicker } from './range-picker';
 import { Sources } from './sources';

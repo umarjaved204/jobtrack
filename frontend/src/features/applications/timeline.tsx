@@ -2,10 +2,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns/format';
 import { parseISO } from 'date-fns/parseISO';
-import { ArrowRight, RotateCcw } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
+import { LoadError } from '@/components/load-error';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { FormField } from '@/components/ui/form-field';
@@ -13,7 +14,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { applyServerError } from '@/features/auth/form-errors';
 import { useFormAlert } from '@/features/auth/use-form-alert';
-import { isApiError } from '@/lib/api/errors';
 import { cn } from '@/lib/utils';
 import { type ApplicationEvent, statusLabels } from '@/types/application';
 
@@ -139,17 +139,11 @@ function Timeline({ applicationId }: { applicationId: string }) {
           <Skeleton className="h-10 w-1/2" />
         </div>
       ) : events.isError ? (
-        <Alert title="The timeline didn’t load">
-          <p>{isApiError(events.error) ? events.error.detail : 'Something went wrong.'}</p>
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-3"
-            onClick={() => void events.refetch()}
-          >
-            <RotateCcw /> Try again
-          </Button>
-        </Alert>
+        <LoadError
+          title="The timeline didn’t load"
+          error={events.error}
+          onRetry={() => void events.refetch()}
+        />
       ) : (
         <ol aria-label="History, newest first" className="ml-[5px] border-l-2 border-rule pt-1">
           {events.data.map((event) => (

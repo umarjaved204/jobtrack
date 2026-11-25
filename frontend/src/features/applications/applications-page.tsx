@@ -1,14 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
-import { Plus, RotateCcw, SquareKanban, Table2 } from 'lucide-react';
+import { Plus, SquareKanban, Table2 } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
 
 import { EmptyState } from '@/components/empty-state';
 import { PageHeader } from '@/components/page-header';
-import { Alert } from '@/components/ui/alert';
+import { LoadError } from '@/components/load-error';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { isApiError } from '@/lib/api/errors';
 import { cn } from '@/lib/utils';
 import type { ApplicationStatus } from '@/types/application';
 
@@ -82,12 +81,11 @@ function BoardView({ onAdd }: { onAdd: (status: ApplicationStatus) => void }) {
     content = <BoardSkeleton />;
   } else if (board.isError) {
     content = (
-      <Alert title="Your board didn’t load">
-        <p>{isApiError(board.error) ? board.error.detail : 'Something went wrong.'}</p>
-        <Button variant="outline" size="sm" className="mt-3" onClick={() => void board.refetch()}>
-          <RotateCcw /> Try again
-        </Button>
-      </Alert>
+      <LoadError
+        title="Your board didn’t load"
+        error={board.error}
+        onRetry={() => void board.refetch()}
+      />
     );
   } else if (total === 0) {
     content = (

@@ -9,7 +9,7 @@ import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { applicationQuery, applicationsListQuery } from '@/features/applications/api';
-import { LoadError } from '@/features/dashboard/load-error';
+import { LoadError } from '@/components/load-error';
 import { resumesQuery } from '@/features/resumes/api';
 import type { Application } from '@/types/application';
 import type { MatchConfig } from '@/types/match';

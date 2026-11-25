@@ -1,10 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
-import { ChevronLeft, ChevronRight, Plus, RotateCcw, SearchX, Table2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, SearchX, Table2 } from 'lucide-react';
 import { useEffect } from 'react';
 import { Link } from 'react-router';
 
 import { EmptyState } from '@/components/empty-state';
-import { Alert } from '@/components/ui/alert';
+import { LoadError } from '@/components/load-error';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
@@ -14,7 +14,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { isApiError } from '@/lib/api/errors';
 import type { ApplicationStatus, Page } from '@/types/application';
 
 import { applicationsListQuery } from './api';
@@ -141,12 +140,11 @@ function ApplicationsTableView({ onAdd }: { onAdd: (status: ApplicationStatus) =
   let content;
   if (list.isError) {
     content = (
-      <Alert title="Your applications didn’t load">
-        <p>{isApiError(list.error) ? list.error.detail : 'Something went wrong.'}</p>
-        <Button variant="outline" size="sm" className="mt-3" onClick={() => void list.refetch()}>
-          <RotateCcw /> Try again
-        </Button>
-      </Alert>
+      <LoadError
+        title="Your applications didn’t load"
+        error={list.error}
+        onRetry={() => void list.refetch()}
+      />
     );
   } else if (!list.data) {
     content = <TableSkeleton />;

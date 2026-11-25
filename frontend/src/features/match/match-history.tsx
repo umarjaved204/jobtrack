@@ -5,7 +5,7 @@ import { Link } from 'react-router';
 
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { LoadError } from '@/features/dashboard/load-error';
+import { LoadError } from '@/components/load-error';
 import { cn } from '@/lib/utils';
 
 import { matchesQuery } from './api';

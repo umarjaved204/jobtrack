@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { ExternalLink, Pencil, RotateCcw } from 'lucide-react';
+import { ExternalLink, Pencil } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { PageHeader } from '@/components/page-header';
 import { TagChip } from '@/components/tag-chip';
+import { LoadError } from '@/components/load-error';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
@@ -358,27 +359,15 @@ function ApplicationDetailPage() {
       {application.isError && (
         <>
           <PageHeader title={notFound ? 'Application not found' : 'This application didn’t load'} />
-          <Alert className="mt-6 max-w-xl">
-            {notFound ? (
-              'It may have been deleted, or the link is wrong.'
-            ) : (
-              <>
-                <p>
-                  {isApiError(application.error)
-                    ? application.error.detail
-                    : 'Something went wrong.'}
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-3"
-                  onClick={() => void application.refetch()}
-                >
-                  <RotateCcw /> Try again
-                </Button>
-              </>
-            )}
-          </Alert>
+          {notFound ? (
+            <Alert className="mt-6 max-w-xl">It may have been deleted, or the link is wrong.</Alert>
+          ) : (
+            <LoadError
+              className="mt-6"
+              error={application.error}
+              onRetry={() => void application.refetch()}
+            />
+          )}
         </>
       )}
       {application.data && <ApplicationView application={application.data} back={back} />}

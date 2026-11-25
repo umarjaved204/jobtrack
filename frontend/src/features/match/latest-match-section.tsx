@@ -5,7 +5,7 @@ import { Link } from 'react-router';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { LoadError } from '@/features/dashboard/load-error';
+import { LoadError } from '@/components/load-error';
 
 import { matchesQuery } from './api';
 import { matchLinkFor } from './match-schema';

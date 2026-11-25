@@ -1,12 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
-import { Bell, ChevronLeft, ChevronRight, Plus, RotateCcw } from 'lucide-react';
+import { Bell, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { PageHeader } from '@/components/page-header';
-import { Alert } from '@/components/ui/alert';
+import { LoadError } from '@/components/load-error';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDeleteReminder } from '@/features/reminders/api';
@@ -120,12 +120,12 @@ function CalendarPage() {
     );
   } else if (feed.isError) {
     body = (
-      <Alert title="The calendar didn’t load" className="mt-6 max-w-xl">
-        <p>{errorText(feed.error)}</p>
-        <Button variant="outline" size="sm" className="mt-3" onClick={() => void feed.refetch()}>
-          <RotateCcw /> Try again
-        </Button>
-      </Alert>
+      <LoadError
+        title="The calendar didn’t load"
+        className="mt-6"
+        error={feed.error}
+        onRetry={() => void feed.refetch()}
+      />
     );
   } else if (wide) {
     const selectedItems = byDay.get(selected) ?? [];
