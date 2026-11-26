@@ -46,6 +46,16 @@ export default defineConfig([
       ],
     },
   },
+  // Playwright runs in Node, not React: its fixtures call `use()`, which the hooks rule
+  // would take for React's `use` hook.
+  {
+    files: ['e2e/**/*.ts', 'playwright.config.ts'],
+    languageOptions: { globals: globals.node },
+    rules: {
+      'react-hooks/rules-of-hooks': 'off',
+      'react-refresh/only-export-components': 'off',
+    },
+  },
   // Story-file rules (CSF conventions, no stray imports from renderer packages).
   storybook.configs['flat/recommended'],
   // Must come last: turns off stylistic rules that would fight Prettier.

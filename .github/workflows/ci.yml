@@ -1,5 +1,6 @@
 # CI: lint, typecheck, test, build for backend and frontend (+ Storybook build since Phase 4).
-# Expanded in Phase 11 (coverage, Playwright, Docker build).
+# Phase 11 added coverage floors, the e2e job (Playwright against the production build)
+# and the docker job (images build and pass a smoke test).
 name: CI
 
 on:
@@ -47,7 +48,9 @@ jobs:
           uv run alembic check
         env:
           DATABASE_URL: postgresql+psycopg://jobtrack:jobtrack@localhost:5432/jobtrack
-      - run: uv run pytest
+      # Coverage floor here, not in pyproject: there it would fail every partial local run.
+      # 97% measured at the start of Phase 11; raise it as coverage grows.
+      - run: uv run pytest --cov-fail-under=96
 
   frontend:
     runs-on: ubuntu-latest
@@ -69,7 +72,128 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       # Vitest: design-token contrast checks, components (RTL + jsdom), app shell routing.
-      - run: pnpm test
+      # Fails under the coverage thresholds in vite.config.ts.
+      - run: pnpm test:coverage
+      # The browser embedding model (~35 MB): `pnpm build` fetches it into public/models
+      # unless it's there and its hashes match. Keyed by the manifest, which pins the revision.
+      - uses: actions/cache@v6
+        with:
+          path: frontend/public/models
+          key: match-model-${{ hashFiles('frontend/scripts/model-manifest.json') }}
       - run: pnpm build
       # Fails the PR if any story no longer compiles.
       - run: pnpm build-storybook --quiet
+
+  # Playwright, Chromium only (frontend/playwright.config.ts): the production build served
+  # by `vite preview` with COOP/COEP, and the API on a fresh database. Playwright starts the
+  # API through backend/scripts/e2e_server.py, which recreates jobtrack_e2e, runs `alembic
+  # upgrade head` and serves; no test starts until /health/ready answers.
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: jobtrack
+          POSTGRES_PASSWORD: jobtrack
+          POSTGRES_DB: jobtrack
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U jobtrack"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      E2E_DATABASE_URL: postgresql+psycopg://jobtrack:jobtrack@localhost:5432/jobtrack_e2e
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          enable-cache: true
+      - run: uv sync --frozen
+        working-directory: backend
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: frontend/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+
+      # Browsers are tied to the Playwright version: cache them under it. System libraries
+      # aren't in the cache, so a hit still installs those.
+      - name: Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v6
+        id: browsers
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium
+      - if: steps.browsers.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install --with-deps chromium
+      - if: steps.browsers.outputs.cache-hit == 'true'
+        run: pnpm exec playwright install-deps chromium
+
+      # The browser embedding model (~35 MB): `pnpm build` fetches it into public/models
+      # unless it's there and its hashes match. Keyed by the manifest, which pins the revision.
+      - uses: actions/cache@v6
+        with:
+          path: frontend/public/models
+          key: match-model-${{ hashFiles('frontend/scripts/model-manifest.json') }}
+      - run: pnpm build
+      # CI=true: retries 2, one worker, `github` + HTML reporters (playwright.config.ts).
+      - run: pnpm e2e
+        env:
+          E2E_SKIP_BUILD: '1'
+      # Traces and screenshots of failed tests, and the HTML report that opens them.
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # The images still build and work: the backend migrates and connects, and the frontend
+  # nginx image sends COOP/COEP, falls back to index.html and serves the model itself
+  # (.github/scripts/docker-smoke.sh, which also runs locally). Nothing is pushed.
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: jobtrack
+          POSTGRES_PASSWORD: jobtrack
+          POSTGRES_DB: jobtrack
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U jobtrack"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      # Into the build context, so the image's `pnpm build` finds the model and doesn't
+      # download it. fetch-model.mjs needs no dependencies and skips verified files.
+      - uses: actions/cache@v6
+        with:
+          path: frontend/public/models
+          key: match-model-${{ hashFiles('frontend/scripts/model-manifest.json') }}
+      - run: node frontend/scripts/fetch-model.mjs
+      - run: docker build -t jobtrack-backend:smoke backend
+      - run: docker build --target prod -t jobtrack-frontend:smoke frontend
+      - run: bash .github/scripts/docker-smoke.sh

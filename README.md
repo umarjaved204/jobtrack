@@ -86,10 +86,17 @@ Backend tests run against a real Postgres database (`jobtrack_test`, created aut
 so start it first: `docker compose up -d db`.
 
 ```bash
-# backend
+# backend (CI adds --cov-fail-under=96)
 cd backend && uv run ruff check . && uv run ruff format --check . && uv run mypy app tests scripts && uv run pytest
-# frontend
+# frontend (`pnpm test:coverage` is what CI runs: the same tests with coverage thresholds)
 cd frontend && pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm build-storybook
+# end-to-end: Chromium against the production build and an API on a fresh `jobtrack_e2e`
+# database (Playwright starts both). Once: `pnpm exec playwright install chromium`.
+# E2E_SKIP_BUILD=1 reuses dist/; UV="py -m uv" if uv isn't on PATH.
+cd frontend && pnpm e2e
+# the Docker images: build, then smoke-test them (needs the db service)
+docker build -t jobtrack-backend:smoke backend && docker build --target prod -t jobtrack-frontend:smoke frontend
+bash .github/scripts/docker-smoke.sh
 # with the app running and the demo data seeded: an axe scan of every main screen, and
 # before/after screenshots at 1440 and 390 px in both themes (frontend/screenshots/, git-ignored)
 cd frontend && pnpm a11y && pnpm screenshots <label>
@@ -98,6 +105,24 @@ cd backend && uv run pre-commit install
 ```
 
 ## Quality
+
+### Tests and CI
+
+| Layer | What it covers | Size |
+|---|---|---|
+| Backend: pytest + httpx against real Postgres | services, API, migrations (up, down, up), auth races, match scoring and calibration | 476 tests, 96.75% line + branch coverage |
+| Frontend: Vitest + Testing Library (jsdom), MSW as the network | components, pages through the real routes and guards, data layer, design-token contrast | 1,089 tests; 93.7% statements, 87.4% branches |
+| End to end: Playwright, Chromium | sign-up, a real pointer drag and a keyboard move on the board, saved after reload; the AI match in the cross-origin isolated production build | 3 flows |
+| Images | backend migrates and is ready; nginx image sends COOP/COEP and serves the model | smoke script |
+
+CI (GitHub Actions) runs four jobs on every pull request and on `main`: **backend** (Ruff,
+mypy, `alembic check`, pytest with a coverage floor), **frontend** (Prettier, ESLint,
+`tsc`, Vitest with coverage thresholds, build, Storybook build), **e2e** (Postgres service,
+Playwright with cached browsers and model; traces kept 7 days on failure) and **docker**
+(both images built and smoke-tested). How the layers divide the work:
+[docs/architecture.md](docs/architecture.md#testing).
+
+### Lighthouse
 
 Audited after Phase 5 with Lighthouse 13 (production build, median of 5 runs per page) and the
 [Web Interface Guidelines](https://github.com/vercel-labs/web-interface-guidelines); fixes in
@@ -141,14 +166,14 @@ This is intentional; see [ADR 0002](docs/adr/0002-authentication.md).
 | 9  | AI match: skills taxonomy and section-aware requirements, embeddings in the browser (Web Worker, multi-threaded through cross-origin isolation, vectors cached in IndexedDB), calibrated and versioned scores, match history, latest match on each application, delete history | ✅ |
 | 9b | Resume file import: PDF (pdf.js) and Word .docx (mammoth) read in the browser, never uploaded; lines rebuilt from PDF text positions, bullets and hyphenation cleaned up, file type checked from its first bytes; the text is reviewed before saving | ✅ |
 | 10 | Redesign to the “broadsheet” mockups (every page, light and night), offer ink-stamp celebration, animated funnel, ⌘K palette; Settings (name, theme and accent, data export as JSON or CSV, delete account); empty, loading and error states; accessibility (axe scan, dialogs return focus, names that match the visible text) and phone layouts | ✅ |
-| 11 | Test suite expansion + full CI, incl. Playwright for the Kanban drag paths jsdom can't run (below) | ⏳ |
+| 11 | Playwright flows (sign-up and board drag/keyboard moves; the AI match in the isolated production build), coverage floors in CI, e2e and Docker image jobs; found and fixed a board bug (a card picked up during the page transition landed one column off) | ✅ |
 | 12 | Email verification + password reset (non-blocking verify banner; reset never reveals if an account exists) | ⏳ |
 | 13 | Deploy, demo data, screenshots, write-up | ⏳ |
 
 ### Known limitations and optional work
 
 - **Rate limiting** on login/register: backend (Phase 3, in-process, single instance) and UI countdown from `Retry-After` (Phase 5). Verify client-IP handling before the public deploy (see deployment notes).
-- **Kanban drag tests**: jsdom has no layout, so these drag paths are verified in a real browser and belong in the Phase 11 Playwright flow: pointer drag between and within columns (5 px threshold), touch press-and-hold (250 ms) versus swipe-to-scroll, keyboard arrow-key movement between columns (including through empty and off-screen columns), drop animation on/off with `prefers-reduced-motion`, and auto-scroll near the board edges. Unit tests cover the drop maths; jsdom tests cover keyboard pick-up/drop/cancel, the "Move to…" menu and failures.
+- **Kanban drag tests**: the Playwright pipeline flow covers a real pointer drag between columns (past the 5 px threshold) and a keyboard move (Space, arrow, Space), both checked after a reload. Still checked by hand only: reordering within a column, touch press-and-hold (250 ms) versus swipe-to-scroll, the drop animation with `prefers-reduced-motion`, and auto-scroll near the board edges. Unit tests cover the drop maths; jsdom tests cover keyboard pick-up/drop/cancel, the "Move to…" menu and failures.
 - **Source filter options** come from the board data (every application), since there's no endpoint listing sources. A small `GET /applications/sources` would avoid fetching the board in table view.
 - **Reminders are in-app only**: they show on the application, the calendar and the dashboard. Nothing is emailed or pushed.
 - **Time zones**: times are entered and shown in the browser’s zone and stored in UTC; there’s no per-user zone setting. All-day reminders and apply-by dates are plain dates and never shift between zones.
@@ -162,7 +187,7 @@ This is intentional; see [ADR 0002](docs/adr/0002-authentication.md).
 - **Reminder lists aren’t paginated**: a personal account’s reminders stay small, and the views use open reminders or one application’s.
 - **Exits by stage** (later): the dashboard shows how many applications were rejected or withdrawn, not after which stage. The timeline has the data (the last stage before the exit); it needs its own analytics field and a decision on how to show it.
 - **Dashboard bundle**: Recharts makes the lazy `/dashboard` chunk ~116 KB gzip (the main bundle is unaffected). If first paint matters later, the chart can become its own lazy chunk so the figures show first.
-- **Keyboard dragging** can occasionally skip a column when arrow keys are pressed faster than ~5 per second (dnd-kit measures card positions while the previous move animates). The "Move to…" menu on every card is the dependable keyboard path.
+- **Keyboard dragging**: from Wishlist, Applied or Screening, the first arrow-key press after picking a card up keeps it in its own column (announced as "Over Wishlist"); later presses move one column each (measured in Phase 11, Chromium; from Interview the first press moves). It never drops a card anywhere unannounced. The earlier note about skipping columns at speed didn't reproduce: three presses 30 to 300 ms apart always ended in the same column. Likely dnd-kit's sortable keyboard coordinates choosing the card's own column first; a custom coordinate getter would fix it. The "Move to…" menu on every card is the dependable keyboard path.
 - **Cross-tab sessions** use the Web Locks API, which needs a secure context (HTTPS or `localhost`). Opening the dev server from another device via a LAN IP uses the fallback path; see ADR 0002.
 - **Email addresses**: format is checked on client and server, and sign-up rejects domains that DNS confirms can't receive mail (typos like `gmial.com`). That doesn't prove the inbox exists: verification links and password reset are Phase 12.
 

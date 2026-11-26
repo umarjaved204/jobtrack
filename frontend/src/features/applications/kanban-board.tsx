@@ -16,6 +16,7 @@ import {
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { useReducedMotion } from 'motion/react';
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
 
 import { LiveRegion } from '@/components/live-region';
@@ -289,9 +290,16 @@ function KanbanBoard({
           </BoardColumn>
         ))}
       </div>
-      <DragOverlay dropAnimation={reduceMotion ? null : undefined}>
-        {active ? <BoardCardPreview application={active} /> : null}
-      </DragOverlay>
+      {/* In <body>, not in the page: the overlay is position: fixed, and the page's entrance
+          transition (a transform on an ancestor) would make that relative to the page for
+          its first ~0.5 s. dnd-kit takes collisions from the overlay's rect, so a card
+          picked up then was "over" the next column (caught by the e2e pipeline flow). */}
+      {createPortal(
+        <DragOverlay dropAnimation={reduceMotion ? null : undefined}>
+          {active ? <BoardCardPreview application={active} /> : null}
+        </DragOverlay>,
+        document.body,
+      )}
       <LiveRegion message={message} />
     </DndContext>
   );
