@@ -1,5 +1,6 @@
 # CI: lint, typecheck, test, build for backend and frontend (+ Storybook build since Phase 4).
-# Phase 11 added coverage floors and the e2e job (Playwright against the production build).
+# Phase 11 added coverage floors, the e2e job (Playwright against the production build)
+# and the docker job (images build and pass a smoke test).
 name: CI
 
 on:
@@ -161,3 +162,38 @@ jobs:
             frontend/test-results
           retention-days: 7
           if-no-files-found: ignore
+
+  # The images still build and work: the backend migrates and connects, and the frontend
+  # nginx image sends COOP/COEP, falls back to index.html and serves the model itself
+  # (.github/scripts/docker-smoke.sh, which also runs locally). Nothing is pushed.
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: jobtrack
+          POSTGRES_PASSWORD: jobtrack
+          POSTGRES_DB: jobtrack
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U jobtrack"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      # Into the build context, so the image's `pnpm build` finds the model and doesn't
+      # download it. fetch-model.mjs needs no dependencies and skips verified files.
+      - uses: actions/cache@v6
+        with:
+          path: frontend/public/models
+          key: match-model-${{ hashFiles('frontend/scripts/model-manifest.json') }}
+      - run: node frontend/scripts/fetch-model.mjs
+      - run: docker build -t jobtrack-backend:smoke backend
+      - run: docker build --target prod -t jobtrack-frontend:smoke frontend
+      - run: bash .github/scripts/docker-smoke.sh
