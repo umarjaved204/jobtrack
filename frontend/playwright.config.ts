@@ -22,6 +22,9 @@ const WEB_COMMAND = process.env.E2E_SKIP_BUILD ? PREVIEW : `pnpm build && ${PREV
 export default defineConfig({
   testDir: './e2e',
   testMatch: '**/*.spec.ts',
+  // Whole flows in a real browser: ~10 s alone, but past 30 s with four in parallel on a
+  // laptop (measured). Steps still fail fast on their own 5 s expect timeout.
+  timeout: 60_000,
   forbidOnly: CI,
   retries: CI ? 2 : 0,
   // One worker in CI: the runners have 2-4 cores and the match flow runs ONNX on several.
