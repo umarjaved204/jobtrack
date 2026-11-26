@@ -81,14 +81,26 @@ export default defineConfig(({ mode }) => {
       include: ['src/**/*.test.{ts,tsx}'],
       environment: 'jsdom',
       setupFiles: ['./src/test/setup.ts'],
-      // Integration tests mount the real app; a cold run compiles lazy route chunks on
-      // demand, which under parallel load can exceed the 5 s default for one test.
-      testTimeout: 15_000,
+      // Integration tests mount the real app; the first test in such a file compiles the
+      // lazy route chunks (up to ~6 s measured, ~40% more with coverage). 15 s timed out
+      // now and then on a busy machine, so 30 s: room for load, still catches a hang.
+      testTimeout: 30_000,
       // Half the CPUs: at the default (one worker per CPU) those cold compiles starve each
       // other and time out now and then. 50% barely changes the total (≈2 min locally).
       maxWorkers: '50%',
       // Vitest stubs CSS imports by default; the token tests read the real stylesheets.
       css: { include: [/src\/styles\/.+\.css/] },
+      // `pnpm test:coverage` (CI). Thresholds sit just under the measured figures, so a
+      // drop fails CI; raise them when coverage grows. Code only a real browser runs (the
+      // embedding worker's runtime, drag paths) is left in: the e2e flows cover it.
+      coverage: {
+        provider: 'v8',
+        include: ['src/**/*.{ts,tsx}'],
+        exclude: ['src/**/*.test.{ts,tsx}', 'src/**/*.stories.tsx', 'src/test/**', 'src/**/*.d.ts'],
+        reporter: ['text-summary', 'html', 'json-summary'],
+        // Measured at the start of Phase 11: 93.7 / 87.4 / 90.8 / 95.0.
+        thresholds: { statements: 92, branches: 86, functions: 89, lines: 93 },
+      },
     },
   };
 });

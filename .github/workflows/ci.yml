@@ -47,7 +47,9 @@ jobs:
           uv run alembic check
         env:
           DATABASE_URL: postgresql+psycopg://jobtrack:jobtrack@localhost:5432/jobtrack
-      - run: uv run pytest
+      # Coverage floor here, not in pyproject: there it would fail every partial local run.
+      # 97% measured at the start of Phase 11; raise it as coverage grows.
+      - run: uv run pytest --cov-fail-under=96
 
   frontend:
     runs-on: ubuntu-latest
@@ -69,7 +71,8 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       # Vitest: design-token contrast checks, components (RTL + jsdom), app shell routing.
-      - run: pnpm test
+      # Fails under the coverage thresholds in vite.config.ts.
+      - run: pnpm test:coverage
       - run: pnpm build
       # Fails the PR if any story no longer compiles.
       - run: pnpm build-storybook --quiet
