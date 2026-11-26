@@ -304,7 +304,9 @@ jobtrack/
   The board move is optimistic; see the comment on `useMoveApplication` before changing it.
 - Kanban: classic `@dnd-kit/core` + `@dnd-kit/sortable` (ADR 0003, not `@dnd-kit/react`).
   Drag maths and announcement text live in `board-dnd.ts` (pure, unit-tested); components
-  only wire events. Every drag has a non-drag path ("Move to…" menu). jsdom tests inject
+  only wire events. Anything in the `DragOverlay` keeps transforms off its outermost
+  element: dnd-kit measures it with transforms, and a tilted rect broke the first arrow
+  press (ADR 0003 Revision 1). Every drag has a non-drag path ("Move to…" menu). jsdom tests inject
   `collisionDetection={() => []}`; real drag paths are for Playwright (README limitations).
 - Applications page state lives in the URL: `table-params.ts` parses each param with Zod
   (invalid → that param's default, defaults omitted from the URL), `useTableParams` reads and
