@@ -49,7 +49,7 @@ function BoardOnly() {
   ) : null;
 }
 async function openBoardOnly() {
-  render(
+  const view = render(
     <AppProviders queryClient={createQueryClient()}>
       <MemoryRouter>
         <BoardOnly />
@@ -57,6 +57,7 @@ async function openBoardOnly() {
     </AppProviders>,
   );
   await screen.findByRole('region', { name: 'Pipeline board' });
+  return view;
 }
 const column = (name: string) => screen.getByRole('region', { name });
 const cardsIn = (name: string) =>
@@ -109,6 +110,22 @@ describe('Kanban board', () => {
     );
     expect(cardsIn('Applied')).toEqual(['Monzo', 'Wise']);
     expect(moves()).toBe(0);
+  });
+
+  it('renders the drag preview in <body>, outside the page', async () => {
+    // The preview is position: fixed; inside the page, the entrance transition's transform
+    // would offset it and dnd-kit would detect the wrong column (seen in Playwright).
+    const user = userEvent.setup();
+    const { container } = await openBoardOnly();
+
+    screen.getByRole('button', { name: `Move ${MONZO}` }).focus();
+    await user.keyboard(' ');
+    await waitFor(() => expect(liveText()).toContain(`Picked up ${MONZO}.`));
+
+    const monzo = [...document.querySelectorAll('h3')].filter((h) => h.textContent === 'Monzo');
+    expect(monzo).toHaveLength(2); // the card's slot and the preview
+    expect(monzo.filter((h) => !container.contains(h))).toHaveLength(1);
+    await user.keyboard('{Escape}');
   });
 
   it('dropping a card where it started makes no request', async () => {
