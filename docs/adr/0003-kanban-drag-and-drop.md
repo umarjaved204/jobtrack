@@ -57,9 +57,10 @@ Classic dnd-kit passed every requirement in the same harness, with one caveat (b
 
 ## Consequences
 
-- Keyboard dragging can skip a column when arrow keys are pressed faster than about five per
-  second (reliable at 200 ms between presses in the spike; `MeasuringStrategy.Always` did not
-  help). The "Move to…" menu is the dependable keyboard path, and the README says so.
+- Keyboard dragging moves one column per arrow press, from every column and in both
+  directions (see "Revision 1"). The spike's note about skipping columns at speed didn't
+  reproduce in Phase 11 (three presses 30 to 300 ms apart always ended in the same column).
+  The "Move to…" menu stays the non-drag path.
 - jsdom has no layout, so real drag paths (pointer, touch, arrow-key movement, auto-scroll,
   drop animation) need Playwright (Phase 11). Component tests inject a collision detector
   that reports nothing, which models a pick-up and drop in place.
@@ -67,3 +68,26 @@ Classic dnd-kit passed every requirement in the same harness, with one caveat (b
 - Revisit `@dnd-kit/react` when its keyboard sensor handles moves between groups across
   re-renders; the pure logic in `board-dnd.ts` doesn't depend on either package beyond
   `arrayMove`.
+
+## Revision 1 (2026-11-26): the first arrow press after pick-up
+
+**Symptom.** From Wishlist, Applied or Screening, the first ArrowRight after picking a card
+up left it in its own column (announced as "Over Wishlist"); every later press moved one
+column. From Interview onward the first press worked.
+
+**Cause.** Not the collision detection strategy: `closestCorners` was fine, and swapping it
+would not have helped. dnd-kit measures the `DragOverlay` through its first child
+(`getMeasurableNode`) *with* transforms, and our preview put its 2° tilt on that child. The
+tilted card's bounding box starts ~2.7 px left of the real card (153.3 for 156 in Chromium).
+`sortableKeyboardCoordinates` keeps, for ArrowRight, the droppables whose left edge is right
+of the dragged rect's, so the card's own column qualified and won; that "move" snapped the
+rect to the column's exact edge, which is why later presses worked. Columns past the
+scroller's midpoint go through the sensor's scroll branch instead, which hid it there.
+
+**Fix.** `BoardCardPreview` keeps an untransformed outer box (what dnd-kit measures) and
+tilts an inner one, so the drag rect is the card's exact rect. No custom coordinate getter.
+`board-keyboard.test.tsx` runs the getter on the board's measured geometry (one column per
+press, both directions; the tilted rect reproduces the old bug) and checks the preview's
+outer box carries no transform; the Playwright pipeline flow presses ArrowRight once from
+Wishlist and expects Applied. Rule: anything rendered in the `DragOverlay` keeps transforms
+off its outermost element.

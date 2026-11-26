@@ -262,11 +262,20 @@ function CardBody({ application, action }: { application: Application; action?: 
   );
 }
 
-/** What follows the pointer while dragging (rendered in the DragOverlay): lifted and tilted. */
+/**
+ * What follows the pointer while dragging (rendered in the DragOverlay): lifted and tilted.
+ *
+ * The tilt sits one level in, on purpose. dnd-kit takes the drag's collision rect from the
+ * overlay's first child, transforms included: a tilted outer box measures ~3 px left of the
+ * card, so the keyboard's first ArrowRight still "saw" the card's own column to its right
+ * and stayed put. The outer box keeps the card's exact rect.
+ */
 function BoardCardPreview({ application }: { application: Application }) {
   return (
-    <div className="-rotate-2 border border-rule bg-card p-3 shadow-[0_18px_30px_rgb(var(--shadow-rgb)/0.22),0_2px_0_var(--rule)]">
-      <CardBody application={application} />
+    <div data-drag-preview="">
+      <div className="-rotate-2 border border-rule bg-card p-3 shadow-[0_18px_30px_rgb(var(--shadow-rgb)/0.22),0_2px_0_var(--rule)]">
+        <CardBody application={application} />
+      </div>
     </div>
   );
 }
