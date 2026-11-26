@@ -182,7 +182,8 @@ jobtrack/
     celebration, animated funnel, ⌘K palette, Settings (name, theme/accent, export, delete
     account), empty/loading/error states, a11y and phone passes. Landing Lighthouse mobile fell
     85 → 71 (client-rendered, heavier page): prerender it in Phase 13
-11. Tests (unit, integration, 1-2 Playwright flows) and CI
+11. Tests and CI (done; branch `phase-11-tests-ci`; docs/architecture.md "Testing"):
+    Playwright flows (pipeline, match), coverage floors, e2e and docker CI jobs
 12. Email verification + password reset (scope in ADR 0002 "Planned"; provider chosen then)
 13. Deploy, demo seed script, README with screenshots, architecture diagram, GIF, "what I learned"
 
@@ -479,3 +480,32 @@ jobtrack/
   bullets) are written as `\u` escapes in source or `String.fromCodePoint` in tests, never
   literally: they can't be reviewed. ESLint's `no-misleading-character-class` rejects a
   zero-width joiner inside `[...]`: use an alternation.
+
+## Conventions (established in Phase 11, tests and CI)
+- E2E: `frontend/e2e/` (Playwright, Chromium only). `pnpm e2e` builds, then starts the API
+  (`backend/scripts/e2e_server.py`: recreates `jobtrack_e2e`, migrates, serves on 8001,
+  rate limit and DNS check off; refuses any DB not named `*_e2e`) and `vite preview` on
+  4173. `E2E_SKIP_BUILD=1` reuses dist/; `UV="py -m uv"` if uv isn't on PATH. Needs the db
+  service and `pnpm exec playwright install chromium` once.
+- Specs import `test`/`expect` from `e2e/support/fixtures.ts` (fails on uncaught page
+  errors; `issues.consoleErrors` for assertions) and set data up through
+  `e2e/support/api.ts` with the browser context (the refresh cookie lands in the browser).
+  Imports use `.ts` extensions (`tsconfig.e2e.json`). Unique users per test (`newUser()`).
+- Assert on what the user or the server sees: the request body of a move, the board after
+  `page.reload()`, the timeline. AI scores: assert a band/range, never an exact number.
+- Pointer drags: `page.mouse` with several `steps`, past the 5 px activation distance, and
+  check the slot moved before `mouse.up()`. Keyboard drags: Space, arrows, Space.
+- Debugging an e2e failure: `test-results/<test>/error-context.md` (page snapshot) and
+  `trace.zip` (actions and network; `pnpm exec playwright show-trace`). `--repeat-each N
+  --workers 1` before calling a flow stable; parallel repeats on a laptop time out first.
+- `@playwright/test` and `playwright` are pinned to the same exact version (one browser
+  build; CI's browser cache is keyed by it). Same for `@vitest/coverage-v8` and `vitest`
+  (exact peer): upgrade each pair together.
+- Coverage: `pnpm test:coverage` (thresholds in vite.config.ts) and `pytest
+  --cov-fail-under=96` in CI only. Floors sit just under measured figures; raise them as
+  coverage grows. Vitest testTimeout is 30 s (cold route-chunk compiles under load).
+- Portals: anything `position: fixed` that measures itself (dnd-kit's DragOverlay) renders
+  in `document.body`; the page's entrance transition transforms its ancestors.
+- CI jobs: backend, frontend, e2e (report + traces uploaded on failure, 7 days), docker
+  (`.github/scripts/docker-smoke.sh`, also runnable locally). The match model is cached by
+  `model-manifest.json`'s hash in every job that builds the frontend.

@@ -421,4 +421,45 @@ can't ride on a plain link) and saves the Blob with `saveFile` (`src/lib/save-fi
 - `GET /api/v1/health`: liveness, process only (used by Docker healthchecks).
 - `GET /api/v1/health/ready`: readiness, runs `SELECT 1` (503 if the DB is unreachable).
 
+## Testing
+
+Each layer tests what the one below it can't. Most behaviour is pinned by the fast layers;
+the slow ones exist for what only a real browser or a real container shows.
+
+| Layer | Runs | Proves | Can't prove |
+|---|---|---|---|
+| Backend (pytest, `backend/tests/`) | real Postgres (`jobtrack_test`), one rolled-back transaction per test; migrations up, down and up once per run | services, API contracts, ownership (404 not 403), races on real connections, scoring and calibration constants | anything in the browser |
+| Frontend (Vitest + RTL, jsdom) | the real routes, guards and query client; MSW stands in for the API with fakes that follow its rules (`src/test/fake-applications.ts`) | components, pages, forms, the data layer, keyboard paths, token contrast | layout (no geometry: drags, collisions), Web Workers, real headers |
+| End to end (Playwright, `frontend/e2e/`) | Chromium against `vite build` + `vite preview` (COOP/COEP) and the real API on a fresh `jobtrack_e2e` | real pointer and keyboard drags; a session restored from the httpOnly cookie; the match in a cross-origin isolated page: model from our origin, worker, saved score | touch, other browsers, phone performance |
+| Images (`.github/scripts/docker-smoke.sh`) | the built backend and nginx images | the backend migrates and connects; nginx sends COOP/COEP, falls back to `index.html`, serves the model and 404s missing model files | the hosted platforms (Vercel, Render, Neon) |
+
+**End-to-end set-up.** `playwright.config.ts` starts two servers. The API is
+`backend/scripts/e2e_server.py`: it drops and recreates `jobtrack_e2e` (it refuses any
+database not named `*_e2e`, and `ENVIRONMENT=production`), runs `alembic upgrade head`, and
+serves on 8001 with the auth rate limit and the sign-up DNS check off (retries would trip
+the one; the tests mustn't depend on real DNS; both have backend tests). It is never reused,
+so every run starts from an empty database. The app is the production build on 4173,
+proxying `/api` to it. Test data goes through the API in the browser context
+(`e2e/support/api.ts`), so the refresh cookie lands in the browser as it would for a user.
+Every test fails on an uncaught page error (`e2e/support/fixtures.ts`).
+
+**What the flows assert, and why that way.**
+
+- Pipeline: the pointer drag uses several `mouse.move` steps past the 5 px activation
+  distance and checks the card's slot is in the target column *before* the drop; the
+  request body names the new status; the board and the timeline are checked after a reload.
+- Match: a labelled "the role" pair from `backend/scripts/calibration_data/` (scored 78-99
+  in validation), so the assertion is the band and a 65-100 range, never an exact score.
+  Every request the context makes, the worker's included, must be same-origin, and the
+  console must stay free of errors (COEP blocks are logged there).
+
+**Timeouts.** Vitest allows 30 s per test: the first test in a file that mounts the app
+compiles the lazy route chunks (up to ~6 s, ~40% more with coverage). Playwright allows 60
+s per test (the match flow 180 s: a CI runner downloads and runs the model); expectations
+keep their 5 s default, so a broken step still fails fast.
+
+**Coverage floors** sit just under the measured figures (frontend thresholds in
+`vite.config.ts`; backend `--cov-fail-under` in CI only, so partial local runs pass).
+Raise them when coverage grows; never lower them to land a change without saying why.
+
 See [`adr/`](./adr) for recorded decisions.
